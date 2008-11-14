@@ -2,9 +2,20 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="test"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/JVM 1.5.0 (MacOS X Default)"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jst.server.core.container/org.eclipse.jst.server.tomcat.runtimeTarget/Apache Tomcat v5.5"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.web.container"/>
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
+	<classpathentry kind="lib" path="/home/cartik/Downloads/restlet-1.0.11/lib/org.json_2.0/org.json.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/Downloads/restlet-1.0.11/lib/org.restlet.ext.json_2.0.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/phenex.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/obdapi.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/QueryOBD/lib/junit-4.5.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/Phenex/lib/obo.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/Phenex/lib/phenote.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/Phenex/lib/obo-vocab.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/Phenex/lib/postgresql-8.2-506.jdbc3.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/bbop.jar"/>
+	<classpathentry kind="lib" path="/home/cartik/workspace/queryobd.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>
