@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Pattern;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
@@ -50,8 +52,11 @@ public class TermResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep = null;
+		String stringRep = "";
+
 		try {
 			this.jObjs = getTermInfo(this.termId);
+			stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -66,6 +71,8 @@ public class TermResource extends Resource {
 			e.printStackTrace();
 		}
 		rep = new JsonRepresentation(this.jObjs);
+		System.out.println(stringRep);
+
 		return rep;
 
 	}
@@ -77,51 +84,108 @@ public class TermResource extends Resource {
 
 		Set<Statement> stmts = obdq.genericTermSearch(termId);
 		JSONObject jsonObj = new JSONObject();
-		JSONObject parent = new JSONObject();
-		JSONObject parents = new JSONObject();
-		JSONObject child = new JSONObject();
-		JSONObject children = new JSONObject();
-		JSONObject otherRelation = new JSONObject();
-		JSONObject otherRelations = new JSONObject();
+
+		Set<JSONObject> parents = new HashSet<JSONObject>();
+		Set<JSONObject> children = new HashSet<JSONObject>();
+		Set<JSONObject> otherRelations = new HashSet<JSONObject>();
 		jsonObj.put("id", termId);
 		jsonObj.put("name", obdsql.getNode(termId).getLabel());
 		jsonObj.put("definition", obdsql.getNode(termId).getLabel());
 		for (Statement stmt : stmts) {
+
 			String subj = stmt.getNodeId();
 			String pred = stmt.getRelationId();
 			String obj = stmt.getTargetId();
 			Node objNode = obdsql.getNode(obj);
-
 			if (pred != null && pred.length() > 0) {
 				if (pred.contains("is_a") || pred.contains("part_of")) {
-					if (termId.equals(subj)) {
+					if (subj.equals(termId)) {
+						JSONObject parent = new JSONObject();
 						parent.put("relation", pred);
 						parent.put("id", obj);
 						parent.put("name", obdsql.getNode(obj).getLabel());
-						parents.accumulate("parent", parent);
-					} else if (termId.equals(obj)) {
+						parents.add(parent);
+					} else if (obj.equals(termId)) {
+						JSONObject child = new JSONObject();
 						child.put("relation", pred);
 						child.put("id", subj);
 						child.put("name", obdsql.getNode(subj).getLabel());
-						children.accumulate("child", child);
-					} 
-				}
-				else {
+						children.add(child);
+					}
+				} else {
+					JSONObject otherRelation = new JSONObject();
 					otherRelation.put("relation", pred);
 					otherRelation.put("id", obj);
-					if(objNode != null){
-						otherRelation.put("name", obdsql.getNode(obj).getLabel());
-					}
-					else{
+					if (objNode != null) {
+						otherRelation.put("name", obdsql.getNode(obj)
+								.getLabel());
+					} else {
 						otherRelation.put("name", "unknown");
 					}
-					otherRelations.accumulate("otherRelation", otherRelation);
+					otherRelations.add(otherRelation);
 				}
 			}
-			jsonObj.put("parents", parents);
-			jsonObj.put("children", children);
-			jsonObj.put("otherRelations", otherRelations);
 		}
+		jsonObj.put("parents", parents);
+		jsonObj.put("children", children);
+		jsonObj.put("otherRelations", otherRelations);
+
 		return jsonObj;
+	}
+
+	private String renderJsonObjectAsString(JSONObject jo, int indentCt) throws JSONException {
+		String output = "";
+		String tabs = "";
+		for(int ct = 0; ct < indentCt; ct++){
+			tabs += "\t";
+		}
+		output += "{\n";
+		
+		String idPart, namePart, relationPart, parentsString, childrenString, otherString;
+		if (jo.has("relation") && jo.get("relation") != null) {
+			relationPart = "relation: " + (String) jo.get("relation") + "\n";
+			output += tabs + relationPart;
+		}
+		if (jo.has("id") && jo.get("id") != null) {
+			idPart = "id: " + (String) jo.get("id") + "\n";
+			output += tabs + idPart;
+		}
+		if (jo.has("name") && jo.get("name") != null) {
+			namePart = "name: " + (String) jo.get("name") + "\n";
+			output += tabs + namePart;
+		}
+
+		if (jo.has("parents")) {
+			JSONArray parents = (JSONArray) jo.get("parents");
+			if (parents != null) {
+				output += "parents: \n";
+				for(int i = 0; i < parents.length(); i++){
+					JSONObject parent = parents.getJSONObject(i);
+					output += renderJsonObjectAsString(parent, indentCt);
+				}
+			}
+		}
+		if (jo.has("children")) {
+			JSONArray children = (JSONArray) jo.get("children");
+			if (children != null) {
+				output += "children: \n";
+				for(int j = 0; j < children.length(); j++){
+					JSONObject child = children.getJSONObject(j);
+					output += renderJsonObjectAsString(child, indentCt);
+				}
+			}
+		}
+		if (jo.has("otherRelations")) {
+			JSONArray others = (JSONArray) jo.get("otherRelations");
+			if (others != null) {
+				output += "links: \n";
+				for(int k = 0; k < others.length(); k++){
+					JSONObject other = others.getJSONObject(k);
+					output += renderJsonObjectAsString(other, indentCt);
+				}
+			}
+		}
+		output += tabs + "}\n";
+		return output;
 	}
 }

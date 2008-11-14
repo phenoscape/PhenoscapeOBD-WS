@@ -29,13 +29,8 @@ public class OBDApplicationTest {
 			Shard obdsql = new OBDSQLShard();
 			((AbstractSQLShard) obdsql).connect(connParams[0], connParams[1],
 					connParams[2]);
-			TermResource tr = new TermResource(obdsql, "TTO:1004213");
+			TermResource tr = new TermResource(obdsql, "TAO:0001173");
 			Representation rep = tr.getRepresentation(tr.getVariants().get(0));
-			String text = rep.getText();
-		//	String[] value = text.split("objects\":\\[");
-			for(String result : text.split("\\},\\{")){
-				System.err.println(result);
-			}
 		}
 		catch(Exception e){
 			e.printStackTrace();
