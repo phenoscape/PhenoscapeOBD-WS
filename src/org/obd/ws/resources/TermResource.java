@@ -4,8 +4,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Pattern;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -141,7 +139,7 @@ public class TermResource extends Resource {
 		}
 		output += "{\n";
 		
-		String idPart, namePart, relationPart, parentsString, childrenString, otherString;
+		String idPart, namePart, relationPart;
 		if (jo.has("relation") && jo.get("relation") != null) {
 			relationPart = "relation: " + (String) jo.get("relation") + "\n";
 			output += tabs + relationPart;
