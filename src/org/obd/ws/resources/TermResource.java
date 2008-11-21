@@ -91,7 +91,7 @@ public class TermResource extends Resource {
 		String def = "Not found";
 		Collection<LiteralStatement> lstmts = obdsql.getLiteralStatementsByNode(termId);
 		for(LiteralStatement lstmt : lstmts){
-			if(lstmt.getRelationId().contains("definition")){
+			if(lstmt.getRelationId().toLowerCase().contains("definition")){
 				def = lstmt.getTargetId();
 			}
 		}
@@ -147,7 +147,7 @@ public class TermResource extends Resource {
 		}
 		output += "{\n";
 		
-		String idPart, namePart, relationPart;
+		String idPart, namePart, relationPart, defPart;
 		if (jo.has("relation") && jo.get("relation") != null) {
 			relationPart = "relation: " + (String) jo.get("relation") + "\n";
 			output += tabs + relationPart;
@@ -159,6 +159,10 @@ public class TermResource extends Resource {
 		if (jo.has("name") && jo.get("name") != null) {
 			namePart = "name: " + (String) jo.get("name") + "\n";
 			output += tabs + namePart;
+		}
+		if (jo.has("definition") && jo.get("definition") != null) {
+			defPart = "definition: " + (String) jo.get("definition") + "\n";
+			output += tabs + defPart;
 		}
 
 		if (jo.has("parents")) {
