@@ -2,12 +2,14 @@ package org.obd.ws.resources;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
+import org.obd.model.LiteralStatement;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
@@ -86,11 +88,17 @@ public class TermResource extends Resource {
 		Set<JSONObject> parents = new HashSet<JSONObject>();
 		Set<JSONObject> children = new HashSet<JSONObject>();
 		Set<JSONObject> otherRelations = new HashSet<JSONObject>();
+		String def = "Not found";
+		Collection<LiteralStatement> lstmts = obdsql.getLiteralStatementsByNode(termId);
+		for(LiteralStatement lstmt : lstmts){
+			if(lstmt.getRelationId().contains("definition")){
+				def = lstmt.getTargetId();
+			}
+		}
 		jsonObj.put("id", termId);
 		jsonObj.put("name", obdsql.getNode(termId).getLabel());
-		jsonObj.put("definition", obdsql.getNode(termId).getLabel());
+		jsonObj.put("definition", def);
 		for (Statement stmt : stmts) {
-
 			String subj = stmt.getNodeId();
 			String pred = stmt.getRelationId();
 			String obj = stmt.getTargetId();
