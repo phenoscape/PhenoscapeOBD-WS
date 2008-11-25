@@ -88,7 +88,7 @@ public class TermResource extends Resource {
 		Set<JSONObject> parents = new HashSet<JSONObject>();
 		Set<JSONObject> children = new HashSet<JSONObject>();
 		Set<JSONObject> otherRelations = new HashSet<JSONObject>();
-		String def = "Not found";
+		String def = "";
 		Collection<LiteralStatement> lstmts = obdsql.getLiteralStatementsByNode(termId);
 		for(LiteralStatement lstmt : lstmts){
 			if(lstmt.getRelationId().toLowerCase().contains("definition")){
@@ -97,7 +97,8 @@ public class TermResource extends Resource {
 		}
 		jsonObj.put("id", termId);
 		jsonObj.put("name", obdsql.getNode(termId).getLabel());
-		jsonObj.put("definition", def);
+		if(def.length() > 0)
+			jsonObj.put("definition", def);
 		for (Statement stmt : stmts) {
 			String subj = stmt.getNodeId();
 			String pred = stmt.getRelationId();
