@@ -2,15 +2,12 @@ package org.obd.ws.resources;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.Collection;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
-import org.obd.model.Statement;
+import org.obd.model.Node;
 import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
 import org.restlet.Context;
@@ -26,7 +23,7 @@ import org.restlet.resource.Variant;
 public class AutoCompleteResource extends Resource {
 
 	private final String text;
-	private Map<String, String> options;
+	private String[] options;
 	private JSONObject jObjs;
 	private Shard obdsql;
 
@@ -44,7 +41,7 @@ public class AutoCompleteResource extends Resource {
 	// this constructor is to be used only for testing purposes
 	@Deprecated
 	public AutoCompleteResource(Shard obdsql, String text,
-			Map<String, String> options) {
+									String... options) {
 		this.text = text;
 		this.obdsql = obdsql;
 		this.options = options;
@@ -79,25 +76,37 @@ public class AutoCompleteResource extends Resource {
 
 	}
 
-	private JSONObject getTextMatches(String text, Map<String, String> options)
+	private JSONObject getTextMatches(String text, String... options)
 			throws IOException, SQLException, ClassNotFoundException,
 			JSONException {
-
+		
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
-		String byNameOption = options.get("byName");
-		String bySynonymOption = ((options.get("bySynonym") == null || options
-				.get("bySynonym").length() == 0) ? "false" : options
-				.get("bySynonym"));
-		String byDefinitionOption = ((options.get("byDefinition") == null || options
-				.get("byDefinition").length() == 0) ? "false" : options
-				.get("byDefinition"));
-		String byOntologyOption = (options.get("byOntology") == null || options
-				.get("byOntology").length() == 0) ? "all" : options
-				.get("byOntology");
+		String byNameOption = options[0];
+		String bySynonymOption = ((options[1] == null || options[0].length() == 0) ? 
+									"false" : options[1]);
+		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? 
+									"false" : options[2]);
+		String byOntologyOption = (options[3] == null || options[3].length() == 0) ? 
+									"all" : options[3];
 
-		Set<Statement> stmts = obdq.getCompletionsForSearchTerm(text, byNameOption, bySynonymOption, byDefinitionOption, byOntologyOption);
-		//TODO
+		if(!Boolean.parseBoolean(byNameOption)){
+			throw new IllegalArgumentException();
+		}
+		int i = 0;
+		Collection<Node> nodes = obdq.getCompletionsForSearchTerm(text, new String[]{byNameOption, bySynonymOption, byDefinitionOption, byOntologyOption});
+		for(Node node : nodes){
+			if(node.getId().contains(":"))
+				System.out.println(++i + ". Search Term:" + text + "\t" + node.getId() + "\t" + node.getLabel());
+		}
+	//	if(Boolean.parseBoolean(byDefinitionOption)){
+	//		Collection<LiteralStatement> lss = obdsql.getLiteralStatementsByNode(text);
+	//		if(lss.size() > 0){
+	//			LiteralStatement ls = lss.iterator().next();
+	//			System.out.println(ls);
+	//		}
+	//	}
+		//TODO UPDATE THIS TOMORROW - START HERE WED NOV 26, 2008
 		return jObj;
 	}
 }
