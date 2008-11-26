@@ -109,7 +109,7 @@ public class AutoCompleteResource extends Resource {
 		Collection<Node> synonymNodes = results.get("synonym-matches");
 		Collection<Node> definitionNodes = results.get("definition-matches");
 		
-		Set<JSONObject> nameMatches = new HashSet<JSONObject>();
+		Set<JSONObject> matches = new HashSet<JSONObject>();
 		Set<JSONObject> synonymMatches = new HashSet<JSONObject>();
 		Set<JSONObject> definitionMatches = new HashSet<JSONObject>();
 		
@@ -120,7 +120,7 @@ public class AutoCompleteResource extends Resource {
 				nameMatch.put("name", text);
 				nameMatch.put("match_type", "name");
 				nameMatch.put("match_text", node.getLabel());
-				nameMatches.add(nameMatch);
+				matches.add(nameMatch);
 //				System.out.println(++i + ". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
 			}
 		}
@@ -131,7 +131,7 @@ public class AutoCompleteResource extends Resource {
 				synonymMatch.put("name", text);
 				synonymMatch.put("match_type", "synonym");
 				synonymMatch.put("match_text", node.getStatements()[0].getTargetId());
-				synonymMatches.add(synonymMatch);
+				matches.add(synonymMatch);
 	//			System.out.println(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
 	//					node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
 			}
@@ -143,14 +143,14 @@ public class AutoCompleteResource extends Resource {
 				definitionMatch.put("name", text);
 				definitionMatch.put("match_type", "definition");
 				definitionMatch.put("match_text", node.getStatements()[0].getTargetId());
-				definitionMatches.add(definitionMatch);
+				matches.add(definitionMatch);
 				//	System.out.println(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
 				//	node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
 			}
 		}
-		jObj.put("nameMatches", nameMatches);
-		jObj.put("synonymMatches", synonymMatches);
-		jObj.put("definitionMatches", definitionMatches);
+		jObj.put("matches", matches);
+//		jObj.put("synonymMatches", synonymMatches);
+//		jObj.put("definitionMatches", definitionMatches);
 		return jObj;
 	}
 
@@ -181,16 +181,18 @@ public class AutoCompleteResource extends Resource {
 			output += tabs + defPart;
 		}
 
-		if (jo.has("nameMatches")) {
-			JSONArray nameMatches = (JSONArray) jo.get("nameMatches");
-			if (nameMatches != null) {
-//				output += "parents: \n";
-				for(int i = 0; i < nameMatches.length(); i++){
-					JSONObject parent = nameMatches.getJSONObject(i);
+		if (jo.has("matches")) {
+			JSONArray matches = (JSONArray) jo.get("matches");
+			if (matches != null) {
+				output += "matches: \n[\n";
+				for(int i = 0; i < matches.length(); i++){
+					JSONObject parent = matches.getJSONObject(i);
 					output += renderJsonObjectAsString(parent, indentCt);
 				}
 			}
+			output += "]\n";
 		}
+		/*
 		if (jo.has("synonymMatches")) {
 			JSONArray synonymMatches = (JSONArray) jo.get("synonymMatches");
 			if (synonymMatches != null) {
@@ -211,6 +213,7 @@ public class AutoCompleteResource extends Resource {
 				}
 			}
 		}
+		*/
 		output += tabs + "}\n";
 		return output;
 	}
