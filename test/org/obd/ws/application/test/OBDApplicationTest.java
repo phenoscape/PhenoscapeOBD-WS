@@ -30,9 +30,9 @@ public class OBDApplicationTest {
 			Shard obdsql = new OBDSQLShard();
 			((AbstractSQLShard) obdsql).connect(connParams[0], connParams[1],
 					connParams[2]);
-//			TermResource tr = new TermResource(obdsql, "ZFA:0000107");
-//			Representation rep = tr.getRepresentation(tr.getVariants().get(0));
-			AutoCompleteResource acr = new AutoCompleteResource(obdsql, "bo", new String[]{"true", "false", "true", ""});
+			TermResource tr = new TermResource(obdsql, "ZFA:0000107");
+			Representation rep2 = tr.getRepresentation(tr.getVariants().get(0));
+			AutoCompleteResource acr = new AutoCompleteResource(obdsql, "basihyal", new String[]{"true", "true", "true", "TTO:TAO:COLLECTION"});
 			Representation rep = acr.getRepresentation(acr.getVariants().get(0));
 		}
 		catch(Exception e){
