@@ -17,7 +17,8 @@ public class OBDApplication extends Application {
         // URL mappings
         router.attach("/phenoscape/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/phenoscape/term/search/{text}?name=[true|false]&syn=[true|false]&def=[true|false]" +
-        					"&ontology=[TTO, TAO, ZFA, PATO, OBO_RO, SPATIAL, UNIT, SEQUENCE, COLLECTION, PHENOSCAPE]", 
+        					"&ontology=[TTO, TAO, ZFA, PATO, OBO_REL, UO, SO, COLLECTION, PHENOSCAPE, ZFIN, oboInOwl, BSPO, oboFormat," +
+        					"CARO, CL, ZFS, RO, oboMetaModel, doi, NCBITaxon, FBql, FMA, BS, RNAMOD, AAMOD, MOD, cdao]", 
         					org.obd.ws.resources.AutoCompleteResource.class);
         return router;
     }
