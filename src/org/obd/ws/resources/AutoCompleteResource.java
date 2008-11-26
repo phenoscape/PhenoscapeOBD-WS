@@ -3,7 +3,11 @@ package org.obd.ws.resources;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
@@ -35,13 +39,17 @@ public class AutoCompleteResource extends Resource {
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.text = Reference.decode((String) (request.getAttributes()
 				.get("text")));
+		String nameOption = Reference.decode((String) request.getAttributes().get("name"));
+		String synonymOption = Reference.decode((String) request.getAttributes().get("syn"));
+		String definitionOption = Reference.decode((String) request.getAttributes().get("def"));
+		String ontologies = Reference.decode((String) request.getAttributes().get("ontology"));
+		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
 
 	}
 
 	// this constructor is to be used only for testing purposes
 	@Deprecated
-	public AutoCompleteResource(Shard obdsql, String text,
-									String... options) {
+	public AutoCompleteResource(Shard obdsql, String text, String... options) {
 		this.text = text;
 		this.obdsql = obdsql;
 		this.options = options;
@@ -55,7 +63,7 @@ public class AutoCompleteResource extends Resource {
 
 		try {
 			this.jObjs = getTextMatches(this.text, this.options);
-			// stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
+			stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -79,34 +87,132 @@ public class AutoCompleteResource extends Resource {
 	private JSONObject getTextMatches(String text, String... options)
 			throws IOException, SQLException, ClassNotFoundException,
 			JSONException {
-		
+
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
 		String byNameOption = options[0];
-		String bySynonymOption = ((options[1] == null || options[0].length() == 0) ? 
-									"false" : options[1]);
-		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? 
-									"false" : options[2]);
-		String byOntologyOption = (options[3] == null || options[3].length() == 0) ? 
-									"all" : options[3];
+		String bySynonymOption = ((options[1] == null || options[0].length() == 0) ? "false"
+				: options[1]);
+		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? "false"
+				: options[2]);
+		String byOntologyOption = (options[3] == null || options[3].length() == 0) ? "none"
+				: options[3];
 
-		if(!Boolean.parseBoolean(byNameOption)){
-			throw new IllegalArgumentException();
+		if (!Boolean.parseBoolean(byNameOption)) {
+			throw new IllegalArgumentException(
+					"Search by Name parameter is set to false");
 		}
-		int i = 0;
-		Collection<Node> nodes = obdq.getCompletionsForSearchTerm(text, new String[]{byNameOption, bySynonymOption, byDefinitionOption, byOntologyOption});
-		for(Node node : nodes){
-			if(node.getId().contains(":"))
-				System.out.println(++i + ". Search Term:" + text + "\t" + node.getId() + "\t" + node.getLabel());
+		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text,
+				new String[] { bySynonymOption, byDefinitionOption, byOntologyOption });
+		
+		Collection<Node> nameNodes = results.get("name-matches");
+		Collection<Node> synonymNodes = results.get("synonym-matches");
+		Collection<Node> definitionNodes = results.get("definition-matches");
+		
+		Set<JSONObject> nameMatches = new HashSet<JSONObject>();
+		Set<JSONObject> synonymMatches = new HashSet<JSONObject>();
+		Set<JSONObject> definitionMatches = new HashSet<JSONObject>();
+		
+		if(nameNodes.size() > 0){
+			for(Node node : nameNodes){
+				JSONObject nameMatch = new JSONObject();
+				nameMatch.put("id", node.getId());
+				nameMatch.put("name", text);
+				nameMatch.put("match_type", "name");
+				nameMatch.put("match_text", node.getLabel());
+				nameMatches.add(nameMatch);
+//				System.out.println(++i + ". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
+			}
 		}
-	//	if(Boolean.parseBoolean(byDefinitionOption)){
-	//		Collection<LiteralStatement> lss = obdsql.getLiteralStatementsByNode(text);
-	//		if(lss.size() > 0){
-	//			LiteralStatement ls = lss.iterator().next();
-	//			System.out.println(ls);
-	//		}
-	//	}
-		//TODO UPDATE THIS TOMORROW - START HERE WED NOV 26, 2008
+		if(synonymNodes != null && synonymNodes.size() > 0){
+			for(Node node : synonymNodes){
+				JSONObject synonymMatch = new JSONObject();
+				synonymMatch.put("id", node.getId());
+				synonymMatch.put("name", text);
+				synonymMatch.put("match_type", "synonym");
+				synonymMatch.put("match_text", node.getStatements()[0].getTargetId());
+				synonymMatches.add(synonymMatch);
+	//			System.out.println(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
+	//					node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
+			}
+		}
+		if(definitionNodes != null && definitionNodes.size() > 0){
+			for(Node node : definitionNodes){
+				JSONObject definitionMatch = new JSONObject();
+				definitionMatch.put("id", node.getId());
+				definitionMatch.put("name", text);
+				definitionMatch.put("match_type", "definition");
+				definitionMatch.put("match_text", node.getStatements()[0].getTargetId());
+				definitionMatches.add(definitionMatch);
+				//	System.out.println(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
+				//	node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
+			}
+		}
+		jObj.put("nameMatches", nameMatches);
+		jObj.put("synonymMatches", synonymMatches);
+		jObj.put("definitionMatches", definitionMatches);
 		return jObj;
 	}
+
+
+	private String renderJsonObjectAsString(JSONObject jo, int indentCt) throws JSONException {
+		String output = "";
+		String tabs = "";
+		for(int ct = 0; ct < indentCt; ct++){
+			tabs += "\t";
+		}
+		output += "{\n";
+		
+		String idPart, namePart, relationPart, defPart;
+		if (jo.has("id") && jo.get("id") != null) {
+			relationPart = "id: " + (String) jo.get("id") + "\n";
+			output += tabs + relationPart;
+		}
+		if (jo.has("name") && jo.get("name") != null) {
+			idPart = "name: " + (String) jo.get("name") + "\n";
+			output += tabs + idPart;
+		}
+		if (jo.has("match_type") && jo.get("match_type") != null) {
+			namePart = "match_type: " + (String) jo.get("match_type") + "\n";
+			output += tabs + namePart;
+		}
+		if (jo.has("match_text") && jo.get("match_text") != null) {
+			defPart = "match_text: " + (String) jo.get("match_text") + "\n";
+			output += tabs + defPart;
+		}
+
+		if (jo.has("nameMatches")) {
+			JSONArray nameMatches = (JSONArray) jo.get("nameMatches");
+			if (nameMatches != null) {
+//				output += "parents: \n";
+				for(int i = 0; i < nameMatches.length(); i++){
+					JSONObject parent = nameMatches.getJSONObject(i);
+					output += renderJsonObjectAsString(parent, indentCt);
+				}
+			}
+		}
+		if (jo.has("synonymMatches")) {
+			JSONArray synonymMatches = (JSONArray) jo.get("synonymMatches");
+			if (synonymMatches != null) {
+	//			output += "children: \n";
+				for(int j = 0; j < synonymMatches.length(); j++){
+					JSONObject child = synonymMatches.getJSONObject(j);
+					output += renderJsonObjectAsString(child, indentCt);
+				}
+			}
+		}
+		if (jo.has("definitionMatches")) {
+			JSONArray definitionMatches = (JSONArray) jo.get("definitionMatches");
+			if (definitionMatches != null) {
+	//			output += "links: \n";
+				for(int k = 0; k < definitionMatches.length(); k++){
+					JSONObject other = definitionMatches.getJSONObject(k);
+					output += renderJsonObjectAsString(other, indentCt);
+				}
+			}
+		}
+		output += tabs + "}\n";
+		return output;
+	}
+
 }
