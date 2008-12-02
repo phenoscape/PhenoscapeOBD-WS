@@ -19,7 +19,7 @@ public class OBDApplication extends Application {
 	public void connect() throws SQLException, ClassNotFoundException{
 		Shard obdsql = new OBDSQLShard();
 		((AbstractSQLShard)obdsql).connect("jdbc:postgresql://localhost:5433/obdphenoscape", 
-				"postgres", "Fyushun:_$1b");
+				"postgres", "?");
 		this.getContext().getAttributes().put("shard", obdsql);
 	}
 	
