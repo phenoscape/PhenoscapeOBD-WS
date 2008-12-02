@@ -1,5 +1,10 @@
 package org.obd.ws.application;
 
+import java.sql.SQLException;
+
+import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
+import org.obd.query.impl.AbstractSQLShard;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
@@ -11,14 +16,26 @@ public class OBDApplication extends Application {
 		super(context);
 	}
 	
-    @Override
+	public void connect() throws SQLException, ClassNotFoundException{
+		Shard obdsql = new OBDSQLShard();
+		((AbstractSQLShard)obdsql).connect("jdbc:postgresql://localhost:5433/obdphenoscape", 
+				"postgres", "Fyushun:_$1b");
+		this.getContext().getAttributes().put("shard", obdsql);
+	}
+	
     public Restlet createRoot() {
+    	try{
+    		connect();
+    	}
+    	catch(Exception e){
+    		e.printStackTrace();
+    	}
+    	
         final Router router = new Router(this.getContext());
         // URL mappings
-        router.attach("/phenoscape/term/{termID}", org.obd.ws.resources.TermResource.class);
-        router.attach("/phenoscape/term/search/{text}?name=[true|false]&syn=[true|false]&def=[true|false]" +
-        					"&ontology=[TTO, TAO, ZFA, PATO, OBO_REL, UO, SO, COLLECTION, PHENOSCAPE, ZFIN, oboInOwl, BSPO, oboFormat," +
-        					"CARO, CL, ZFS, RO, oboMetaModel, doi, NCBITaxon, FBql, FMA, BS, RNAMOD, AAMOD, MOD, cdao]", 
+       // router.attachDefault(HelloWorldResource.class);
+        router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
+        router.attach("/term/search/{text}", 
         					org.obd.ws.resources.AutoCompleteResource.class);
         return router;
     }

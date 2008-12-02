@@ -4,7 +4,7 @@
         <!-- Application class name -->
         <context-param>
                 <param-name>org.restlet.application</param-name>
-                <param-value>org.obd.ws.OBDApplication</param-value>
+                <param-value>org.obd.ws.application.OBDApplication</param-value>
         </context-param>
       
         <!-- Restlet adapter -->
@@ -17,5 +17,12 @@
                 <servlet-name>ServerServlet</servlet-name>
                 <url-pattern>/*</url-pattern>
         </servlet-mapping>
+        
+        <welcome-file-list>
+			<welcome-file>
+				index.html
+			</welcome-file>
+		</welcome-file-list>
+	
 </web-app>
 

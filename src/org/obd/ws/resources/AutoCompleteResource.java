@@ -13,7 +13,6 @@ import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
 import org.obd.model.Node;
 import org.obd.query.Shard;
-import org.obd.query.impl.OBDSQLShard;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -31,18 +30,25 @@ public class AutoCompleteResource extends Resource {
 	private JSONObject jObjs;
 	private Shard obdsql;
 
+	private String nameOption, synonymOption,definitionOption, ontologies;
+	
 	public AutoCompleteResource(Context context, Request request,
-			Response response, OBDSQLShard obdsql) {
+			Response response) {
 		super(context, request, response);
-		this.obdsql = obdsql;
+		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.text = Reference.decode((String) (request.getAttributes()
 				.get("text")));
-		String nameOption = Reference.decode((String) request.getAttributes().get("name"));
-		String synonymOption = Reference.decode((String) request.getAttributes().get("syn"));
-		String definitionOption = Reference.decode((String) request.getAttributes().get("def"));
-		String ontologies = Reference.decode((String) request.getAttributes().get("ontology"));
+		if(request.getAttributes().get("name") != null)
+			nameOption = Reference.decode((String) request.getAttributes().get("name"));
+		if(request.getAttributes().get("syn") != null)
+			synonymOption = Reference.decode((String) request.getAttributes().get("syn"));
+		if(request.getAttributes().get("def") != null)
+			definitionOption = Reference.decode((String) request.getAttributes().get("def"));
+		if(request.getAttributes().get("ontology") != null)
+			ontologies = Reference.decode((String) request.getAttributes().get("ontology"));
+	//	System.out.println(nameOption);
 		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
 
 	}
@@ -98,10 +104,10 @@ public class AutoCompleteResource extends Resource {
 		String byOntologyOption = (options[3] == null || options[3].length() == 0) ? "none"
 				: options[3];
 
-		if (!Boolean.parseBoolean(byNameOption)) {
+		/*if (!Boolean.parseBoolean(byNameOption)) {
 			throw new IllegalArgumentException(
 					"Search by Name parameter is set to false");
-		}
+		}*/
 		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text,
 				new String[] { bySynonymOption, byDefinitionOption, byOntologyOption });
 		
@@ -110,8 +116,6 @@ public class AutoCompleteResource extends Resource {
 		Collection<Node> definitionNodes = results.get("definition-matches");
 		
 		Set<JSONObject> matches = new HashSet<JSONObject>();
-		Set<JSONObject> synonymMatches = new HashSet<JSONObject>();
-		Set<JSONObject> definitionMatches = new HashSet<JSONObject>();
 		
 		if(nameNodes.size() > 0){
 			for(Node node : nameNodes){
@@ -121,7 +125,7 @@ public class AutoCompleteResource extends Resource {
 				nameMatch.put("match_type", "name");
 				nameMatch.put("match_text", node.getLabel());
 				matches.add(nameMatch);
-//				System.out.println(++i + ". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
+//				System.out.println(". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
 			}
 		}
 		if(synonymNodes != null && synonymNodes.size() > 0){
