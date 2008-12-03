@@ -37,7 +37,7 @@ public class TermResource extends Resource {
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		System.out.println(termId);
+		//System.out.println(termId);
 	}
 
 	// this constructor is to be used only for testing purposes
