@@ -37,17 +37,18 @@ public class AutoCompleteResource extends Resource {
 		super(context, request, response);
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.text = Reference.decode((String) (request.getAttributes()
 				.get("text")));
 		if(request.getAttributes().get("name") != null)
 			nameOption = Reference.decode((String) request.getAttributes().get("name"));
-		if(request.getAttributes().get("syn") != null)
-			synonymOption = Reference.decode((String) request.getAttributes().get("syn"));
-		if(request.getAttributes().get("def") != null)
-			definitionOption = Reference.decode((String) request.getAttributes().get("def"));
-		if(request.getAttributes().get("ontology") != null)
-			ontologies = Reference.decode((String) request.getAttributes().get("ontology"));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)
+			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("syn"));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("def") != null)
+			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("def"));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontologyList") != null)
+			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontologyList"));
 	//	System.out.println(nameOption);
 		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
 
@@ -97,7 +98,7 @@ public class AutoCompleteResource extends Resource {
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
 		String byNameOption = options[0];
-		String bySynonymOption = ((options[1] == null || options[0].length() == 0) ? "false"
+		String bySynonymOption = ((options[1] == null || options[1].length() == 0) ? "false"
 				: options[1]);
 		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? "false"
 				: options[2]);
