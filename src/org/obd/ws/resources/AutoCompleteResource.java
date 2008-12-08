@@ -38,9 +38,7 @@ public class AutoCompleteResource extends Resource {
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
-		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
-		this.text = Reference.decode((String) (request.getAttributes()
-				.get("text")));
+        this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("text"));
 		if(request.getAttributes().get("name") != null)
 			nameOption = Reference.decode((String) request.getAttributes().get("name"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)

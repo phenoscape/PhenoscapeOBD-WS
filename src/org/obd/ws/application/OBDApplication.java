@@ -35,8 +35,7 @@ public class OBDApplication extends Application {
         // URL mappings
        // router.attachDefault(HelloWorldResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
-        router.attach("/term/search/{text}", 
-        					org.obd.ws.resources.AutoCompleteResource.class);
+        router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         return router;
     }
 
