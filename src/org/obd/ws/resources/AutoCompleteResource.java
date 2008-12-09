@@ -45,8 +45,8 @@ public class AutoCompleteResource extends Resource {
 			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("syn"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("def") != null)
 			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("def"));
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontologyList") != null)
-			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontologyList"));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
+			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
 	//	System.out.println(nameOption);
 		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
 
