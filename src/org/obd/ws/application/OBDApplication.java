@@ -18,7 +18,7 @@ public class OBDApplication extends Application {
 	
 	public void connect() throws SQLException, ClassNotFoundException{
 		Shard obdsql = new OBDSQLShard();
-		((AbstractSQLShard)obdsql).connect("?", 
+		((AbstractSQLShard)obdsql).connect("j?", 
 				"?", "?");
 		this.getContext().getAttributes().put("shard", obdsql);
 	}
@@ -34,8 +34,10 @@ public class OBDApplication extends Application {
         final Router router = new Router(this.getContext());
         // URL mappings
        // router.attachDefault(HelloWorldResource.class);
-        router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
+        
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
+        router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
+
         return router;
     }
 
