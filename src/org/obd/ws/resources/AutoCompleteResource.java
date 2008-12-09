@@ -64,11 +64,11 @@ public class AutoCompleteResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep = null;
-		String stringRep = "";
+	//	String stringRep = "";
 
 		try {
-			this.jObjs = getTextMatches(this.text, this.options);
-			stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
+			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
+	//		stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -82,8 +82,9 @@ public class AutoCompleteResource extends Resource {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
 		rep = new JsonRepresentation(this.jObjs);
-		System.out.println(stringRep);
+//		System.out.println(stringRep);
 
 		return rep;
 

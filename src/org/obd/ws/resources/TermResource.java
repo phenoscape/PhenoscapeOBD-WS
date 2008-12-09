@@ -19,6 +19,7 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
@@ -51,11 +52,14 @@ public class TermResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep = null;
-		String stringRep = "";
+	//	String stringRep = "";
 
 		try {
 			this.jObjs = getTermInfo(this.termId);
-			stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
+			if(this.jObjs.get("name").toString().equals("not found")){
+				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "The search term was not found");
+			}
+	//		stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -69,9 +73,8 @@ public class TermResource extends Resource {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	//	System.out.println(stringRep);
 		rep = new JsonRepresentation(this.jObjs);
-		System.out.println(stringRep);
-
 		return rep;
 
 	}
