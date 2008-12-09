@@ -56,8 +56,9 @@ public class TermResource extends Resource {
 
 		try {
 			this.jObjs = getTermInfo(this.termId);
-			if(this.jObjs.get("name").toString().equals("not found")){
+			if(this.jObjs == null){
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "The search term was not found");
+				return null;
 			}
 	//		stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
@@ -144,7 +145,7 @@ public class TermResource extends Resource {
 			jsonObj.put("otherRelations", otherRelations);
 		}
 		else{
-			jsonObj.put("name", "not found");
+			jsonObj = null;
 		}
 		return jsonObj;
 	}
