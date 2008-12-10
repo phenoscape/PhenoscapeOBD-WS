@@ -71,12 +71,27 @@ public class AnatomyResource extends Resource {
 	private JSONObject getAnatomyTermInfo(String termId) throws IOException,
 			SQLException, ClassNotFoundException, JSONException {
 
+		int totalAnnotationCount = 0, totalTaxonCount = 0;
 		OBDQuery obdq = new OBDQuery(obdsql);
 		JSONObject jsonObj = new JSONObject();
 		
-		Set<Statement> stmts = obdq.genericSearch(null, termId, null);	
+		Set<Statement> stmts = obdq.genericTermSearch(termId); //find everything about this node
+		for(Statement stmt : stmts){
+			System.out.println(stmt);
+			if(stmt.getRelationId().contains("is_a") && 
+					stmt.getTargetId().equals(termId)){  //looking for children of this node
+				String childNodeId = stmt.getNodeId();
+			}
+		}
+		totalAnnotationCount += stmts.size();
+		for(Statement t : stmts){
+			if(t.getNodeId().contains("TTO:"))
+				++totalTaxonCount;
+		}
+	
 		String def = "";
 		Collection<LiteralStatement> lstmts = obdsql.getLiteralStatementsByNode(termId);
+		totalAnnotationCount += lstmts.size();
 		for (LiteralStatement lstmt : lstmts) {
 			if (lstmt.getRelationId().toLowerCase().contains("definition")) {
 				def = lstmt.getTargetId();
@@ -89,14 +104,13 @@ public class AnatomyResource extends Resource {
 			if (def.length() > 0)
 				jsonObj.put("definition", def);
 
-			for(Statement stmt : stmts){
-				System.out.println(stmt);
-			}
+			
 		}
 		else{
-			jsonObj.put("name", "not found");
+			jsonObj = null;
 		}
-
+		System.out.println("annotations: " + totalAnnotationCount);
+		System.out.println("taxa: " + totalTaxonCount);
 		return jsonObj;
 	}
 }
