@@ -33,12 +33,12 @@ public class TermResource extends Resource {
 
 	public TermResource(Context context, Request request, Response response) {
 		super(context, request, response);
-		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
+		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		//System.out.println(termId);
+		// System.out.println(termId);
 	}
 
 	// this constructor is to be used only for testing purposes
@@ -52,15 +52,16 @@ public class TermResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep = null;
-	//	String stringRep = "";
+		// String stringRep = "";
 
 		try {
 			this.jObjs = getTermInfo(this.termId);
-			if(this.jObjs == null){
-				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND, "The search term was not found");
+			if (this.jObjs == null) {
+				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
+						"The search term was not found");
 				return null;
 			}
-	//		stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
+			// stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -74,7 +75,7 @@ public class TermResource extends Resource {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	//	System.out.println(stringRep);
+		// System.out.println(stringRep);
 		rep = new JsonRepresentation(this.jObjs);
 		return rep;
 
@@ -99,7 +100,7 @@ public class TermResource extends Resource {
 				def = lstmt.getTargetId();
 			}
 		}
-		
+
 		jsonObj.put("id", termId);
 		if (obdsql.getNode(termId) != null) {
 			jsonObj.put("name", obdsql.getNode(termId).getLabel());
@@ -111,40 +112,26 @@ public class TermResource extends Resource {
 				String obj = stmt.getTargetId();
 				Node objNode = obdsql.getNode(obj);
 				if (pred != null && pred.length() > 0) {
-					if (pred.contains("is_a") || pred.contains("part_of")) {
-						if (subj.equals(termId)) {
-							JSONObject parent = new JSONObject();
-							parent.put("relation", pred);
-							parent.put("id", obj);
-							parent.put("name", obdsql.getNode(obj).getLabel());
-							parents.add(parent);
-						} else if (obj.equals(termId)) {
-							JSONObject child = new JSONObject();
-							child.put("relation", pred);
-							child.put("id", subj);
-							child.put("name", obdsql.getNode(subj).getLabel());
-							children.add(child);
-						}
-					} else {
-						JSONObject otherRelation = new JSONObject();
-						otherRelation.put("relation", pred);
-						otherRelation.put("id", obj);
-						if (objNode != null) {
-							otherRelation.put("name", obdsql.getNode(obj)
-									.getLabel());
-						} else {
-							otherRelation.put("name", "unknown");
-						}
-						otherRelations.add(otherRelation);
+					if (subj.equals(termId)) {
+						JSONObject parent = new JSONObject();
+						parent.put("relation", pred);
+						parent.put("id", obj);
+						parent.put("name", obdsql.getNode(obj).getLabel());
+						parents.add(parent);
+					} else if (obj.equals(termId)) {
+						JSONObject child = new JSONObject();
+						child.put("relation", pred);
+						child.put("id", subj);
+						child.put("name", obdsql.getNode(subj).getLabel());
+						children.add(child);
 					}
 				}
 			}
-		
+
 			jsonObj.put("parents", parents);
 			jsonObj.put("children", children);
-			jsonObj.put("otherRelations", otherRelations);
-		}
-		else{
+			// jsonObj.put("otherRelations", otherRelations);
+		} else {
 			jsonObj = null;
 		}
 		return jsonObj;
