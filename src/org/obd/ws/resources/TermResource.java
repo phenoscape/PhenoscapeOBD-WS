@@ -6,12 +6,10 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
 import org.obd.model.LiteralStatement;
-import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.restlet.Context;
@@ -91,7 +89,7 @@ public class TermResource extends Resource {
 
 		Set<JSONObject> parents = new HashSet<JSONObject>();
 		Set<JSONObject> children = new HashSet<JSONObject>();
-		Set<JSONObject> otherRelations = new HashSet<JSONObject>();
+
 		String def = "";
 		Collection<LiteralStatement> lstmts = obdsql
 				.getLiteralStatementsByNode(termId);
@@ -110,19 +108,28 @@ public class TermResource extends Resource {
 				String subj = stmt.getNodeId();
 				String pred = stmt.getRelationId();
 				String obj = stmt.getTargetId();
-				Node objNode = obdsql.getNode(obj);
 				if (pred != null && pred.length() > 0) {
 					if (subj.equals(termId)) {
 						JSONObject parent = new JSONObject();
-						parent.put("relation", pred);
-						parent.put("id", obj);
-						parent.put("name", obdsql.getNode(obj).getLabel());
+						JSONObject relation = new JSONObject();
+						JSONObject target = new JSONObject();
+						relation.put("id", pred);
+						relation.put("name", obdsql.getNode(pred).getLabel());
+						target.put("id", obj);
+						target.put("name", obdsql.getNode(obj).getLabel());
+						parent.put("relation", relation);
+						parent.put("target", target);
 						parents.add(parent);
 					} else if (obj.equals(termId)) {
 						JSONObject child = new JSONObject();
-						child.put("relation", pred);
-						child.put("id", subj);
-						child.put("name", obdsql.getNode(subj).getLabel());
+						JSONObject relation = new JSONObject();
+						JSONObject target = new JSONObject();
+						relation.put("id", pred);
+						relation.put("name", obdsql.getNode(pred).getLabel());
+						target.put("id", subj);
+						target.put("name", obdsql.getNode(subj).getLabel());
+						child.put("relation", relation);
+						child.put("target", target);
 						children.add(child);
 					}
 				}
@@ -135,66 +142,5 @@ public class TermResource extends Resource {
 			jsonObj = null;
 		}
 		return jsonObj;
-	}
-
-	private String renderJsonObjectAsString(JSONObject jo, int indentCt)
-			throws JSONException {
-		String output = "";
-		String tabs = "";
-		for (int ct = 0; ct < indentCt; ct++) {
-			tabs += "\t";
-		}
-		output += "{\n";
-
-		String idPart, namePart, relationPart, defPart;
-		if (jo.has("relation") && jo.get("relation") != null) {
-			relationPart = "relation: " + (String) jo.get("relation") + "\n";
-			output += tabs + relationPart;
-		}
-		if (jo.has("id") && jo.get("id") != null) {
-			idPart = "id: " + (String) jo.get("id") + "\n";
-			output += tabs + idPart;
-		}
-		if (jo.has("name") && jo.get("name") != null) {
-			namePart = "name: " + (String) jo.get("name") + "\n";
-			output += tabs + namePart;
-		}
-		if (jo.has("definition") && jo.get("definition") != null) {
-			defPart = "definition: " + (String) jo.get("definition") + "\n";
-			output += tabs + defPart;
-		}
-
-		if (jo.has("parents")) {
-			JSONArray parents = (JSONArray) jo.get("parents");
-			if (parents != null) {
-				output += "parents: \n";
-				for (int i = 0; i < parents.length(); i++) {
-					JSONObject parent = parents.getJSONObject(i);
-					output += renderJsonObjectAsString(parent, indentCt);
-				}
-			}
-		}
-		if (jo.has("children")) {
-			JSONArray children = (JSONArray) jo.get("children");
-			if (children != null) {
-				output += "children: \n";
-				for (int j = 0; j < children.length(); j++) {
-					JSONObject child = children.getJSONObject(j);
-					output += renderJsonObjectAsString(child, indentCt);
-				}
-			}
-		}
-		if (jo.has("otherRelations")) {
-			JSONArray others = (JSONArray) jo.get("otherRelations");
-			if (others != null) {
-				output += "links: \n";
-				for (int k = 0; k < others.length(); k++) {
-					JSONObject other = others.getJSONObject(k);
-					output += renderJsonObjectAsString(other, indentCt);
-				}
-			}
-		}
-		output += tabs + "}\n";
-		return output;
 	}
 }

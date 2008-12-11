@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
@@ -96,7 +95,6 @@ public class AutoCompleteResource extends Resource {
 
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
-		String byNameOption = options[0];
 		String bySynonymOption = ((options[1] == null || options[1].length() == 0) ? "false"
 				: options[1]);
 		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? "false"
@@ -158,69 +156,4 @@ public class AutoCompleteResource extends Resource {
 //		jObj.put("definitionMatches", definitionMatches);
 		return jObj;
 	}
-
-
-	private String renderJsonObjectAsString(JSONObject jo, int indentCt) throws JSONException {
-		String output = "";
-		String tabs = "";
-		for(int ct = 0; ct < indentCt; ct++){
-			tabs += "\t";
-		}
-		output += "{\n";
-		
-		String idPart, namePart, relationPart, defPart;
-		if (jo.has("id") && jo.get("id") != null) {
-			relationPart = "id: " + (String) jo.get("id") + "\n";
-			output += tabs + relationPart;
-		}
-		if (jo.has("name") && jo.get("name") != null) {
-			idPart = "name: " + (String) jo.get("name") + "\n";
-			output += tabs + idPart;
-		}
-		if (jo.has("match_type") && jo.get("match_type") != null) {
-			namePart = "match_type: " + (String) jo.get("match_type") + "\n";
-			output += tabs + namePart;
-		}
-		if (jo.has("match_text") && jo.get("match_text") != null) {
-			defPart = "match_text: " + (String) jo.get("match_text") + "\n";
-			output += tabs + defPart;
-		}
-
-		if (jo.has("matches")) {
-			JSONArray matches = (JSONArray) jo.get("matches");
-			if (matches != null) {
-				output += "matches: \n[\n";
-				for(int i = 0; i < matches.length(); i++){
-					JSONObject parent = matches.getJSONObject(i);
-					output += renderJsonObjectAsString(parent, indentCt);
-				}
-			}
-			output += "]\n";
-		}
-		/*
-		if (jo.has("synonymMatches")) {
-			JSONArray synonymMatches = (JSONArray) jo.get("synonymMatches");
-			if (synonymMatches != null) {
-	//			output += "children: \n";
-				for(int j = 0; j < synonymMatches.length(); j++){
-					JSONObject child = synonymMatches.getJSONObject(j);
-					output += renderJsonObjectAsString(child, indentCt);
-				}
-			}
-		}
-		if (jo.has("definitionMatches")) {
-			JSONArray definitionMatches = (JSONArray) jo.get("definitionMatches");
-			if (definitionMatches != null) {
-	//			output += "links: \n";
-				for(int k = 0; k < definitionMatches.length(); k++){
-					JSONObject other = definitionMatches.getJSONObject(k);
-					output += renderJsonObjectAsString(other, indentCt);
-				}
-			}
-		}
-		*/
-		output += tabs + "}\n";
-		return output;
-	}
-
 }

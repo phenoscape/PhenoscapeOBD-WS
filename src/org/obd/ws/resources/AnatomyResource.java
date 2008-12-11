@@ -29,6 +29,14 @@ public class AnatomyResource extends Resource {
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private OBDQuery obdq;
+	private Set<String> taxa;
+	private Set<String> genes;
+	private int annotationCount;
+
+	private final String IS_A_RELATION = "OBO_REL:is_a";
+	private final String EXHIBITS_RELATION = "PHENOSCAPE:exhibits";
+	private final String HAS_ALLELE_RELATION = "PHENOSCAPE:has_allele";
 
 	public AnatomyResource(Context context, Request request, Response response) {
 		super(context, request, response);
@@ -37,6 +45,11 @@ public class AnatomyResource extends Resource {
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
+		obdq = new OBDQuery(obdsql);
+		taxa = new HashSet<String>();
+		genes = new HashSet<String>();
+		annotationCount = 0;
+		jObjs = new JSONObject();
 		// System.out.println(termId);
 	}
 
@@ -45,11 +58,14 @@ public class AnatomyResource extends Resource {
 		Representation rep = null;
 
 		try {
-			this.jObjs = getAnatomyTermInfo(this.termId);
-			if (this.jObjs.get("name").toString().equals("not found")) {
+			getAnatomyTermInfo(this.termId);
+			if (this.jObjs == null) {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
+				return null;
 			}
+			getAnatomyTermSummary(this.termId);
+			//final jsonObject will be assembled at this point
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -68,49 +84,53 @@ public class AnatomyResource extends Resource {
 
 	}
 
-	private JSONObject getAnatomyTermInfo(String termId) throws IOException,
+	private void getAnatomyTermInfo(String termId2) throws IOException,
+			SQLException, ClassNotFoundException, JSONException {
+		// TODO Auto-generated method stub
+		if (obdsql.getNode(termId2) != null) { // we need a node with a name!
+			String def = "";
+			this.jObjs.put("id", termId2);
+			this.jObjs.put("name", obdsql.getNode(termId2).getLabel());
+			Collection<LiteralStatement> lstmts = obdsql
+					.getLiteralStatementsByNode(termId2);
+			for (LiteralStatement lstmt : lstmts) { // find the definition if it
+				// exists
+				if (lstmt.getRelationId().toLowerCase().contains("definition")) {
+					def = lstmt.getTargetId();
+				}
+			}
+			if (def.length() > 0)
+				this.jObjs.put("definition", def);
+		} else {
+			this.jObjs = null;
+		}
+
+	}
+
+	private void getAnatomyTermSummary(String termId) throws IOException,
 			SQLException, ClassNotFoundException, JSONException {
 
-		int totalAnnotationCount = 0, totalTaxonCount = 0;
-		OBDQuery obdq = new OBDQuery(obdsql);
-		JSONObject jsonObj = new JSONObject();
+		String relationId, nodeId;
+		Set<Statement> stmts = obdq.genericTermSearch(termId);
 		
-		Set<Statement> stmts = obdq.genericTermSearch(termId); //find everything about this node
-		for(Statement stmt : stmts){
-			System.out.println(stmt);
-			if(stmt.getRelationId().contains("is_a") && 
-					stmt.getTargetId().equals(termId)){  //looking for children of this node
-				String childNodeId = stmt.getNodeId();
+		for (Statement stmt : stmts) {
+			++annotationCount;
+			relationId = stmt.getRelationId();
+			nodeId = stmt.getNodeId();
+			if (relationId.equals(EXHIBITS_RELATION)) {
+				if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype" statement
+					taxa.add(stmt.getNodeId());
+				} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype" statement
+					getAnatomyTermSummary(nodeId); //
+				}
+			}
+			else if (relationId.equals(HAS_ALLELE_RELATION)) {
+				genes.add(nodeId);
+			}
+			else if (relationId.equals(IS_A_RELATION)
+					&& stmt.getTargetId().equals(termId)) { // child node
+				getAnatomyTermSummary(nodeId);
 			}
 		}
-		totalAnnotationCount += stmts.size();
-		for(Statement t : stmts){
-			if(t.getNodeId().contains("TTO:"))
-				++totalTaxonCount;
-		}
-	
-		String def = "";
-		Collection<LiteralStatement> lstmts = obdsql.getLiteralStatementsByNode(termId);
-		totalAnnotationCount += lstmts.size();
-		for (LiteralStatement lstmt : lstmts) {
-			if (lstmt.getRelationId().toLowerCase().contains("definition")) {
-				def = lstmt.getTargetId();
-			}
-		}
-
-		if (obdsql.getNode(termId) != null) {
-			jsonObj.put("id", termId);
-			jsonObj.put("name", obdsql.getNode(termId).getLabel());
-			if (def.length() > 0)
-				jsonObj.put("definition", def);
-
-			
-		}
-		else{
-			jsonObj = null;
-		}
-		System.out.println("annotations: " + totalAnnotationCount);
-		System.out.println("taxa: " + totalTaxonCount);
-		return jsonObj;
 	}
 }
