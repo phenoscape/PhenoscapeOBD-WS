@@ -3,13 +3,20 @@ package org.obd.ws.resources;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
+import org.obd.model.CompositionalDescription;
+import org.obd.model.LinkStatement;
 import org.obd.model.LiteralStatement;
+import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.restlet.Context;
@@ -32,7 +39,14 @@ public class AnatomyResource extends Resource {
 	private Set<String> taxa;
 	private Set<String> genes;
 	private Set<String> genotypes;
-	
+	private Set<String> qualities;
+
+	private Map<String, Set<String>> qualityToTaxonMap;
+	private Map<String, Set<String>> qualityToGenotypeMap;
+	private Map<String, Set<String>> qualityToGeneMap;
+
+	private String eqCombo;
+
 	private int annotationCount;
 
 	private final String IS_A_RELATION = "OBO_REL:is_a";
@@ -51,6 +65,10 @@ public class AnatomyResource extends Resource {
 		taxa = new HashSet<String>();
 		genes = new HashSet<String>();
 		genotypes = new HashSet<String>();
+		qualities = new HashSet<String>();
+		qualityToTaxonMap = new HashMap<String, Set<String>>();
+		qualityToGenotypeMap = new HashMap<String, Set<String>>();
+		qualityToGeneMap = new HashMap<String, Set<String>>();
 		annotationCount = 0;
 		jObjs = new JSONObject();
 		// System.out.println(termId);
@@ -61,33 +79,63 @@ public class AnatomyResource extends Resource {
 		Representation rep = null;
 
 		try {
-			if(!termId.startsWith("TAO:") && !termId.startsWith("ZFA:")){
+			if (!termId.startsWith("TAO:") && !termId.startsWith("ZFA:")) {
 				this.jObjs = null;
-				getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "ERROR: The input parameter " +
-						"is not a recognized anatomical entity");
+				getResponse().setStatus(
+						Status.CLIENT_ERROR_BAD_REQUEST,
+						"ERROR: The input parameter "
+								+ "is not a recognized anatomical entity");
 				return null;
 			}
-			getAnatomyTermInfo(this.termId);
-			if (this.jObjs == null) {
+			if (obdsql.getNode(this.termId) != null) {
+				getAnatomyTermSummary(this.termId);
+
+				if (qualityToTaxonMap != null) {
+					for (String quality : qualityToTaxonMap.keySet()) {
+						for (String taxon : qualityToTaxonMap.get(quality)) {
+							System.out.println(taxon + " exhibits " + quality);
+						}
+					}
+				}
+
+				if (qualityToGenotypeMap != null) {
+					for (String quality : qualityToGenotypeMap.keySet()) {
+						for (String genotype : qualityToGenotypeMap
+								.get(quality)) {
+							System.out.println(genotype + " exhibits "
+									+ quality);
+						}
+					}
+				}
+
+				if (qualityToGeneMap != null) {
+					for (String quality : qualityToGeneMap.keySet()) {
+						for (String gene : qualityToGeneMap.get(quality)) {
+							System.out.println(gene + " encodes " + quality);
+						}
+					}
+				}
+				// final jsonObject will be assembled at this point
+				JSONObject taxonAnnotations = new JSONObject();
+				JSONObject genotypeAnnotations = new JSONObject();
+				JSONObject geneAnnotations = new JSONObject();
+				taxonAnnotations.put("annotation_count", this.annotationCount);
+				taxonAnnotations.put("taxon_count", this.taxa.size());
+				genotypeAnnotations.put("annotation_count",
+						this.annotationCount);
+				genotypeAnnotations
+						.put("genotype_count", this.genotypes.size());
+				geneAnnotations.put("annotation_count", this.annotationCount);
+				geneAnnotations.put("gene_count", this.genes.size());
+				this.jObjs.put("taxon_annotations", taxonAnnotations);
+				this.jObjs.put("genotype_annotations", genotypeAnnotations);
+				this.jObjs.put("gene_annotations", geneAnnotations);
+
+			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
 				return null;
 			}
-			getAnatomyTermSummary(this.termId);
-			
-			// final jsonObject will be assembled at this point
-			JSONObject taxonAnnotations = new JSONObject();
-			JSONObject genotypeAnnotations = new JSONObject();
-			JSONObject geneAnnotations = new JSONObject();
-			taxonAnnotations.put("annotation_count", this.annotationCount);
-			taxonAnnotations.put("taxon_count", this.taxa.size());
-			genotypeAnnotations.put("annotation_count", this.annotationCount);
-			genotypeAnnotations.put("genotype_count", this.genotypes.size());
-			geneAnnotations.put("annotation_count", this.annotationCount);
-			geneAnnotations.put("gene_count", this.genes.size());
-			this.jObjs.put("taxon_annotations", taxonAnnotations);
-			this.jObjs.put("genotype_annotations", genotypeAnnotations);
-			this.jObjs.put("gene_annotations", geneAnnotations);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -106,73 +154,58 @@ public class AnatomyResource extends Resource {
 
 	}
 
-	private void getAnatomyTermInfo(String termId2) throws IOException,
-			SQLException, ClassNotFoundException, JSONException {
-		if (obdsql.getNode(termId2) != null) { // we need a node with a name!
-			String def = "";
-			this.jObjs.put("id", termId2);
-			this.jObjs.put("name", obdsql.getNode(termId2).getLabel());
-			Collection<LiteralStatement> lstmts = obdsql
-					.getLiteralStatementsByNode(termId2);
-			for (LiteralStatement lstmt : lstmts) { // find the definition if it
-													// exists
-				if (lstmt.getRelationId().toLowerCase().contains("definition")) {
-					def = lstmt.getTargetId();
-				}
-			}
-			if (def.length() > 0)
-				this.jObjs.put("definition", def);
-		} else {
-			this.jObjs = null;
-		}
-
-	}
-
 	private void getAnatomyTermSummary(String termId) throws IOException,
-			SQLException, ClassNotFoundException, JSONException, IllegalArgumentException {
+			SQLException, ClassNotFoundException, JSONException,
+			IllegalArgumentException {
 
-		
-		String relationId, nodeId, targetId;
-		Set<Statement> stmts = obdq.genericTermSearch(termId);
+		// start working with the given anatomical feature
+		String nodeId, targetId;
 
-		
+		Collection<Statement> stmts = obdq.getStatementsWithTargetOfRelation(
+				termId, EXHIBITS_RELATION);
+
 		for (Statement stmt : stmts) {
-			relationId = stmt.getRelationId();
 			nodeId = stmt.getNodeId();
 			targetId = stmt.getTargetId();
-			if (!nodeId.equals(targetId)) {
-				//System.out.println(stmt);
-				++annotationCount;
-				if (relationId.equals(EXHIBITS_RELATION)) {
-					if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype" statement
-						taxa.add(stmt.getNodeId());
-					} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype" statement
-						genotypes.add(nodeId);
-					//	System.out.println("Looking for gene for genotype: " + nodeId);
-						getGeneForGenotype(nodeId);
-					}
-				} else if (relationId.equals(HAS_ALLELE_RELATION)) { // "Gene has allele Genotype" statement
-					genes.add(nodeId);
-				} else if (relationId.equals(IS_A_RELATION)) {
-					if (stmt.getTargetId().equals(termId)) { // child node
-				//		System.out.println("Looking for child node: " + nodeId);
-						getAnatomyTermSummary(nodeId);
-					}
-				}
+			++annotationCount;
+
+			if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype"
+											// statement
+				taxa.add(stmt.getNodeId());
+				qualityToTaxonMap.put(targetId, taxa);
+
+			} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype"
+													// statement
+				genotypes.add(nodeId);
+				qualityToGenotypeMap.put(targetId, genotypes);
+				getGeneForGenotype(targetId, nodeId);
+			}
+		}
+
+		// look for subclasses of the input anatomical feature and find "their"
+		// qualities and genes
+		if (obdq.getStatementsWithTargetOfRelation(termId, IS_A_RELATION)
+				.size() > 0) {
+			for (Statement scStmt : obdq.getStatementsWithTargetOfRelation(
+					termId, IS_A_RELATION)) {
+				getAnatomyTermSummary(scStmt.getNodeId());
 			}
 		}
 	}
 
-	private void getGeneForGenotype(String genotypeId) {
-		// TODO Auto-generated method stub
-		Set<Statement> stmts = obdq.genericTermSearch(genotypeId);
-		for(Statement stmt : stmts){
-		//	System.out.println("Looking for gene in: " + stmt);
-			if(stmt.getRelationId().equals(HAS_ALLELE_RELATION) &&
-					stmt.getTargetId().equals(genotypeId)){
-			//	System.out.println("Adding gene: " + stmt.getNodeId() + " for genotype: " + genotypeId);
+
+	/**
+	 * A method to find the Gene a Genotype is an allele of
+	 * 
+	 * @param genotypeId
+	 */
+	private void getGeneForGenotype(String quality, String genotypeId) {
+		Collection<Statement> stmts = obdq.genericTermSearch(genotypeId);
+		for (Statement stmt : stmts) {
+			if (stmt.getRelationId().equals(HAS_ALLELE_RELATION)) {
 				genes.add(stmt.getNodeId());
 			}
 		}
+		qualityToGeneMap.put(quality, genes);
 	}
 }
