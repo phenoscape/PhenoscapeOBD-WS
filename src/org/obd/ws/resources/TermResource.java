@@ -86,7 +86,10 @@ public class TermResource extends Resource {
 
 		Set<Statement> stmts = obdq.genericTermSearch(termId);
 		JSONObject jsonObj = new JSONObject();
-
+		if(termId.indexOf(":") < 0){
+			return null;
+		}
+		String prefix = termId.substring(0, termId.indexOf(":"));
 		Set<JSONObject> parents = new HashSet<JSONObject>();
 		Set<JSONObject> children = new HashSet<JSONObject>();
 
@@ -109,7 +112,8 @@ public class TermResource extends Resource {
 				String pred = stmt.getRelationId();
 				String obj = stmt.getTargetId();
 				if (pred != null && pred.length() > 0) {
-					if (subj.equals(termId)) {
+					if (subj.equals(termId) &&
+							obj.substring(0, obj.indexOf(":")).equals(prefix)) {
 						JSONObject parent = new JSONObject();
 						JSONObject relation = new JSONObject();
 						JSONObject target = new JSONObject();
@@ -120,7 +124,8 @@ public class TermResource extends Resource {
 						parent.put("relation", relation);
 						parent.put("target", target);
 						parents.add(parent);
-					} else if (obj.equals(termId)) {
+					} else if (obj.equals(termId) &&
+							subj.substring(0, obj.indexOf(":")).equals(prefix)) {
 						JSONObject child = new JSONObject();
 						JSONObject relation = new JSONObject();
 						JSONObject target = new JSONObject();
