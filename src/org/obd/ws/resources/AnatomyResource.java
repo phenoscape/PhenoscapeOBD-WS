@@ -2,10 +2,12 @@ package org.obd.ws.resources;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -33,15 +35,19 @@ public class AnatomyResource extends Resource {
 	private JSONObject jObjs;
 	private Shard obdsql;
 	private OBDQuery obdq;
-	private Set<String> qualities;
 	private Set<String> taxa;
 	private Set<String> genotypes;
 	private Set<String> genes;
+	private List<String> characters;
+	private Set<String> qualitiesForCharacter;
 	
 	private Map<String, Set<String>> qualityToTaxonMap;
 	private Map<String, Set<String>> qualityToGenotypeMap;
 	private Map<String, Set<String>> qualityToGeneMap;
 
+	private Map<String, Set<String>> characterToQualityMap;
+	private Map<String, String> qualitiesToCharacterMap;
+	
 	private int annotationCount;
 
 	private final String OBOOWL_SUBSET_RELATION = "oboInOwl:inSubset";
@@ -60,13 +66,12 @@ public class AnatomyResource extends Resource {
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		obdq = new OBDQuery(obdsql);
-		qualities = new HashSet<String>();
-		taxa = new HashSet<String>();
-		genotypes = new HashSet<String>();
-		genes = new HashSet<String>();
+		characters = new ArrayList<String>();
 		qualityToTaxonMap = new HashMap<String, Set<String>>();
 		qualityToGenotypeMap = new HashMap<String, Set<String>>();
 		qualityToGeneMap = new HashMap<String, Set<String>>();
+		characterToQualityMap  = new HashMap<String, Set<String>>();
+		qualitiesToCharacterMap  = new HashMap<String, String>();
 		annotationCount = 0;
 		jObjs = new JSONObject();
 		// System.out.println(termId);
@@ -87,33 +92,37 @@ public class AnatomyResource extends Resource {
 			}
 			if (obdsql.getNode(this.termId) != null) {
 				getAnatomyTermSummary(this.termId);
-				if(qualities.size() > 0){
-					Set<JSONObject> qualityObjs = new HashSet<JSONObject>();
-					for(String patoStr : qualities){
-						JSONObject qualityObj = new JSONObject();
-						String character = obdsql.getNode(findAttrib(patoStr)).getLabel();
-						String state = obdsql.getNode(patoStr).getLabel();
-						qualityObj.put("id", patoStr);
-						qualityObj.put("name", (character.equals(state)? state : character.toUpperCase(Locale.US) + ": " + state));
-						JSONObject taxonObj = new JSONObject();
-						JSONObject genotypeObj = new JSONObject();
-						JSONObject geneObj = new JSONObject();
-						if(qualityToTaxonMap.get(patoStr) != null){
-							taxonObj.put("annotation_count", annotationCount);
-							taxonObj.put("taxon_count", qualityToTaxonMap.get(patoStr).size());
-							qualityObj.put("taxon_annotations", taxonObj);
+				if(characters.size() > 0){
+					Collections.sort(characters);
+					List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
+					for(String charId : characters){
+						for(String patoStr : characterToQualityMap.get(charId)){
+							//System.out.println(charId + "--->" + patoStr);
+							JSONObject qualityObj = new JSONObject();
+							String character = obdsql.getNode(charId).getLabel();
+							String state = obdsql.getNode(patoStr).getLabel();
+							qualityObj.put("id", patoStr);
+							qualityObj.put("name", character.toUpperCase() + "---> " + state);
+							JSONObject taxonObj = new JSONObject();
+							JSONObject genotypeObj = new JSONObject();
+							JSONObject geneObj = new JSONObject();
+							if(qualityToTaxonMap.get(patoStr) != null){
+								taxonObj.put("annotation_count", annotationCount);
+								taxonObj.put("taxon_count", qualityToTaxonMap.get(patoStr).size());
+								qualityObj.put("taxon_annotations", taxonObj);
+							}
+							if(qualityToGenotypeMap.get(patoStr) != null){
+								genotypeObj.put("annotation_count", annotationCount);
+								genotypeObj.put("genotype_count", qualityToGenotypeMap.get(patoStr).size());
+								qualityObj.put("genotype_annotations", genotypeObj);
+							}
+							if(qualityToGeneMap.get(patoStr) != null){
+								geneObj.put("annotation_count", annotationCount);
+								geneObj.put("gene_count", qualityToGeneMap.get(patoStr).size());
+								qualityObj.put("gene_annotations", geneObj);
+							}
+							qualityObjs.add(qualityObj);
 						}
-						if(qualityToGenotypeMap.get(patoStr) != null){
-							genotypeObj.put("annotation_count", annotationCount);
-							genotypeObj.put("genotype_count", qualityToGenotypeMap.get(patoStr).size());
-							qualityObj.put("genotype_annotations", genotypeObj);
-						}
-						if(qualityToGeneMap.get(patoStr) != null){
-							geneObj.put("annotation_count", annotationCount);
-							geneObj.put("gene_count", qualityToGeneMap.get(patoStr).size());
-							qualityObj.put("gene_annotations", geneObj);
-						}
-						qualityObjs.add(qualityObj);
 					}
 					this.jObjs.put("qualities", qualityObjs);
 				}
@@ -152,7 +161,7 @@ public class AnatomyResource extends Resource {
 	IllegalArgumentException {
 
 		// start working with the given anatomical feature
-		String nodeId, targetId, patoTerm;
+		String nodeId, targetId, patoId;
 
 		Collection<Statement> stmts = obdq.getStatementsWithPredicateAndObject(
 											termId, EXHIBITS_RELATION);
@@ -163,18 +172,62 @@ public class AnatomyResource extends Resource {
 			nodeId = stmt.getNodeId();
 			targetId = stmt.getTargetId();
 			if(parseCompositionalDescription(targetId) != null){ //pull out pato term
-				patoTerm = parseCompositionalDescription(targetId);
-				qualities.add(patoTerm);
+				patoId = parseCompositionalDescription(targetId);
+				String characterId;
+				characterId = qualitiesToCharacterMap.get(patoId) != null? //prior mapping exists in reverse lookup
+						qualitiesToCharacterMap.get(patoId): //save on database search
+						findAttrib(patoId); //otherwise, look in database
+						
+				if(!characters.contains(characterId)){
+					characters.add(characterId);	//avoid duplicate entries. we need to sort this later, so can't use a set
+				}
+				qualitiesToCharacterMap.put(patoId, characterId); //a reverse mapping: every state has a unique character
+				
+				if(characterToQualityMap.get(characterId) != null){ //previous mappings exist from character to state
+					qualitiesForCharacter = characterToQualityMap.get(characterId); 
+					qualitiesForCharacter.add(patoId); //add the new state to existing list
+					characterToQualityMap.put(characterId, qualitiesForCharacter);
+				}
+				else{
+					Set<String> newQualitySet = new HashSet<String>();
+					newQualitySet.add(patoId); //create new list of states and map it to characters
+					characterToQualityMap.put(characterId, newQualitySet);
+				}
 				if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype"
-					taxa.add(nodeId);
-					qualityToTaxonMap.put(patoTerm, taxa);
+					if(qualityToTaxonMap.get(patoId) != null){ //if previous mappings exist from PATO term to Taxa
+						taxa = qualityToTaxonMap.get(patoId);
+						taxa.add(nodeId);						//add this taxon to list
+						qualityToTaxonMap.put(patoId, taxa);						
+					}
+					else{
+						Set<String> newTaxaSet = new HashSet<String>();
+						newTaxaSet.add(nodeId);					//create new list for this PATO term
+						qualityToTaxonMap.put(patoId, newTaxaSet);
+					}
+
 				} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype"
-					genotypes.add(nodeId);
-					qualityToGenotypeMap.put(patoTerm, genotypes);
-					if(getGeneForGenotype(patoTerm, nodeId) != null){
-						String gene = getGeneForGenotype(patoTerm, nodeId);
-						genes.add(gene);
-						qualityToGeneMap.put(patoTerm, genes);
+					if(qualityToGenotypeMap.get(patoId) != null){ //if previos mappings exist from PATO to genotypes
+						genotypes = qualityToGenotypeMap.get(patoId);
+						genotypes.add(nodeId);	//add this genotype to list
+						qualityToGenotypeMap.put(patoId, genotypes);
+					}
+					else{
+						Set<String> newGenotypeSet = new HashSet<String>();
+						newGenotypeSet.add(nodeId);		//create new list and add it to PATO term
+						qualityToGenotypeMap.put(patoId, newGenotypeSet);
+					}
+					if(getGeneForGenotype(patoId, nodeId) != null){
+						String gene = getGeneForGenotype(patoId, nodeId); 
+						if(qualityToGeneMap.get(patoId) != null){ //if previous mappings exist from PATO term to genes
+							genes = qualityToGeneMap.get(patoId);
+							genes.add(gene);	//add this gene to the list
+							qualityToGeneMap.put(patoId, genes);
+						}
+						else{
+							Set<String> newGeneSet = new HashSet<String>();
+							newGeneSet.add(gene);  //create a new list and add it to PATO term
+							qualityToGeneMap.put(patoId, newGeneSet);
+						}
 					}
 				}
 			}
@@ -211,7 +264,7 @@ public class AnatomyResource extends Resource {
 				}
 			}
 		}
-		return patoTerm;
+		return patoTerm.contains("^")?parseCompositionalDescription(patoTerm):patoTerm;
 	}
 
 	/**
