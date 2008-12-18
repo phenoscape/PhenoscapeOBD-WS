@@ -94,8 +94,11 @@ public class AnatomyResource extends Resource {
 				getAnatomyTermSummary(this.termId);
 				if(characters.size() > 0){
 					Collections.sort(characters);
-					List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
+//					List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
+					List<JSONObject> charObjs = new ArrayList<JSONObject>();
 					for(String charId : characters){
+						int taxonCt = 0, genotypeCt = 0, geneCt = 0;
+						JSONObject charObj = new JSONObject();
 						for(String patoStr : characterToQualityMap.get(charId)){
 							//System.out.println(charId + "--->" + patoStr);
 							JSONObject qualityObj = new JSONObject();
@@ -106,28 +109,52 @@ public class AnatomyResource extends Resource {
 							JSONObject taxonObj = new JSONObject();
 							JSONObject genotypeObj = new JSONObject();
 							JSONObject geneObj = new JSONObject();
+							
+							taxonObj.put("annotation_count", annotationCount);
 							if(qualityToTaxonMap.get(patoStr) != null){
-								taxonObj.put("annotation_count", annotationCount);
 								taxonObj.put("taxon_count", qualityToTaxonMap.get(patoStr).size());
-								qualityObj.put("taxon_annotations", taxonObj);
+								taxonCt += qualityToTaxonMap.get(patoStr).size();
 							}
+							else{
+								taxonObj.put("taxon_count", 0);
+							}
+							qualityObj.put("taxon_annotations", taxonObj);
+							
+							genotypeObj.put("annotation_count", annotationCount);
 							if(qualityToGenotypeMap.get(patoStr) != null){
-								genotypeObj.put("annotation_count", annotationCount);
 								genotypeObj.put("genotype_count", qualityToGenotypeMap.get(patoStr).size());
-								qualityObj.put("genotype_annotations", genotypeObj);
+								genotypeCt += qualityToGenotypeMap.get(patoStr).size();
 							}
+							else{
+								genotypeObj.put("genotype_count", 0);
+							}
+							qualityObj.put("genotype_annotations", genotypeObj);
+							
+							geneObj.put("annotation_count", annotationCount);
 							if(qualityToGeneMap.get(patoStr) != null){
-								geneObj.put("annotation_count", annotationCount);
 								geneObj.put("gene_count", qualityToGeneMap.get(patoStr).size());
-								qualityObj.put("gene_annotations", geneObj);
+								geneCt += qualityToGeneMap.get(patoStr).size();
 							}
-							qualityObjs.add(qualityObj);
+							else{
+								geneObj.put("gene_count", 0);
+							}
+							qualityObj.put("gene_annotations", geneObj);
+						//	qualityObjs.add(qualityObj);
 						}
+						charObj.put("id", charId);
+						charObj.put("name", obdsql.getNode(charId).getLabel().toUpperCase());
+						charObj.put("annotation_count", annotationCount);
+						charObj.put("taxon_count", taxonCt);
+						charObj.put("genotype_count", genotypeCt);
+						charObj.put("gene_count", geneCt);
+						charObjs.add(charObj);
 					}
-					this.jObjs.put("qualities", qualityObjs);
+//					this.jObjs.put("qualities", qualityObjs);
+					this.jObjs.put("characters", charObjs);
 				}
 				else{	
-					this.jObjs.put("qualities", "[]");
+//					this.jObjs.put("qualities", "[]");
+					this.jObjs.put("characters", "[]");
 				}
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
