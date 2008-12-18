@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -32,10 +33,11 @@ public class AnatomyResource extends Resource {
 	private JSONObject jObjs;
 	private Shard obdsql;
 	private OBDQuery obdq;
+	private Set<String> qualities;
 	private Set<String> taxa;
-	private Set<String> genes;
 	private Set<String> genotypes;
-
+	private Set<String> genes;
+	
 	private Map<String, Set<String>> qualityToTaxonMap;
 	private Map<String, Set<String>> qualityToGenotypeMap;
 	private Map<String, Set<String>> qualityToGeneMap;
@@ -58,9 +60,10 @@ public class AnatomyResource extends Resource {
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		obdq = new OBDQuery(obdsql);
+		qualities = new HashSet<String>();
 		taxa = new HashSet<String>();
-		genes = new HashSet<String>();
 		genotypes = new HashSet<String>();
+		genes = new HashSet<String>();
 		qualityToTaxonMap = new HashMap<String, Set<String>>();
 		qualityToGenotypeMap = new HashMap<String, Set<String>>();
 		qualityToGeneMap = new HashMap<String, Set<String>>();
@@ -84,72 +87,39 @@ public class AnatomyResource extends Resource {
 			}
 			if (obdsql.getNode(this.termId) != null) {
 				getAnatomyTermSummary(this.termId);
-				Set<JSONObject> qualityObjs = new HashSet<JSONObject>();
-				if (qualityToTaxonMap != null) {
-					for (String quality : qualityToTaxonMap.keySet()) {
-						JSONObject qualityTaxonObj = new JSONObject();
-						String[] eq = parseCompositionalDescription(quality).split("\\t");
-						String character = obdsql.getNode(findAttrib(eq[1])).getLabel();
-						//String entity = obdsql.getNode(eq[0]).getLabel();
-						String state = obdsql.getNode(eq[1]).getLabel();
-						if(state.equals(character)){
-							qualityTaxonObj.put("id", eq[1]);
-							qualityTaxonObj.put("name", state);
+				if(qualities.size() > 0){
+					Set<JSONObject> qualityObjs = new HashSet<JSONObject>();
+					for(String patoStr : qualities){
+						JSONObject qualityObj = new JSONObject();
+						String character = obdsql.getNode(findAttrib(patoStr)).getLabel();
+						String state = obdsql.getNode(patoStr).getLabel();
+						qualityObj.put("id", patoStr);
+						qualityObj.put("name", (character.equals(state)? state : character.toUpperCase(Locale.US) + ": " + state));
+						JSONObject taxonObj = new JSONObject();
+						JSONObject genotypeObj = new JSONObject();
+						JSONObject geneObj = new JSONObject();
+						if(qualityToTaxonMap.get(patoStr) != null){
+							taxonObj.put("annotation_count", annotationCount);
+							taxonObj.put("taxon_count", qualityToTaxonMap.get(patoStr).size());
+							qualityObj.put("taxon_annotations", taxonObj);
 						}
-						else{
-							qualityTaxonObj.put("id", eq[1]);
-							qualityTaxonObj.put("name", character + " " + state);
+						if(qualityToGenotypeMap.get(patoStr) != null){
+							genotypeObj.put("annotation_count", annotationCount);
+							genotypeObj.put("genotype_count", qualityToGenotypeMap.get(patoStr).size());
+							qualityObj.put("genotype_annotations", genotypeObj);
 						}
-						qualityTaxonObj.put("annotation_count", annotationCount);
-						qualityTaxonObj.put("taxon_count", qualityToTaxonMap.get(quality).size());
-						qualityObjs.add(qualityTaxonObj);
+						if(qualityToGeneMap.get(patoStr) != null){
+							geneObj.put("annotation_count", annotationCount);
+							geneObj.put("gene_count", qualityToGeneMap.get(patoStr).size());
+							qualityObj.put("gene_annotations", geneObj);
+						}
+						qualityObjs.add(qualityObj);
 					}
+					this.jObjs.put("qualities", qualityObjs);
 				}
-
-				if (qualityToGenotypeMap != null) {
-					for (String quality : qualityToGenotypeMap.keySet()) {
-						JSONObject qualityGenotypeObj = new JSONObject();
-						String[] eq = parseCompositionalDescription(quality).split("\\t");
-						
-						String character = obdsql.getNode(findAttrib(eq[1])).getLabel();
-						//String entity = obdsql.getNode(eq[0]).getLabel().toUpperCase();
-						String state = obdsql.getNode(eq[1]).getLabel();
-						if(state.equals(character)){
-							qualityGenotypeObj.put("id", eq[1]);
-							qualityGenotypeObj.put("name", state);
-						}
-						else{
-							qualityGenotypeObj.put("id", eq[1]);
-							qualityGenotypeObj.put("name", character + " " + state);
-						}
-						qualityGenotypeObj.put("annotation_count", annotationCount);
-						qualityGenotypeObj.put("genotype_count", qualityToGenotypeMap.get(quality).size());
-						qualityObjs.add(qualityGenotypeObj);
-					}
+				else{	
+					this.jObjs.put("qualities", "[]");
 				}
-
-				if (qualityToGeneMap != null) {
-					for (String quality : qualityToGeneMap.keySet()) {
-						JSONObject qualityGeneObj = new JSONObject();
-						String[] eq = parseCompositionalDescription(quality).split("\\t");
-						
-						String character = obdsql.getNode(findAttrib(eq[1])).getLabel();
-						//String entity = obdsql.getNode(eq[0]).getLabel();
-						String state = obdsql.getNode(eq[1]).getLabel();
-						if(state.equals(character)){
-							qualityGeneObj.put("id", eq[1]);
-							qualityGeneObj.put("name", state);
-						}
-						else{
-							qualityGeneObj.put("id", eq[1]);
-							qualityGeneObj.put("name", character + " " + state);
-						}
-						qualityGeneObj.put("annotation_count", annotationCount);
-						qualityGeneObj.put("gene_count", qualityToGeneMap.get(quality).size());
-						qualityObjs.add(qualityGeneObj);
-					}
-				}
-				this.jObjs.put("qualities", qualityObjs);
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
@@ -182,24 +152,31 @@ public class AnatomyResource extends Resource {
 	IllegalArgumentException {
 
 		// start working with the given anatomical feature
-		String nodeId, targetId;
+		String nodeId, targetId, patoTerm;
 
 		Collection<Statement> stmts = obdq.getStatementsWithPredicateAndObject(
 											termId, EXHIBITS_RELATION);
 
 		for (Statement stmt : stmts) {
+			++annotationCount;
+			
 			nodeId = stmt.getNodeId();
 			targetId = stmt.getTargetId();
-			++annotationCount;
-
-			if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype"
-				taxa.add(nodeId);
-				qualityToTaxonMap.put(targetId, taxa);
-
-			} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype"
-				genotypes.add(nodeId);
-				qualityToGenotypeMap.put(targetId, genotypes);
-				getGeneForGenotype(targetId, nodeId);
+			if(parseCompositionalDescription(targetId) != null){ //pull out pato term
+				patoTerm = parseCompositionalDescription(targetId);
+				qualities.add(patoTerm);
+				if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype"
+					taxa.add(nodeId);
+					qualityToTaxonMap.put(patoTerm, taxa);
+				} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype"
+					genotypes.add(nodeId);
+					qualityToGenotypeMap.put(patoTerm, genotypes);
+					if(getGeneForGenotype(patoTerm, nodeId) != null){
+						String gene = getGeneForGenotype(patoTerm, nodeId);
+						genes.add(gene);
+						qualityToGeneMap.put(patoTerm, genes);
+					}
+				}
 			}
 		}
 
@@ -222,12 +199,15 @@ public class AnatomyResource extends Resource {
 	
 	private String findAttrib(String patoTerm) {
 		String parentId, valOrAttrib;
-		valOrAttrib = obdq.getStatementsWithSubjectAndPredicate(patoTerm, OBOOWL_SUBSET_RELATION).iterator().next().getTargetId();
-		parentId = obdq.getStatementsWithSubjectAndPredicate(patoTerm, IS_A_RELATION).iterator().next().getTargetId();
-		if(parentId != null && !parentId.equals(patoTerm)){
-			if(valOrAttrib != null){
-				if(valOrAttrib.equals(VALUE_SLIM_STRING)){
-					return findAttrib(parentId);
+		if(obdq.getStatementsWithSubjectAndPredicate(patoTerm, OBOOWL_SUBSET_RELATION).size() > 0){
+			valOrAttrib = obdq.getStatementsWithSubjectAndPredicate(patoTerm, OBOOWL_SUBSET_RELATION).
+								iterator().next().getTargetId();
+			if(valOrAttrib.equals(VALUE_SLIM_STRING)){
+				for(Statement s : obdq.getStatementsWithSubjectAndPredicate(patoTerm, IS_A_RELATION)){
+					parentId = s.getTargetId();
+					if(!parentId.equals(patoTerm)){
+						return findAttrib(parentId);
+					}
 				}
 			}
 		}
@@ -240,19 +220,14 @@ public class AnatomyResource extends Resource {
 	 * @return
 	 */
 	private String parseCompositionalDescription(String cd) {
-		String quality = "", entity = "";
+		String quality = null;
 		
 		Pattern patoPattern = Pattern.compile("PATO:[0-9]+");
 		Matcher patoMatcher = patoPattern.matcher(cd);
-		Pattern anatPattern = Pattern.compile("((ZFA)|(TAO)):[0-9]+");
-		Matcher anatMatcher = anatPattern.matcher(cd);
 		if(patoMatcher.find()){
 			quality = cd.substring(patoMatcher.start(), patoMatcher.end());
 		}
-		if(anatMatcher.find()){
-			entity = cd.substring(anatMatcher.start(), anatMatcher.end());
-		}
-		return entity + "\t" + quality;
+		return quality;
 	}
 
 	/**
@@ -260,13 +235,13 @@ public class AnatomyResource extends Resource {
 	 * 
 	 * @param genotypeId
 	 */
-	private void getGeneForGenotype(String quality, String genotypeId) {
+	private String getGeneForGenotype(String quality, String genotypeId) {
 		Collection<Statement> stmts = obdq.genericTermSearch(genotypeId);
 		for (Statement stmt : stmts) {
 			if (stmt.getRelationId().equals(HAS_ALLELE_RELATION)) {
-				genes.add(stmt.getNodeId());
+				return stmt.getNodeId();
 			}
 		}
-		qualityToGeneMap.put(quality, genes);
+		return null;
 	}
 }
