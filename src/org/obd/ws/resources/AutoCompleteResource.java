@@ -48,12 +48,6 @@ public class AutoCompleteResource extends Resource {
 			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
 	//	System.out.println(nameOption);
 		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
-		
-		for(Node sourceNode :	obdsql.getSourceNodes()){
-			String id = sourceNode.getId();
-			
-		}
-
 
 	}
 
