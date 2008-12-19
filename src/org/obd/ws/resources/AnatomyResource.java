@@ -48,6 +48,10 @@ public class AnatomyResource extends Resource {
 	private Map<String, Set<String>> characterToQualityMap;
 	private Map<String, String> qualitiesToCharacterMap;
 	
+	private Map<String, Integer> statementCountByTaxa;
+	private Map<String, Integer> statementCountByGenotype;
+	private Map<String, Integer> statementCountByGene;
+	
 	private int annotationCount;
 
 	private final String OBOOWL_SUBSET_RELATION = "oboInOwl:inSubset";
@@ -73,6 +77,9 @@ public class AnatomyResource extends Resource {
 		characterToQualityMap  = new HashMap<String, Set<String>>();
 		qualitiesToCharacterMap  = new HashMap<String, String>();
 		annotationCount = 0;
+		statementCountByTaxa = new HashMap<String, Integer>();
+		statementCountByGenotype = new HashMap<String, Integer>();
+		statementCountByGene = new HashMap<String, Integer>();
 		jObjs = new JSONObject();
 		// System.out.println(termId);
 	}
@@ -102,7 +109,8 @@ public class AnatomyResource extends Resource {
 				//	List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
 					List<JSONObject> charObjs = new ArrayList<JSONObject>();
 					for(String charId : characters){
-						int taxonCt = 0, genotypeCt = 0, geneCt = 0;
+						int taxonCt = 0, genotypeCt = 0, geneCt = 0, taxonStmtCt = 0, genoStmtCt = 0, geneStmtCt = 0,
+							geneStmtByCharCt = 0, genoStmtByCharCt = 0, taxonStmtByCharCt = 0;
 						JSONObject charObj = new JSONObject();
 						JSONObject genesForCharObj = new JSONObject();
 						JSONObject genotypesForCharObj = new JSONObject();
@@ -117,47 +125,65 @@ public class AnatomyResource extends Resource {
 							JSONObject taxonObj = new JSONObject();
 							JSONObject genotypeObj = new JSONObject();
 							JSONObject geneObj = new JSONObject();
-							
-							taxonObj.put("annotation_count", annotationCount);
+												
 							if(qualityToTaxonMap.get(patoStr) != null){
 								taxonObj.put("taxon_count", qualityToTaxonMap.get(patoStr).size());
 								taxonCt += qualityToTaxonMap.get(patoStr).size();
+								for(String taxonQuality : statementCountByTaxa.keySet()){
+									if(taxonQuality.contains(patoStr)){
+										taxonStmtCt += statementCountByTaxa.get(taxonQuality);
+									}
+								}
+								taxonStmtByCharCt += taxonStmtCt;
 							}
 							else{
 								taxonObj.put("taxon_count", 0);
 							}
+							taxonObj.put("annotation_count", taxonStmtCt);
 							qualityObj.put("taxon_annotations", taxonObj);
 							
-							genotypeObj.put("annotation_count", annotationCount);
 							if(qualityToGenotypeMap.get(patoStr) != null){
 								genotypeObj.put("genotype_count", qualityToGenotypeMap.get(patoStr).size());
 								genotypeCt += qualityToGenotypeMap.get(patoStr).size();
+								for(String genotypeQuality : statementCountByGenotype.keySet()){
+									if(genotypeQuality.contains(patoStr)){
+										genoStmtCt += statementCountByGenotype.get(genotypeQuality);
+									}
+								}
+								genoStmtByCharCt += genoStmtCt;
 							}
 							else{
 								genotypeObj.put("genotype_count", 0);
 							}
+							genotypeObj.put("annotation_count", genoStmtCt);
 							qualityObj.put("genotype_annotations", genotypeObj);
 							
-							geneObj.put("annotation_count", annotationCount);
 							if(qualityToGeneMap.get(patoStr) != null){
 								geneObj.put("gene_count", qualityToGeneMap.get(patoStr).size());
 								geneCt += qualityToGeneMap.get(patoStr).size();
+								for(String geneForQuality : statementCountByGene.keySet()){
+									if(geneForQuality.contains(patoStr)){
+										geneStmtCt += statementCountByGene.get(geneForQuality);
+									}
+								}
+								geneStmtByCharCt += geneStmtCt;
 							}
 							else{
 								geneObj.put("gene_count", 0);
 							}
+							geneObj.put("annotation_count", geneStmtCt);
 							qualityObj.put("gene_annotations", geneObj);
 						//	qualityObjs.add(qualityObj);
 						}
 						charObj.put("id", charId);
-						charObj.put("name", obdsql.getNode(charId).getLabel().toUpperCase());
-						taxaForCharObj.put("annotation_count", annotationCount);
+						charObj.put("name", obdsql.getNode(charId).getLabel());
+						taxaForCharObj.put("annotation_count", taxonStmtByCharCt);
 						taxaForCharObj.put("taxon_count", taxonCt);
 						charObj.put("taxon_annotations", taxaForCharObj);
-						genotypesForCharObj.put("annotation_count", annotationCount);
+						genotypesForCharObj.put("annotation_count", genoStmtByCharCt);
 						genotypesForCharObj.put("genotype_count", genotypeCt);
 						charObj.put("genotype_annotations", genotypesForCharObj);
-						genesForCharObj.put("annotation_count", annotationCount);
+						genesForCharObj.put("annotation_count", geneStmtByCharCt);
 						genesForCharObj.put("gene_count", geneCt);
 						charObj.put("gene_annotations", genesForCharObj);
 						charObjs.add(charObj);
@@ -234,6 +260,7 @@ public class AnatomyResource extends Resource {
 					characterToQualityMap.put(characterId, newQualitySet);
 				}
 				if (nodeId.contains("TTO:")) { // "Taxon exhibits Phenotype"
+					updateStatementCount(nodeId, patoId);
 					if(qualityToTaxonMap.get(patoId) != null){ //if previous mappings exist from PATO term to Taxa
 						taxa = qualityToTaxonMap.get(patoId);
 						taxa.add(nodeId);						//add this taxon to list
@@ -246,6 +273,7 @@ public class AnatomyResource extends Resource {
 					}
 
 				} else if (nodeId.contains("GENO")) { // "Genotype exhibits Phenotype"
+					updateStatementCount(nodeId, patoId);
 					if(qualityToGenotypeMap.get(patoId) != null){ //if previos mappings exist from PATO to genotypes
 						genotypes = qualityToGenotypeMap.get(patoId);
 						genotypes.add(nodeId);	//add this genotype to list
@@ -257,7 +285,8 @@ public class AnatomyResource extends Resource {
 						qualityToGenotypeMap.put(patoId, newGenotypeSet);
 					}
 					if(getGeneForGenotype(patoId, nodeId) != null){
-						String gene = getGeneForGenotype(patoId, nodeId); 
+						String gene = getGeneForGenotype(patoId, nodeId);
+						updateStatementCount(gene, patoId);
 						if(qualityToGeneMap.get(patoId) != null){ //if previous mappings exist from PATO term to genes
 							genes = qualityToGeneMap.get(patoId);
 							genes.add(gene);	//add this gene to the list
@@ -283,7 +312,42 @@ public class AnatomyResource extends Resource {
 			}
 		}
 	}
+	/**
+	 * A method to keep track of statement counts for every taxon, genotype and gene
+	 * @param term
+	 */
 	
+	private void updateStatementCount(String term, String pato) {
+		String index = term + "\t" + pato;
+		if(term.contains("TTO")){
+			if(statementCountByTaxa.get(index) != null){
+				int ct = statementCountByTaxa.get(index);
+				statementCountByTaxa.put(index, ++ct);
+			}
+			else{
+				statementCountByTaxa.put(index, 1);
+			}
+		}
+		else if(term.contains("GENO")){
+			if(statementCountByGenotype.get(index) != null){
+				int ct = statementCountByGenotype.get(index);
+				statementCountByGenotype.put(index, ++ct);
+			}
+			else{
+				statementCountByGenotype.put(index, 1);
+			}
+		}
+		else if(term.contains("GENE")){
+			if(statementCountByGene.get(index) != null){     
+				int ct = statementCountByGene.get(index);
+				statementCountByGene.put(index, ++ct);
+			}
+			else{
+				statementCountByGene.put(index, 1);
+			}
+		}
+	}
+
 	/**
 	 * A helper method to find the parent PATO term through the slims hierarchy
 	 * @param patoTerm
