@@ -94,14 +94,17 @@ public class AnatomyResource extends Resource {
 				getAnatomyTermSummary(this.termId);
 				if(characters.size() > 0){
 					Collections.sort(characters);
-//					List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
+				//	List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
 					List<JSONObject> charObjs = new ArrayList<JSONObject>();
 					for(String charId : characters){
 						int taxonCt = 0, genotypeCt = 0, geneCt = 0;
 						JSONObject charObj = new JSONObject();
+						JSONObject genesForCharObj = new JSONObject();
+						JSONObject genotypesForCharObj = new JSONObject();
+						JSONObject taxaForCharObj = new JSONObject();
 						for(String patoStr : characterToQualityMap.get(charId)){
 							//System.out.println(charId + "--->" + patoStr);
-							JSONObject qualityObj = new JSONObject();
+							JSONObject qualityObj = new JSONObject();				
 							String character = obdsql.getNode(charId).getLabel();
 							String state = obdsql.getNode(patoStr).getLabel();
 							qualityObj.put("id", patoStr);
@@ -143,17 +146,22 @@ public class AnatomyResource extends Resource {
 						}
 						charObj.put("id", charId);
 						charObj.put("name", obdsql.getNode(charId).getLabel().toUpperCase());
-						charObj.put("annotation_count", annotationCount);
-						charObj.put("taxon_count", taxonCt);
-						charObj.put("genotype_count", genotypeCt);
-						charObj.put("gene_count", geneCt);
+						taxaForCharObj.put("annotation_count", annotationCount);
+						taxaForCharObj.put("taxon_count", taxonCt);
+						charObj.put("taxon_annotations", taxaForCharObj);
+						genotypesForCharObj.put("annotation_count", annotationCount);
+						genotypesForCharObj.put("genotype_count", genotypeCt);
+						charObj.put("genotype_annotations", genotypesForCharObj);
+						genesForCharObj.put("annotation_count", annotationCount);
+						genesForCharObj.put("gene_count", geneCt);
+						charObj.put("gene_annotations", genesForCharObj);
 						charObjs.add(charObj);
 					}
-//					this.jObjs.put("qualities", qualityObjs);
+				//	this.jObjs.put("qualities", qualityObjs);
 					this.jObjs.put("characters", charObjs);
 				}
 				else{	
-//					this.jObjs.put("qualities", "[]");
+				//	this.jObjs.put("qualities", "[]");
 					this.jObjs.put("characters", "[]");
 				}
 			} else {
