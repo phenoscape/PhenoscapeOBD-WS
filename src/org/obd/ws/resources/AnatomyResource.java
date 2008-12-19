@@ -91,6 +91,11 @@ public class AnatomyResource extends Resource {
 				return null;
 			}
 			if (obdsql.getNode(this.termId) != null) {
+				JSONObject termObject = new JSONObject();
+				String term = obdsql.getNode(this.termId).getLabel();
+				termObject.put("id", this.termId);
+				termObject.put("name", term);
+				this.jObjs.put("term", termObject);
 				getAnatomyTermSummary(this.termId);
 				if(characters.size() > 0){
 					Collections.sort(characters);
@@ -158,11 +163,11 @@ public class AnatomyResource extends Resource {
 						charObjs.add(charObj);
 					}
 				//	this.jObjs.put("qualities", qualityObjs);
-					this.jObjs.put("characters", charObjs);
+					this.jObjs.put("attributes", charObjs);
 				}
 				else{	
 				//	this.jObjs.put("qualities", "[]");
-					this.jObjs.put("characters", "[]");
+					this.jObjs.put("attributes", "[]");
 				}
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
