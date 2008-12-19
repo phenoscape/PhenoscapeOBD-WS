@@ -18,8 +18,10 @@ public class OBDApplication extends Application {
 	
 	public void connect() throws SQLException, ClassNotFoundException{
 		Shard obdsql = new OBDSQLShard();
-		((AbstractSQLShard)obdsql).connect("j?", 
+		((AbstractSQLShard)obdsql).connect("?", 
 				"?", "?");
+		//((AbstractSQLShard)obdsql).connect("jdbc:postgresql://localhost:5433/obdtest121308", 
+		//		"?", "?");
 		this.getContext().getAttributes().put("shard", obdsql);
 	}
 	
@@ -37,6 +39,7 @@ public class OBDApplication extends Application {
         
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
+        router.attach("/phenotypes/summary/{termID}", org.obd.ws.resources.AnatomyResource.class);
 
         return router;
     }
