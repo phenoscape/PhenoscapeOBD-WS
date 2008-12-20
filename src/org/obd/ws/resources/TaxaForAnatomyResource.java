@@ -28,6 +28,7 @@ public class TaxaForAnatomyResource extends Resource {
 
 	private final String termId;
 	private final String patoId;
+	private String attributeOption = "false";
 
 	private JSONObject jObjs;
 	private Shard obdsql;
@@ -37,24 +38,23 @@ public class TaxaForAnatomyResource extends Resource {
 	Set<String> subFeatures = new HashSet<String>();
 
 	Set<String> taxonAnnotations = new HashSet<String>();
-	Set<String> genotypeAnnotations = new HashSet<String>();
-	Set<String> geneAnnotations = new HashSet<String>();
 
 	private final String IS_A_RELATION = "OBO_REL:is_a";
 	private final String EXHIBITS_RELATION = "PHENOSCAPE:exhibits";
-	private final String HAS_ALLELE_RELATION = "PHENOSCAPE:has_allele";
 
 	public TaxaForAnatomyResource(Context context, Request request,
 			Response response) {
 		super(context, request, response);
 
-		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
-		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+		obdsql = (Shard)getContext().getAttributes().get("shard");
+		getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
-		this.termId = Reference.decode((String) (request.getAttributes()
+		termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		this.patoId = Reference.decode((String) (request.getAttributes()
+		patoId = Reference.decode((String) (request.getAttributes()
 				.get("patoID")));
+		if (request.getResourceRef().getQueryAsForm().getFirstValue("attribute") != null)
+			attributeOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("attribute"));
 		obdq = new OBDQuery(obdsql);
 
 		jObjs = new JSONObject();
@@ -74,26 +74,27 @@ public class TaxaForAnatomyResource extends Resource {
 								+ "is not a recognized anatomical entity");
 				return null;
 			}
-			if (obdsql.getNode(this.termId) != null
-					&& obdsql.getNode(this.patoId) != null) {
+
+			if (obdsql.getNode(termId) != null
+					&& obdsql.getNode(patoId) != null) {
 				JSONObject termObject = new JSONObject();
-				String term = obdsql.getNode(this.termId).getLabel();
-				termObject.put("id", this.termId);
+				String term = obdsql.getNode(termId).getLabel();
+				termObject.put("id", termId);
 				termObject.put("name", term);
 				this.jObjs.put("anatomical_feature", termObject);
 				JSONObject patoObject = new JSONObject();
-				String pato = obdsql.getNode(this.patoId).getLabel();
-				patoObject.put("id", this.patoId);
+				String pato = obdsql.getNode(patoId).getLabel();
+				patoObject.put("id", patoId);
 				patoObject.put("name", pato);
 				this.jObjs.put("quality", patoObject);
 
-				getAnatomyAndQualityTermInfo(this.termId, this.patoId);
+				getAnatomyAndQualityTermInfo(termId, patoId,
+						attributeOption);
 
-				JSONObject genotypeObj, geneObj, taxonObj, entityObj, qualityObj, taxonAnnotObj, genoAnnotObj, geneAnnotObj;
+				JSONObject taxonObj, entityObj, qualityObj, taxonAnnotObj; 
+				
 
 				List<JSONObject> taxonList = new ArrayList<JSONObject>();
-				List<JSONObject> genotypeList = new ArrayList<JSONObject>();
-				List<JSONObject> geneList = new ArrayList<JSONObject>();
 
 				if (taxonAnnotations.size() > 0) {
 					for (String tAnnot : taxonAnnotations) {
@@ -117,61 +118,8 @@ public class TaxaForAnatomyResource extends Resource {
 						taxonList.add(taxonAnnotObj);
 					}
 				}
-				if (genotypeAnnotations.size() > 0) {
-					for (String gAnnot : genotypeAnnotations) {
-						genotypeObj = new JSONObject();
-						entityObj = new JSONObject();
-						qualityObj = new JSONObject();
-						genoAnnotObj = new JSONObject();
-						String[] gComps = gAnnot.split("\\t");
-						genotypeObj.put("id", gComps[0]);
-						genotypeObj.put("name", obdsql.getNode(gComps[0])
-								.getLabel());
-						entityObj.put("id", gComps[1]);
-						entityObj.put("name", obdsql.getNode(gComps[1])
-								.getLabel());
-						qualityObj.put("id", gComps[2]);
-						qualityObj.put("name", obdsql.getNode(gComps[2])
-								.getLabel());
-						genoAnnotObj.put("genotype", genotypeObj);
-						genoAnnotObj.put("entity", entityObj);
-						genoAnnotObj.put("quality", qualityObj);
-						genotypeList.add(genoAnnotObj);
-					}
-				}
-				if (geneAnnotations.size() > 0) {
-					for (String gAnnot : geneAnnotations) {
-						geneObj = new JSONObject();
-						genotypeObj = new JSONObject();
-						entityObj = new JSONObject();
-						qualityObj = new JSONObject();
-						geneAnnotObj = new JSONObject();
-						String[] gComps = gAnnot.split("\\t");
-						geneObj.put("id", gComps[0]);
-						geneObj.put("name", obdsql.getNode(gComps[0])
-								.getLabel());
-						genotypeObj.put("id", gComps[1]);
-						genotypeObj.put("name", obdsql.getNode(gComps[1])
-								.getLabel());
-						entityObj.put("id", gComps[2]);
-						entityObj.put("name", obdsql.getNode(gComps[2])
-								.getLabel());
-						qualityObj.put("id", gComps[3]);
-						qualityObj.put("name", obdsql.getNode(gComps[3])
-								.getLabel());
-						geneAnnotObj.put("gene", geneObj);
-						geneAnnotObj.put("genotype", genotypeObj);
-						geneAnnotObj.put("entity", entityObj);
-						geneAnnotObj.put("quality", qualityObj);
-						geneList.add(geneAnnotObj);
-					}
-				}
-				this.jObjs.put("taxon_annotations",
+				this.jObjs.put("annotations",
 						taxonList.size() > 0 ? taxonList : "[]");
-				this.jObjs.put("genotype_annotations",
-						genotypeList.size() > 0 ? genotypeList : "[]");
-				this.jObjs.put("gene_annotations",
-						geneList.size() > 0 ? geneList : "[]");
 
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
@@ -185,50 +133,55 @@ public class TaxaForAnatomyResource extends Resource {
 		return rep;
 	}
 
-	private void getAnatomyAndQualityTermInfo(String anatId, String patoId) {
-		computeHierarchy(patoId);
-		computeHierarchy(anatId);
-		
-		List<String> features = new ArrayList<String>();
-		List<String> qualities = new ArrayList<String>();
-		features.add(anatId);
-		features.addAll(subFeatures);
-		qualities.add(patoId);
-		qualities.addAll(subQualities);
-		
-		String taxOrGenoId, phenotypeId, featureId;
+	private void getAnatomyAndQualityTermInfo(String anatId, String patoId,
+			String attributeOption) {
+		if (attributeOption.equals("true")) {
+			computeHierarchy(patoId);
+			computeHierarchy(anatId);
 
-		for (String f : features) {
-			for (String q : qualities) {
-				Collection<Statement> stmts = obdq
-						.getStatementsWithPredicateAndObject(q
-								+ "%inheres%" + f, EXHIBITS_RELATION);
-				for (Statement stmt : stmts) {
-					taxOrGenoId = stmt.getNodeId();
-					phenotypeId = stmt.getTargetId();
+			System.out.println("computed hierarchies");
+			List<String> features = new ArrayList<String>();
+			List<String> qualities = new ArrayList<String>();
+			features.add(anatId);
+			features.addAll(subFeatures);
+			qualities.add(patoId);
+			qualities.addAll(subQualities);
 
-					if (parseCompositionalDescription(phenotypeId) != null) {
-						if (parseCompositionalDescription(phenotypeId).split(
-								"\\t")[0].equals(q)) {
-							featureId = parseCompositionalDescription(
-									phenotypeId).split("\\t")[1]; // keep track
-																	// of the
-																	// feature
+			String taxOrGenoId, phenotypeId, featureId;
+
+			for (String f : features) {
+				for (String q : qualities) {
+					Collection<Statement> stmts = obdq
+							.getStatementsWithPredicateAndObject(q
+									+ "%inheres%" + f, EXHIBITS_RELATION);
+					for (Statement stmt : stmts) {
+						taxOrGenoId = stmt.getNodeId();
+						phenotypeId = stmt.getTargetId();
+
+						if (parseCompositionalDescription(phenotypeId) != null) {
+							featureId = parseCompositionalDescription(phenotypeId).split("\\t")[1];
 							if (taxOrGenoId.contains("TTO")) {
-								taxonAnnotations.add(taxOrGenoId + "\t"
-										+ featureId + "\t" + q);
-							} else if (taxOrGenoId.contains("GENO")) {
-								genotypeAnnotations.add(taxOrGenoId + "\t"
-										+ featureId + "\t" + q);
-								if (getGeneForGenotype(taxOrGenoId) != null) {
-									String gene = getGeneForGenotype(taxOrGenoId);
-									geneAnnotations.add(gene + "\t"
-											+ taxOrGenoId + "\t" + featureId
-											+ "\t" + q);
-								}
+								taxonAnnotations.add(taxOrGenoId + "\t" + featureId + "\t" + q);
 							}
 						}
 					}
+				}
+			}
+		} else {
+			String taxOrGenoId, phenotypeId, featureId;
+
+			Collection<Statement> stmts = obdq
+					.getStatementsWithPredicateAndObject(patoId + "%inheres%"
+							+ anatId, EXHIBITS_RELATION);
+			for (Statement stmt : stmts) {
+				taxOrGenoId = stmt.getNodeId();
+				phenotypeId = stmt.getTargetId();
+
+				if (parseCompositionalDescription(phenotypeId) != null) {
+					featureId = parseCompositionalDescription(phenotypeId).split("\\t")[1];
+					if (taxOrGenoId.contains("TTO")) {
+						taxonAnnotations.add(taxOrGenoId + "\t" + featureId	+ "\t" + patoId);
+					} 
 				}
 			}
 		}
@@ -240,7 +193,7 @@ public class TaxaForAnatomyResource extends Resource {
 		if (stmts.size() > 0) {
 			for (Statement stmt : stmts) {
 				if (!stmt.getNodeId().equals(term)
-						&& !stmt.getNodeId().contains(term))
+						&& !stmt.getNodeId().contains(term)){
 					if (term.contains("TAO") || term.contains("ZFA")) {
 						subFeatures.add(stmt.getNodeId());
 						computeHierarchy(stmt.getNodeId());
@@ -248,20 +201,12 @@ public class TaxaForAnatomyResource extends Resource {
 						subQualities.add(stmt.getNodeId());
 						computeHierarchy(stmt.getNodeId());
 					}
+				}
 			}
 		}
 		return;
 	}
 
-	private String getGeneForGenotype(String taxOrGenoId) {
-		Collection<Statement> stmts = obdq.genericTermSearch(taxOrGenoId);
-		for (Statement stmt : stmts) {
-			if (stmt.getRelationId().equals(HAS_ALLELE_RELATION)) {
-				return stmt.getNodeId();
-			}
-		}
-		return null;
-	}
 
 	private String parseCompositionalDescription(String cd) {
 		String quality = null, entity = null;
