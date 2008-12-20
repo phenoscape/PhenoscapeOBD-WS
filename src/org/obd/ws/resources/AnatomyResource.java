@@ -60,6 +60,7 @@ public class AnatomyResource extends Resource {
 	private final String HAS_ALLELE_RELATION = "PHENOSCAPE:has_allele";
 
 	private final String VALUE_SLIM_STRING = "value_slim";
+	private final String ATTRIBUTE_SLIM_STRING = "attribute_slim";
 	
 	public AnatomyResource(Context context, Request request, Response response) {
 		super(context, request, response);
@@ -356,19 +357,39 @@ public class AnatomyResource extends Resource {
 	
 	private String findAttrib(String patoTerm) {
 		String parentId, valOrAttrib;
-		if(obdq.getStatementsWithSubjectAndPredicate(patoTerm, OBOOWL_SUBSET_RELATION).size() > 0){
-			valOrAttrib = obdq.getStatementsWithSubjectAndPredicate(patoTerm, OBOOWL_SUBSET_RELATION).
-								iterator().next().getTargetId();
-			if(valOrAttrib.equals(VALUE_SLIM_STRING)){
-				for(Statement s : obdq.getStatementsWithSubjectAndPredicate(patoTerm, IS_A_RELATION)){
+		if (obdq.getStatementsWithSubjectAndPredicate(patoTerm,
+				OBOOWL_SUBSET_RELATION).size() > 0) {
+			valOrAttrib = obdq.getStatementsWithSubjectAndPredicate(patoTerm,
+					OBOOWL_SUBSET_RELATION).iterator().next().getTargetId();
+			if (valOrAttrib == null || valOrAttrib.length() == 0
+					|| valOrAttrib.equals(VALUE_SLIM_STRING)) {
+				for (Statement s : obdq.getStatementsWithSubjectAndPredicate(
+						patoTerm, IS_A_RELATION)) {
 					parentId = s.getTargetId();
-					if(!parentId.equals(patoTerm)){
+					if (!parentId.equals(patoTerm)) {
 						return findAttrib(parentId);
 					}
+					continue;
+				}
+			} else if (valOrAttrib.equals(ATTRIBUTE_SLIM_STRING)) {
+				return patoTerm.contains("^") ? parseCompositionalDescription(patoTerm)
+						: patoTerm;
+			}
+		}
+		else{
+			if(obdq.getStatementsWithSubjectAndPredicate(patoTerm, IS_A_RELATION).size() > 0){
+				for (Statement s : obdq.getStatementsWithSubjectAndPredicate(
+						patoTerm, IS_A_RELATION)) {
+					parentId = s.getTargetId();
+					if (!parentId.equals(patoTerm)) {
+						return findAttrib(parentId);
+					}
+					continue;
 				}
 			}
 		}
-		return patoTerm.contains("^")?parseCompositionalDescription(patoTerm):patoTerm;
+		return patoTerm.contains("^") ? parseCompositionalDescription(patoTerm)
+				: patoTerm;
 	}
 
 	/**
