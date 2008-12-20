@@ -89,21 +89,21 @@ public class TermResource extends Resource {
 		if(termId.indexOf(":") < 0){
 			return null;
 		}
-		String prefix = termId.substring(0, termId.indexOf(":"));
-		Set<JSONObject> parents = new HashSet<JSONObject>();
-		Set<JSONObject> children = new HashSet<JSONObject>();
-
-		String def = "";
-		Collection<LiteralStatement> lstmts = obdsql
-				.getLiteralStatementsByNode(termId);
-		for (LiteralStatement lstmt : lstmts) {
-			if (lstmt.getRelationId().toLowerCase().contains("definition")) {
-				def = lstmt.getTargetId();
-			}
-		}
-
-		jsonObj.put("id", termId);
 		if (obdsql.getNode(termId) != null) {
+			
+			String prefix = termId.substring(0, termId.indexOf(":"));
+			Set<JSONObject> parents = new HashSet<JSONObject>();
+			Set<JSONObject> children = new HashSet<JSONObject>();
+			
+			jsonObj.put("id", termId);
+			String def = "";
+			Collection<LiteralStatement> lstmts = obdsql
+					.getLiteralStatementsByNode(termId);
+			for (LiteralStatement lstmt : lstmts) {
+				if (lstmt.getRelationId().toLowerCase().contains("definition")) {
+					def = lstmt.getTargetId();
+				}
+			}
 			jsonObj.put("name", obdsql.getNode(termId).getLabel());
 			if (def.length() > 0)
 				jsonObj.put("definition", def);
