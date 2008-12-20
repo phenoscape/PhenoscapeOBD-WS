@@ -40,7 +40,9 @@ public class OBDApplication extends Application {
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/phenotypes/summary/anatomy/{termID}", org.obd.ws.resources.AnatomyResource.class);
-
+        router.attach("/phenotypes/anatomy/{termID}/taxa/{patoID}", org.obd.ws.resources.TaxaForAnatomyResource.class);
+        router.attach("/phenotypes/anatomy/{termID}/genes/{patoID}", org.obd.ws.resources.GenesForAnatomyResource.class);
+        
         return router;
     }
 
