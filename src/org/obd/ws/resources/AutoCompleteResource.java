@@ -2,8 +2,11 @@ package org.obd.ws.resources;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -17,6 +20,7 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
@@ -29,7 +33,9 @@ public class AutoCompleteResource extends Resource {
 	private JSONObject jObjs;
 	private Shard obdsql;
 
-	private String nameOption, synonymOption,definitionOption, ontologies;
+	private Map<String, Set<String>> nameToOntologyMap;
+	
+	private String synonymOption,definitionOption, ontologies;
 	
 	public AutoCompleteResource(Context context, Request request,
 			Response response) {
@@ -37,9 +43,60 @@ public class AutoCompleteResource extends Resource {
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
+		Set<String> ontologyList;
+		nameToOntologyMap = new HashMap<String, Set<String>>();
+		ontologyList = new HashSet<String>();
+		ontologyList.add("oboInOwl");
+		ontologyList.add("oboInOwl:Subset");
+		nameToOntologyMap.put("oboInOwl", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("relationship");
+		nameToOntologyMap.put("Relations", ontologyList);
+
+		ontologyList = new HashSet<String>();
+		ontologyList.add("quality");
+		ontologyList.add("pato.ontology");
+		nameToOntologyMap.put("PATO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("zebrafish_anatomy");
+		nameToOntologyMap.put("ZFA", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("zebrafish_stages");
+		ontologyList.add("zebrafish_anatomical_ontology");
+		nameToOntologyMap.put("Stages", ontologyList);
+
+		ontologyList = new HashSet<String>();		
+		ontologyList.add("teleost_anatomy");
+		nameToOntologyMap.put("TAO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("teleost-taxonomy");
+		nameToOntologyMap.put("TTO",ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("museum");
+		nameToOntologyMap.put("Collection", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("spatial"); 
+		nameToOntologyMap.put("Spatial", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("sequence");
+		nameToOntologyMap.put("Sequence", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("unit.ontology");
+		nameToOntologyMap.put("Units", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("phenoscape_vocab");
+		nameToOntologyMap.put("Phenoscape", ontologyList);
+		
         this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("text"));
-		if(request.getAttributes().get("name") != null)
-			nameOption = Reference.decode((String) request.getAttributes().get("name"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)
 			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("syn"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("def") != null)
@@ -47,7 +104,11 @@ public class AutoCompleteResource extends Resource {
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
 			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
 	//	System.out.println(nameOption);
-		this.options = new String[]{nameOption, synonymOption, definitionOption, ontologies};
+		this.options = new String[]{synonymOption, definitionOption, ontologies};
+		
+		/**
+		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
+		 */
 
 	}
 
@@ -63,27 +124,25 @@ public class AutoCompleteResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep = null;
-	//	String stringRep = "";
 
 		try {
 			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
-	//		stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
+			if(this.jObjs == null){
+				getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "ERROR: ZFIN ontology cannot be used in conjunction with other ontologies");
+				return null;
+			}
+			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
 		rep = new JsonRepresentation(this.jObjs);
-//		System.out.println(stringRep);
 
 		return rep;
 
@@ -95,19 +154,36 @@ public class AutoCompleteResource extends Resource {
 
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
-		String bySynonymOption = ((options[1] == null || options[1].length() == 0) ? "false"
+		String bySynonymOption = ((options[0] == null || options[0].length() == 0) ? "false"
+				: options[0]);
+		String byDefinitionOption = ((options[1] == null || options[1].length() == 0) ? "false"
 				: options[1]);
-		String byDefinitionOption = ((options[2] == null || options[2].length() == 0) ? "false"
-				: options[2]);
-		String byOntologyOption = (options[3] == null || options[3].length() == 0) ? "none"
-				: options[3];
+		List<String> byOntologyOption = null;
+		boolean zfinOption = false;
+		if(options[2] != null && options[2].length() > 0){
+			System.out.println(options[2]);
+			if (options[2].equals("ZFIN")){
+				zfinOption = true;
+			}
+			else if(options[2].contains("ZFIN")){
+				return null;
+			}
+			else{
+				byOntologyOption = new ArrayList<String>();
+				for(String choice : options[2].split(",")){
+					if(nameToOntologyMap.containsKey(choice)){
+						byOntologyOption.addAll(nameToOntologyMap.get(choice));
+					}
+				}
+			}
+		}
 
-		/*if (!Boolean.parseBoolean(byNameOption)) {
-			throw new IllegalArgumentException(
-					"Search by Name parameter is set to false");
-		}*/
-		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text,
-				new String[] { bySynonymOption, byDefinitionOption, byOntologyOption });
+		if(zfinOption && byOntologyOption != null){
+
+		}
+		
+		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text, zfinOption, byOntologyOption,
+				new String[] {bySynonymOption, byDefinitionOption});
 		
 		Collection<Node> nameNodes = results.get("name-matches");
 		Collection<Node> synonymNodes = results.get("synonym-matches");
