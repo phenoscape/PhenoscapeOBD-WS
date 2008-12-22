@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
 import org.obd.model.LiteralStatement;
+import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.restlet.Context;
@@ -94,6 +95,7 @@ public class TermResource extends Resource {
 			String prefix = termId.substring(0, termId.indexOf(":"));
 			Set<JSONObject> parents = new HashSet<JSONObject>();
 			Set<JSONObject> children = new HashSet<JSONObject>();
+			Set<JSONObject> synonyms = new HashSet<JSONObject>();
 			
 			jsonObj.put("id", termId);
 			String def = "";
@@ -104,7 +106,22 @@ public class TermResource extends Resource {
 					def = lstmt.getTargetId();
 				}
 			}
-			jsonObj.put("name", obdsql.getNode(termId).getLabel());
+			String name = obdsql.getNode(termId).getLabel();
+			
+			jsonObj.put("name", name);
+			
+			Collection<Node> synonymNodes = obdsql.getNodesForSearchTermBySynonym(name, false, null);
+			for(Node node : synonymNodes){
+				String id = node.getId(); 
+				if(id.indexOf(":") > -1 && 
+						id.substring(0, id.indexOf(":")).equals(prefix)){
+					JSONObject synonymObj = new JSONObject();
+					synonymObj.put("id", node.getId());
+					synonymObj.put("name", node.getLabel());
+					synonyms.add(synonymObj);
+				}
+			}
+			jsonObj.put("synonyms", synonyms);
 			if (def.length() > 0)
 				jsonObj.put("definition", def);
 			for (Statement stmt : stmts) {
