@@ -118,8 +118,7 @@ public class TaxaForAnatomyResource extends Resource {
 						taxonList.add(taxonAnnotObj);
 					}
 				}
-				this.jObjs.put("annotations",
-						taxonList.size() > 0 ? taxonList : "[]");
+				this.jObjs.put("annotations", taxonList);
 
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
