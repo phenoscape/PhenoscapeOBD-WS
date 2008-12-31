@@ -143,10 +143,8 @@ public class GenesForAnatomyResource extends Resource {
 						geneList.add(geneAnnotObj);
 					}
 				}
-				this.jObjs.put("other_annotations",
-						genotypeList.size() > 0 ? genotypeList : "[]");
-				this.jObjs.put("annotations",
-						geneList.size() > 0 ? geneList : "[]");
+				this.jObjs.put("other_annotations", genotypeList);
+				this.jObjs.put("annotations", geneList);
 
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,

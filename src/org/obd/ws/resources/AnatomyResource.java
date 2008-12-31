@@ -105,7 +105,6 @@ public class AnatomyResource extends Resource {
 				termObject.put("name", term);
 				this.jObjs.put("term", termObject);
 				getAnatomyTermSummary(this.termId);
-				if(characters.size() > 0){
 					Collections.sort(characters);
 				//	List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
 					List<JSONObject> charObjs = new ArrayList<JSONObject>();
@@ -191,11 +190,6 @@ public class AnatomyResource extends Resource {
 					}
 				//	this.jObjs.put("qualities", qualityObjs);
 					this.jObjs.put("attributes", charObjs);
-				}
-				else{	
-				//	this.jObjs.put("qualities", "[]");
-					this.jObjs.put("attributes", "[]");
-				}
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
