@@ -107,18 +107,18 @@ public class TermResource extends Resource {
 				}
 			}
 			String name = obdsql.getNode(termId).getLabel();
-			
+																		
 			jsonObj.put("name", name);
-			
-			Collection<Node> synonymNodes = obdsql.getNodesForSearchTermBySynonym(name, false, null);
+			Collection<Node> synonymNodes = obdsql.getNodesForSearchTermBySynonym(name, false, null, false);
+			String synonym = "No name";
 			for(Node node : synonymNodes){
-				String id = node.getId(); 
-				if(id.indexOf(":") > -1 && 
-						id.substring(0, id.indexOf(":")).equals(prefix)){
-					JSONObject synonymObj = new JSONObject();
-					synonymObj.put("id", node.getId());
-					synonymObj.put("name", node.getLabel());
-					synonyms.add(synonymObj);
+				for(Statement stmt :	node.getStatements()){
+					if(stmt.getRelationId().equals("hasSynonym")){
+						synonym = stmt.getTargetId();
+						JSONObject synonymObj = new JSONObject();
+						synonymObj.put("name", synonym);
+						synonyms.add(synonymObj);
+					}
 				}
 			}
 			jsonObj.put("synonyms", synonyms);
