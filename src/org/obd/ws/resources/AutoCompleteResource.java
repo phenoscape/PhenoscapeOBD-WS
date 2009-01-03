@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,14 @@ public class AutoCompleteResource extends Resource {
 	private Map<String, Set<String>> nameToOntologyMap;
 	
 	private String synonymOption,definitionOption, ontologies;
+	
+	private final String ID_STRING = "id";
+	private final String NAME_STRING = "name";
+	private final String SYNONYM_STRING = "synoynm";
+	private final String DEF_STRING = "definition";
+	private final String MATCH_TYPE_STRING = "match_type";
+	private final String MATCH_TEXT_STRING = "match_text";
+	private final String MATCHES_STRING = "matches";
 	
 	public AutoCompleteResource(Context context, Request request,
 			Response response) {
@@ -189,10 +198,10 @@ public class AutoCompleteResource extends Resource {
 		if(nameNodes.size() > 0){
 			for(Node node : nameNodes){
 				JSONObject nameMatch = new JSONObject();
-				nameMatch.put("id", node.getId());
-				nameMatch.put("name", node.getLabel());
-				nameMatch.put("match_type", "name");
-				nameMatch.put("match_text", node.getLabel());
+				nameMatch.put(ID_STRING, node.getId());
+				nameMatch.put(NAME_STRING, node.getLabel());
+				nameMatch.put(MATCH_TYPE_STRING, NAME_STRING);
+				nameMatch.put(MATCH_TEXT_STRING, node.getLabel());
 				matches.add(nameMatch);
 //				System.out.println(". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
 			}
@@ -200,10 +209,10 @@ public class AutoCompleteResource extends Resource {
 		if(synonymNodes != null && synonymNodes.size() > 0){
 			for(Node node : synonymNodes){
 				JSONObject synonymMatch = new JSONObject();
-				synonymMatch.put("id", node.getId());
-				synonymMatch.put("name", node.getLabel());
-				synonymMatch.put("match_type", "synonym");
-				synonymMatch.put("match_text", node.getStatements()[0].getTargetId());
+				synonymMatch.put(ID_STRING, node.getId());
+				synonymMatch.put(NAME_STRING, node.getLabel());
+				synonymMatch.put(MATCH_TYPE_STRING, SYNONYM_STRING);
+				synonymMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
 				matches.add(synonymMatch);
 	//			System.out.println(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
 	//					node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
@@ -212,19 +221,92 @@ public class AutoCompleteResource extends Resource {
 		if(definitionNodes != null && definitionNodes.size() > 0){
 			for(Node node : definitionNodes){
 				JSONObject definitionMatch = new JSONObject();
-				definitionMatch.put("id", node.getId());
-				definitionMatch.put("name", node.getLabel());
-				definitionMatch.put("match_type", "definition");
-				definitionMatch.put("match_text", node.getStatements()[0].getTargetId());
+				definitionMatch.put(ID_STRING, node.getId());
+				definitionMatch.put(NAME_STRING, node.getLabel());
+				definitionMatch.put(MATCH_TYPE_STRING, DEF_STRING);
+				definitionMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
 				matches.add(definitionMatch);
 				//	System.out.println(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
 				//	node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
 			}
 		}
 		jObj.put("search_term", text);
-		jObj.put("matches", matches);
+		try{
+			List<JSONObject> sortedMatches = sortJsonObjects(matches, text);
+			jObj.put(MATCHES_STRING, sortedMatches);
+		}
+		catch(JSONException e){
+			jObj.put(MATCHES_STRING, matches);
+		}
+
+		
 //		jObj.put("synonymMatches", synonymMatches);
 //		jObj.put("definitionMatches", definitionMatches);
 		return jObj;
+	}
+
+	/**
+	 * This method has been created to sort the matches returned by the search string
+	 * @param matches
+	 * @return
+	 */
+	private List<JSONObject> sortJsonObjects(Set<JSONObject> matchObjs, String term) throws JSONException{
+		List<JSONObject> sortedMatches = new ArrayList<JSONObject>();
+		List<JSONObject> labelMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
+		List<JSONObject> otherLabelMatches = new ArrayList<JSONObject>();
+		List<JSONObject> synMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
+		List<JSONObject> otherSynMatches = new ArrayList<JSONObject>();
+		List<JSONObject> defMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
+		List<JSONObject> otherDefMatches = new ArrayList<JSONObject>();
+		
+		for(JSONObject matchObj : matchObjs){
+			if(matchObj.get(MATCH_TYPE_STRING).equals(DEF_STRING)){
+				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+					defMatchesStartingWithSearchTerm.add(matchObj);
+				}
+				else{
+					otherDefMatches.add(matchObj);
+				}
+			}
+			else if(matchObj.get(MATCH_TYPE_STRING).equals(SYNONYM_STRING)){
+				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+					synMatchesStartingWithSearchTerm.add(matchObj);
+				}
+				else{
+					otherSynMatches.add(matchObj);
+				}
+			}
+			else{
+				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+					labelMatchesStartingWithSearchTerm.add(matchObj);
+				}
+				else{
+					otherLabelMatches.add(matchObj);
+				}
+			}
+		}
+		
+		sortedMatches.addAll(assort(labelMatchesStartingWithSearchTerm));
+		sortedMatches.addAll(assort(synMatchesStartingWithSearchTerm));
+		sortedMatches.addAll(assort(defMatchesStartingWithSearchTerm));
+		sortedMatches.addAll(assort(otherLabelMatches));
+		sortedMatches.addAll(assort(otherSynMatches));
+		sortedMatches.addAll(assort(otherDefMatches));
+		return sortedMatches;
+	}
+	
+	List<JSONObject> assort(List<JSONObject> inputList) throws JSONException{
+		Map<String, JSONObject> nameToObjectMap = new HashMap<String, JSONObject>();
+		List<String> names = new ArrayList<String>();
+		List<JSONObject> outputList = new ArrayList<JSONObject>();
+		for(JSONObject obj : inputList){
+			names.add(obj.getString(MATCH_TEXT_STRING));
+			nameToObjectMap.put(obj.getString(MATCH_TEXT_STRING), obj);
+		}
+		Collections.sort(names);
+		for(String name : names){
+			outputList.add(nameToObjectMap.get(name));
+		}
+		return outputList;
 	}
 }
