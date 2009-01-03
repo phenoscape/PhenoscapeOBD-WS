@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,7 +39,10 @@ public class TaxaForAnatomyResource extends Resource {
 
 	private final String IS_A_RELATION = "OBO_REL:is_a";
 	private final String EXHIBITS_RELATION = "PHENOSCAPE:exhibits";
+	private final String OBOOWL_SUBSET_RELATION = "oboInOwl:inSubset";
 
+	private final String VALUE_SLIM_STRING = "value_slim";
+	
 	public TaxaForAnatomyResource(Context context, Request request,
 			Response response) {
 		super(context, request, response);
@@ -81,7 +82,7 @@ public class TaxaForAnatomyResource extends Resource {
 				String term = obdsql.getNode(termId).getLabel();
 				termObject.put("id", termId);
 				termObject.put("name", term);
-				this.jObjs.put("anatomical_feature", termObject);
+				this.jObjs.put("entity", termObject);
 				JSONObject patoObject = new JSONObject();
 				String pato = obdsql.getNode(patoId).getLabel();
 				patoObject.put("id", patoId);
@@ -134,59 +135,68 @@ public class TaxaForAnatomyResource extends Resource {
 
 	private void getAnatomyAndQualityTermInfo(String anatId, String patoId,
 			String attributeOption) {
-		if (attributeOption.equals("true")) {
-			computeHierarchy(patoId);
-			computeHierarchy(anatId);
 
-			System.out.println("computed hierarchies");
-			List<String> features = new ArrayList<String>();
-			List<String> qualities = new ArrayList<String>();
-			features.add(anatId);
-			features.addAll(subFeatures);
-			qualities.add(patoId);
-			qualities.addAll(subQualities);
-
-			String taxOrGenoId, phenotypeId, featureId;
-
-			for (String f : features) {
-				for (String q : qualities) {
-					Collection<Statement> stmts = obdq
-							.getStatementsWithPredicateAndObject(q
-									+ "%inheres%" + f, EXHIBITS_RELATION);
-					for (Statement stmt : stmts) {
-						taxOrGenoId = stmt.getNodeId();
-						phenotypeId = stmt.getTargetId();
-
-						if (parseCompositionalDescription(phenotypeId) != null) {
-							featureId = parseCompositionalDescription(phenotypeId).split("\\t")[1];
-							if (taxOrGenoId.contains("TTO")) {
-								taxonAnnotations.add(taxOrGenoId + "\t" + featureId + "\t" + q);
-							}
-						}
-					}
+		if(attributeOption.equals("true")){
+			Collection<Statement> subsetStmts = obdq.getStatementsWithSubjectAndPredicate(patoId, OBOOWL_SUBSET_RELATION);
+			Set<String> subsets = new HashSet<String>();
+			if(subsetStmts.size() > 0){
+				for(Statement subsetStmt : subsetStmts){
+					subsets.add(subsetStmt.getTargetId());
+				}
+				if(subsets.contains(VALUE_SLIM_STRING)){
+					findAncestors(patoId);
 				}
 			}
-		} else {
-			String taxOrGenoId, phenotypeId, featureId;
+		}
+		findDescendants(patoId);
+		findDescendants(anatId);
 
-			Collection<Statement> stmts = obdq
-					.getStatementsWithPredicateAndObject(patoId + "%inheres%"
-							+ anatId, EXHIBITS_RELATION);
-			for (Statement stmt : stmts) {
-				taxOrGenoId = stmt.getNodeId();
-				phenotypeId = stmt.getTargetId();
+		System.out.println("computed hierarchies");
+		List<String> features = new ArrayList<String>();
+		List<String> qualities = new ArrayList<String>();
+		features.add(anatId);
+		features.addAll(subFeatures);
+		qualities.add(patoId);
+		qualities.addAll(subQualities);
 
-				if (parseCompositionalDescription(phenotypeId) != null) {
-					featureId = parseCompositionalDescription(phenotypeId).split("\\t")[1];
+		String taxOrGenoId;
+
+		for (String f : features) {
+			for (String q : qualities) {
+				Collection<Statement> stmts = obdq
+						.getStatementsWithPredicateAndObject(q
+								+ "%inheres%" + f, EXHIBITS_RELATION);
+				for (Statement stmt : stmts) {
+					taxOrGenoId = stmt.getNodeId();
 					if (taxOrGenoId.contains("TTO")) {
-						taxonAnnotations.add(taxOrGenoId + "\t" + featureId	+ "\t" + patoId);
-					} 
+						taxonAnnotations.add(taxOrGenoId + "\t" + f + "\t" + q);
+					}
 				}
 			}
 		}
 	}
 
-	private void computeHierarchy(String term) {
+	private void findAncestors(String patoId2) {
+		Collection<Statement> parentStmts = obdq.getStatementsWithSubjectAndPredicate(patoId2, IS_A_RELATION);
+		Set<String> slims = new HashSet<String>();
+		if(parentStmts != null & parentStmts.size() > 0){
+			for(Statement s : parentStmts){
+				String parentId = s.getTargetId();
+				subQualities.add(parentId);
+				Collection<Statement> slimStmts = obdq.getStatementsWithSubjectAndPredicate(parentId, 
+						OBOOWL_SUBSET_RELATION);
+				for(Statement slimStmt : slimStmts){
+					slims.add(slimStmt.getTargetId());
+				}
+				if(slims.contains(VALUE_SLIM_STRING)){
+					findAncestors(parentId);
+				}
+				findDescendants(parentId);
+			}
+		}
+	}
+
+	private void findDescendants(String term) {
 		Collection<Statement> stmts = obdq.getStatementsWithPredicateAndObject(
 				term, IS_A_RELATION);
 		if (stmts.size() > 0) {
@@ -195,32 +205,14 @@ public class TaxaForAnatomyResource extends Resource {
 						&& !stmt.getNodeId().contains(term)){
 					if (term.contains("TAO") || term.contains("ZFA")) {
 						subFeatures.add(stmt.getNodeId());
-						computeHierarchy(stmt.getNodeId());
+						findDescendants(stmt.getNodeId());
 					} else if (term.contains("PATO")) {
 						subQualities.add(stmt.getNodeId());
-						computeHierarchy(stmt.getNodeId());
+						findDescendants(stmt.getNodeId());
 					}
 				}
 			}
 		}
 		return;
-	}
-
-
-	private String parseCompositionalDescription(String cd) {
-		String quality = null, entity = null;
-
-		Pattern patoPattern = Pattern.compile("PATO:[0-9]+");
-		Matcher patoMatcher = patoPattern.matcher(cd);
-		if (patoMatcher.find()) {
-			quality = cd.substring(patoMatcher.start(), patoMatcher.end());
-		}
-		Pattern anatPattern = Pattern.compile("(ZFA|TAO):\\d+");
-		Matcher anatMatcher = anatPattern.matcher(cd);
-		if (anatMatcher.find()) {
-			entity = cd.substring(anatMatcher.start(), anatMatcher.end());
-		}
-		return (quality != null && entity != null) ? quality + "\t" + entity
-				: null;
 	}
 }

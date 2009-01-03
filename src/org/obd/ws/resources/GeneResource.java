@@ -2,9 +2,9 @@ package org.obd.ws.resources;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,7 +31,7 @@ public class GeneResource extends Resource {
 	private Shard obdsql;
 	private OBDQuery obdq;
 	
-	private Set<String> annotations;
+	private Map<String, List<String>> phenotypeToGenotypesMap;
 	
 	private final String IS_A_RELATION = "OBO_REL:is_a";
 	private final String EXHIBITS_RELATION = "PHENOSCAPE:exhibits";
@@ -47,8 +47,8 @@ public class GeneResource extends Resource {
 		obdq = new OBDQuery(obdsql);
 		jObjs = new JSONObject();
 		
-		annotations = new HashSet<String>();
-	
+		phenotypeToGenotypesMap = new HashMap<String, List<String>>();
+		
 		getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 	}
 	
@@ -68,28 +68,40 @@ public class GeneResource extends Resource {
 				JSONObject genObject = new JSONObject();
 				genObject.put("id", termId);
 				genObject.put("name", obdsql.getNode(termId).getLabel());
-				jObjs.put("term", genObject);
-				if(termId.contains("GENO")){
-					getGenotypeSummary(termId);
-				}
-				else{
-					getGeneSummary(termId);
-				}
+				jObjs.put("gene", genObject);
+				getGeneSummary(termId);
 				
-				if(annotations.size() > 0){
-					JSONObject annotationObj, featureObj, qualityObj;
+				if(phenotypeToGenotypesMap.size() > 0){
+					JSONObject annotationObj, featureObj, qualityObj, taoObject, genotypeObj;
 					List<JSONObject> annotationObjList = new ArrayList<JSONObject>();
-					for(String annotation : annotations){
+					List<String> genotypes = new ArrayList<String>();
+					List<JSONObject> genotypeObjList = new ArrayList<JSONObject>();
+					for(String key : phenotypeToGenotypesMap.keySet()){
 						annotationObj = new JSONObject();
 						featureObj  = new JSONObject();
 						qualityObj  = new JSONObject();
-						String[] aComps = annotation.split("\\t");
-						featureObj.put("id", aComps[0]);
-						featureObj.put("name", obdsql.getNode(aComps[0]).getLabel());
-						qualityObj.put("id", aComps[1]);
-						qualityObj.put("name", obdsql.getNode(aComps[1]).getLabel());
+						genotypeObjList = new ArrayList<JSONObject>();
+						String[] keyComps = key.split("\\t");
+						qualityObj.put("id", keyComps[0]);
+						qualityObj.put("name", obdsql.getNode(keyComps[0]).getLabel());
+						featureObj.put("id", keyComps[1]);
+						featureObj.put("name", obdsql.getNode(keyComps[1]).getLabel());
 						annotationObj.put("entity", featureObj);
 						annotationObj.put("quality", qualityObj);
+						if(keyComps.length > 2){
+							taoObject = new JSONObject();
+							taoObject.put("id", keyComps[2]);
+							taoObject.put("name", obdsql.getNode(keyComps[2]).getLabel());
+							annotationObj.put("teleost_entity", taoObject);
+						}
+						genotypes = phenotypeToGenotypesMap.get(key);
+						for(String genotypeId : genotypes){
+							genotypeObj = new JSONObject();
+							genotypeObj.put("id", genotypeId);
+							genotypeObj.put("name", obdsql.getNode(genotypeId).getLabel());
+							genotypeObjList.add(genotypeObj);
+						}
+						annotationObj.put("genotypes", genotypeObjList);
 						annotationObjList.add(annotationObj);
 					}
 					jObjs.put("annotations", annotationObjList);
@@ -121,7 +133,7 @@ public class GeneResource extends Resource {
 	}
 
 	private void getGenotypeSummary(String genotypeId) {
-		String phenotypeId, qualityId, featureId;
+		String phenotypeId, qualityId, featureId, taoFeatureId, key;
 
 		Collection<Statement> stmts = obdq.getStatementsWithSubjectAndPredicate(genotypeId, EXHIBITS_RELATION);
 		for(Statement stmt : stmts){
@@ -130,10 +142,21 @@ public class GeneResource extends Resource {
 				String[] comps = parseCompositionalDescription(phenotypeId).split("\\t");
 				qualityId = comps[0]; 
 				featureId = comps[1];
-				annotations.add(featureId + "\t" + qualityId);
+				key = qualityId + "\t" + featureId;
 				if(getTeleostEquivalent(featureId) != null){
-					annotations.add(getTeleostEquivalent(featureId) + "\t" + qualityId);
+					taoFeatureId = getTeleostEquivalent(featureId);
+					key += "\t" + taoFeatureId;
 				}
+				
+				List<String> genotypes = phenotypeToGenotypesMap.get(key);
+				if(genotypes != null){
+					genotypes.add(genotypeId);
+				}
+				else{
+					genotypes = new ArrayList<String>();
+					genotypes.add(genotypeId);
+				}
+				phenotypeToGenotypesMap.put(key, genotypes);				
 			}
 		}
 	}

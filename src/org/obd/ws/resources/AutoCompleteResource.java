@@ -161,7 +161,6 @@ public class AutoCompleteResource extends Resource {
 		List<String> byOntologyOption = null;
 		boolean zfinOption = false;
 		if(options[2] != null && options[2].length() > 0){
-			System.out.println(options[2]);
 			if (options[2].equals("ZFIN")){
 				zfinOption = true;
 			}
@@ -178,10 +177,6 @@ public class AutoCompleteResource extends Resource {
 			}
 		}
 
-		if(zfinOption && byOntologyOption != null){
-
-		}
-		
 		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text, zfinOption, byOntologyOption,
 				new String[] {bySynonymOption, byDefinitionOption});
 		
