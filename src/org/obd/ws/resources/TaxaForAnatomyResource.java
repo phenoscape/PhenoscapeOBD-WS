@@ -33,7 +33,7 @@ public class TaxaForAnatomyResource extends Resource {
 	private OBDQuery obdq;
 
 	Set<String> subQualities = new HashSet<String>();
-	Set<String> subFeatures = new HashSet<String>();
+	Set<String> subEntities = new HashSet<String>();
 
 	Set<String> taxonAnnotations = new HashSet<String>();
 
@@ -42,20 +42,23 @@ public class TaxaForAnatomyResource extends Resource {
 	private final String OBOOWL_SUBSET_RELATION = "oboInOwl:inSubset";
 
 	private final String VALUE_SLIM_STRING = "value_slim";
-	
+
 	public TaxaForAnatomyResource(Context context, Request request,
 			Response response) {
 		super(context, request, response);
 
-		obdsql = (Shard)getContext().getAttributes().get("shard");
+		obdsql = (Shard) getContext().getAttributes().get("shard");
 		getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		patoId = Reference.decode((String) (request.getAttributes()
 				.get("patoID")));
-		if (request.getResourceRef().getQueryAsForm().getFirstValue("attribute") != null)
-			attributeOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("attribute"));
+		if (request.getResourceRef().getQueryAsForm()
+				.getFirstValue("attribute") != null)
+			attributeOption = Reference.decode((String) request
+					.getResourceRef().getQueryAsForm().getFirstValue(
+							"attribute"));
 		obdq = new OBDQuery(obdsql);
 
 		jObjs = new JSONObject();
@@ -89,11 +92,9 @@ public class TaxaForAnatomyResource extends Resource {
 				patoObject.put("name", pato);
 				this.jObjs.put("quality", patoObject);
 
-				getAnatomyAndQualityTermInfo(termId, patoId,
-						attributeOption);
+				getAnatomyAndQualityTermInfo(termId, patoId, attributeOption);
 
-				JSONObject taxonObj, entityObj, qualityObj, taxonAnnotObj; 
-				
+				JSONObject taxonObj, entityObj, qualityObj, taxonAnnotObj;
 
 				List<JSONObject> taxonList = new ArrayList<JSONObject>();
 
@@ -136,14 +137,16 @@ public class TaxaForAnatomyResource extends Resource {
 	private void getAnatomyAndQualityTermInfo(String anatId, String patoId,
 			String attributeOption) {
 
-		if(attributeOption.equals("true")){
-			Collection<Statement> subsetStmts = obdq.getStatementsWithSubjectAndPredicate(patoId, OBOOWL_SUBSET_RELATION);
+		if (attributeOption.equals("true")) {
+			Collection<Statement> subsetStmts = obdq
+					.getStatementsWithSubjectAndPredicate(patoId,
+							OBOOWL_SUBSET_RELATION);
 			Set<String> subsets = new HashSet<String>();
-			if(subsetStmts.size() > 0){
-				for(Statement subsetStmt : subsetStmts){
+			if (subsetStmts.size() > 0) {
+				for (Statement subsetStmt : subsetStmts) {
 					subsets.add(subsetStmt.getTargetId());
 				}
-				if(subsets.contains(VALUE_SLIM_STRING)){
+				if (subsets.contains(VALUE_SLIM_STRING)) {
 					findAncestors(patoId);
 				}
 			}
@@ -151,11 +154,11 @@ public class TaxaForAnatomyResource extends Resource {
 		findDescendants(patoId);
 		findDescendants(anatId);
 
-		System.out.println("computed hierarchies");
+//		System.out.println("computed hierarchies");
 		List<String> features = new ArrayList<String>();
 		List<String> qualities = new ArrayList<String>();
 		features.add(anatId);
-		features.addAll(subFeatures);
+		features.addAll(subEntities);
 		qualities.add(patoId);
 		qualities.addAll(subQualities);
 
@@ -164,8 +167,8 @@ public class TaxaForAnatomyResource extends Resource {
 		for (String f : features) {
 			for (String q : qualities) {
 				Collection<Statement> stmts = obdq
-						.getStatementsWithPredicateAndObject(q
-								+ "%inheres%" + f, EXHIBITS_RELATION);
+						.getStatementsWithPredicateAndObject(q + "%inheres%"
+								+ f, EXHIBITS_RELATION);
 				for (Statement stmt : stmts) {
 					taxOrGenoId = stmt.getNodeId();
 					if (taxOrGenoId.contains("TTO")) {
@@ -177,18 +180,20 @@ public class TaxaForAnatomyResource extends Resource {
 	}
 
 	private void findAncestors(String patoId2) {
-		Collection<Statement> parentStmts = obdq.getStatementsWithSubjectAndPredicate(patoId2, IS_A_RELATION);
+		Collection<Statement> parentStmts = obdq
+				.getStatementsWithSubjectAndPredicate(patoId2, IS_A_RELATION);
 		Set<String> slims = new HashSet<String>();
-		if(parentStmts != null & parentStmts.size() > 0){
-			for(Statement s : parentStmts){
+		if (parentStmts != null & parentStmts.size() > 0) {
+			for (Statement s : parentStmts) {
 				String parentId = s.getTargetId();
 				subQualities.add(parentId);
-				Collection<Statement> slimStmts = obdq.getStatementsWithSubjectAndPredicate(parentId, 
-						OBOOWL_SUBSET_RELATION);
-				for(Statement slimStmt : slimStmts){
+				Collection<Statement> slimStmts = obdq
+						.getStatementsWithSubjectAndPredicate(parentId,
+								OBOOWL_SUBSET_RELATION);
+				for (Statement slimStmt : slimStmts) {
 					slims.add(slimStmt.getTargetId());
 				}
-				if(slims.contains(VALUE_SLIM_STRING)){
+				if (slims.contains(VALUE_SLIM_STRING)) {
 					findAncestors(parentId);
 				}
 				findDescendants(parentId);
@@ -197,18 +202,22 @@ public class TaxaForAnatomyResource extends Resource {
 	}
 
 	private void findDescendants(String term) {
-		Collection<Statement> stmts = obdq.getStatementsWithPredicateAndObject(
-				term, IS_A_RELATION);
-		if (stmts.size() > 0) {
-			for (Statement stmt : stmts) {
-				if (!stmt.getNodeId().equals(term)
-						&& !stmt.getNodeId().contains(term)){
-					if (term.contains("TAO") || term.contains("ZFA")) {
-						subFeatures.add(stmt.getNodeId());
-						findDescendants(stmt.getNodeId());
-					} else if (term.contains("PATO")) {
-						subQualities.add(stmt.getNodeId());
-						findDescendants(stmt.getNodeId());
+		if (!subEntities.contains(term) && !subQualities.contains(term)) {
+			if(term.startsWith("TAO") || term.startsWith("ZFA")){
+				subEntities.add(term);
+				//System.out.println("Adding entity: " + term);
+			}
+			else if(term.startsWith("PATO")){
+				subQualities.add(term);
+				//System.out.println("Adding quality: " + term);
+			}
+			Collection<Statement> stmts = obdq
+					.getStatementsWithPredicateAndObject(term, IS_A_RELATION);
+			if (stmts.size() > 0) {
+				for (Statement stmt : stmts) {
+					if (!stmt.getNodeId().equals(term)
+							&& !stmt.getNodeId().contains(term)) {
+							findDescendants(stmt.getNodeId());
 					}
 				}
 			}
