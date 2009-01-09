@@ -18,10 +18,19 @@ public class OBDApplication extends Application {
 	
 	public void connect() throws SQLException, ClassNotFoundException{
 		Shard obdsql = new OBDSQLShard();
-		((AbstractSQLShard)obdsql).connect("?", 
-				"?", "?");
-		//((AbstractSQLShard)obdsql).connect("jdbc:postgresql://localhost:5433/obdtest121308", 
-		//		"?", "?");
+		
+		String dbHost = this.getContext().getParameters().getFirstValue("dbHost");
+		String uid = this.getContext().getParameters().getFirstValue("uid");
+		String pwd = this.getContext().getParameters().getFirstValue("pwd");
+		
+//		String localDbHost = this.getContext().getParameters().getFirstValue("localDbHost");
+//		String localUid = this.getContext().getParameters().getFirstValue("localUid");
+//		String localPwd = this.getContext().getParameters().getFirstValue("localPwd");
+		
+		((AbstractSQLShard)obdsql).connect(dbHost, 
+				uid, pwd);
+		//((AbstractSQLShard)obdsql).connect(localDbHost, 
+		//		localUid, localPwd);
 		this.getContext().getAttributes().put("shard", obdsql);
 	}
 	
