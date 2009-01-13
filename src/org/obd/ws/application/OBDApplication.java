@@ -1,10 +1,18 @@
 package org.obd.ws.application;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.sql.SQLException;
+import java.util.Properties;
 
 import org.obd.query.Shard;
-import org.obd.query.impl.OBDSQLShard;
 import org.obd.query.impl.AbstractSQLShard;
+import org.obd.query.impl.OBDSQLShard;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
@@ -12,6 +20,7 @@ import org.restlet.Router;
 
 public class OBDApplication extends Application {
 
+	
 	public OBDApplication(Context context){
 		super(context);
 	}
@@ -19,19 +28,29 @@ public class OBDApplication extends Application {
 	public void connect() throws SQLException, ClassNotFoundException{
 		Shard obdsql = new OBDSQLShard();
 		
-		String dbHost = this.getContext().getParameters().getFirstValue("dbHost");
-		String uid = this.getContext().getParameters().getFirstValue("uid");
-		String pwd = this.getContext().getParameters().getFirstValue("pwd");
 		
-//		String localDbHost = this.getContext().getParameters().getFirstValue("localDbHost");
-//		String localUid = this.getContext().getParameters().getFirstValue("localUid");
-//		String localPwd = this.getContext().getParameters().getFirstValue("localPwd");
-		
-		((AbstractSQLShard)obdsql).connect(dbHost, 
-				uid, pwd);
-		//((AbstractSQLShard)obdsql).connect(localDbHost, 
-		//		localUid, localPwd);
-		this.getContext().getAttributes().put("shard", obdsql);
+		try{
+			InputStream fis = this.getClass().getResourceAsStream("connectionInfo.properties");
+			Properties props = new Properties(); 
+			props.load(fis);
+			String dbHost = (String)props.get("dbHost");
+			String uid = (String)props.get("uid");
+			String pwd = (String)props.get("pwd");
+			
+//			String localDbHost = (String)props.get("localDbHost");
+//			String localUid = (String)props.get("localUid");
+//			String localPwd = (String)props.get("localPwd");
+			
+			((AbstractSQLShard)obdsql).connect(dbHost, 
+					uid, pwd);
+			//((AbstractSQLShard)obdsql).connect(localDbHost, 
+			//		localUid, localPwd);
+			
+			this.getContext().getAttributes().put("shard", obdsql);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
 	}
 	
     public Restlet createRoot() {
