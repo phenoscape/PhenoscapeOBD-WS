@@ -1,5 +1,6 @@
 package org.obd.ws.resources;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -31,6 +32,7 @@ public class GenesForAnatomyResource extends Resource {
 
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Connection conn;
 	private OBDQuery obdq;
 
 	Set<String> subQualities = new HashSet<String>();
@@ -48,13 +50,14 @@ public class GenesForAnatomyResource extends Resource {
 		super(context, request, response);
 
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.conn = (Connection)getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		this.patoId = Reference.decode((String) (request.getAttributes()
 				.get("patoID")));
-		obdq = new OBDQuery(obdsql);
+		obdq = new OBDQuery(obdsql, conn);
 
 		jObjs = new JSONObject();
 	}

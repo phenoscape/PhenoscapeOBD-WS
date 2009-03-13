@@ -1,6 +1,8 @@
 package org.obd.ws.application;
 
 import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
@@ -37,10 +39,15 @@ public class OBDApplication extends Application {
 			
 			((AbstractSQLShard)obdsql).connect(dbHost, 
 					uid, pwd);
+			
+			String driverName = "org.postgresql.Driver";
+			Class.forName(driverName);
+			Connection conn = DriverManager.getConnection(dbHost, uid, pwd);
 			//((AbstractSQLShard)obdsql).connect(localDbHost, 
 			//		localUid, localPwd);
 			
 			this.getContext().getAttributes().put("shard", obdsql);
+			this.getContext().getAttributes().put("conn", conn);
 		}
 		catch(Exception e){
 			e.printStackTrace();

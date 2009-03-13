@@ -1,5 +1,6 @@
 package org.obd.ws.resources;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -30,6 +31,7 @@ public class TaxaForAnatomyResource extends Resource {
 
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Connection conn;
 	private OBDQuery obdq;
 
 	Set<String> subQualities = new HashSet<String>();
@@ -48,6 +50,7 @@ public class TaxaForAnatomyResource extends Resource {
 		super(context, request, response);
 
 		obdsql = (Shard) getContext().getAttributes().get("shard");
+		conn = (Connection)getContext().getAttributes().get("conn");
 		getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		termId = Reference.decode((String) (request.getAttributes()
@@ -59,7 +62,7 @@ public class TaxaForAnatomyResource extends Resource {
 			attributeOption = Reference.decode((String) request
 					.getResourceRef().getQueryAsForm().getFirstValue(
 							"attribute"));
-		obdq = new OBDQuery(obdsql);
+		obdq = new OBDQuery(obdsql, conn);
 
 		jObjs = new JSONObject();
 	}

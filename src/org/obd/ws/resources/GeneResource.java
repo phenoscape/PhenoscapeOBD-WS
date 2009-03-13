@@ -1,5 +1,6 @@
 package org.obd.ws.resources;
 
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -29,6 +30,7 @@ public class GeneResource extends Resource {
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Connection conn;
 	private OBDQuery obdq;
 	
 	private Map<String, List<String>> phenotypeToGenotypesMap;
@@ -42,9 +44,10 @@ public class GeneResource extends Resource {
 		super(context, request, response);
 		
 		obdsql = (Shard)getContext().getAttributes().get("shard");
+		conn = (Connection)getContext().getAttributes().get("conn");
 		termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		obdq = new OBDQuery(obdsql);
+		obdq = new OBDQuery(obdsql, conn);
 		jObjs = new JSONObject();
 		
 		phenotypeToGenotypesMap = new HashMap<String, List<String>>();

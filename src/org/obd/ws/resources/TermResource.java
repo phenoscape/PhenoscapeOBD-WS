@@ -1,6 +1,7 @@
 package org.obd.ws.resources;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -29,10 +30,12 @@ public class TermResource extends Resource {
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
-
+	private Connection conn;
+	
 	public TermResource(Context context, Request request, Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.conn = (Connection)getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
@@ -83,7 +86,7 @@ public class TermResource extends Resource {
 	private JSONObject getTermInfo(String termId) throws IOException,
 			SQLException, ClassNotFoundException, JSONException {
 
-		OBDQuery obdq = new OBDQuery(obdsql);
+		OBDQuery obdq = new OBDQuery(obdsql, conn);
 
 		Set<Statement> stmts = obdq.genericTermSearch(termId);
 		JSONObject jsonObj = new JSONObject();

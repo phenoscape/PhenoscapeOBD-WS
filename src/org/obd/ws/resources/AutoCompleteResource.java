@@ -1,6 +1,7 @@
 package org.obd.ws.resources;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,6 +34,7 @@ public class AutoCompleteResource extends Resource {
 	private String[] options;
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Connection conn;
 
 	private Map<String, Set<String>> nameToOntologyMap;
 	
@@ -50,6 +52,8 @@ public class AutoCompleteResource extends Resource {
 			Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
+		this.conn = (Connection)this.getContext().getAttributes().get("conn");
+		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
 		Set<String> ontologyList;
@@ -162,7 +166,7 @@ public class AutoCompleteResource extends Resource {
 			JSONException {
 
 		JSONObject jObj = new JSONObject();
-		OBDQuery obdq = new OBDQuery(obdsql);
+		OBDQuery obdq = new OBDQuery(obdsql, conn);
 		String bySynonymOption = ((options[0] == null || options[0].length() == 0) ? "false"
 				: options[0]);
 		String byDefinitionOption = ((options[1] == null || options[1].length() == 0) ? "false"

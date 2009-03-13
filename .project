@@ -3,6 +3,7 @@
 	<name>OBD-WS</name>
 	<comment></comment>
 	<projects>
+		<project>QueryOBD</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

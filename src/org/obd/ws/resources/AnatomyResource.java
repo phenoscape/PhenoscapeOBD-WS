@@ -1,8 +1,10 @@
 package org.obd.ws.resources;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -16,6 +18,7 @@ import java.util.regex.Pattern;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
+import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.restlet.Context;
@@ -34,6 +37,7 @@ public class AnatomyResource extends Resource {
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Connection conn;
 	private OBDQuery obdq;
 	private Set<String> taxa;
 	private Set<String> genotypes;
@@ -58,18 +62,25 @@ public class AnatomyResource extends Resource {
 	private final String IS_A_RELATION = "OBO_REL:is_a";
 	private final String EXHIBITS_RELATION = "PHENOSCAPE:exhibits";
 	private final String HAS_ALLELE_RELATION = "PHENOSCAPE:has_allele";
+	private final String INHERES_IN_RELATION = "OBO_REL:inheres_in";
 
 	private final String VALUE_SLIM_STRING = "value_slim";
+	private final String ATTRIBUTE_SLIM_STRING = "attribute_slim";
+	
+	private enum SearchTypes{
+		ANATOMY, GENE, TAXON, PUBLICATION
+	}
 	
 	public AnatomyResource(Context context, Request request, Response response) {
 		super(context, request, response);
 
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.conn = (Connection)this.getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		obdq = new OBDQuery(obdsql);
+		obdq = new OBDQuery(obdsql, conn);
 		characters = new ArrayList<String>();
 		qualityToTaxonMap = new HashMap<String, Set<String>>();
 		qualityToGenotypeMap = new HashMap<String, Set<String>>();
@@ -103,7 +114,8 @@ public class AnatomyResource extends Resource {
 				termObject.put("id", this.termId);
 				termObject.put("name", term);
 				this.jObjs.put("term", termObject);
-				getAnatomyTermSummary(this.termId);
+				//getAnatomyTermSummary(this.termId);
+				getNewAnatomyTermSummary(termId);
 					Collections.sort(characters);
 				//	List<JSONObject> qualityObjs = new ArrayList<JSONObject>();
 					List<JSONObject> charObjs = new ArrayList<JSONObject>();
@@ -208,6 +220,52 @@ public class AnatomyResource extends Resource {
 	}
 
 	/**
+	 * These new methods are being developed for the ASIH prototype being developed for the
+	 * ASIH meeting Portland, OR in July, 2009
+	 */
+	
+	private Map<String, List<List<Map<String, String>>>> getNewAnatomyTermSummary(String termId) throws IOException, SQLException, 
+	ClassNotFoundException, JSONException, IllegalArgumentException{
+		Map<String, List<List<Map<String, String>>>> nodesByChar = new HashMap<String, List<List<Map<String, String>>>>();
+		List<Map<String, String>> nodesByGenes;
+		List<Map<String, String>> nodesByTaxa;
+		List<List<Map<String, String>>> combinedNodes;
+		Map<String, String> nodeProps;
+		String relId, target, character = null, taxon = null;
+		
+		for(Node node : obdq.executeQuery(obdq.getAnatomyQuery(), termId)){
+			nodeProps = new HashMap<String, String>();
+			for(Statement stmt : node.getStatements()){
+				relId = stmt.getRelationId();
+				target = stmt.getTargetId();
+				nodeProps.put(relId, target);
+			} 
+			nodeProps.put("id", node.getId());
+			character = nodeProps.get("hasCharacter");
+			taxon = nodeProps.get("exhibitedBy");
+			
+			combinedNodes = nodesByChar.containsKey(character)? nodesByChar.get(character) : new ArrayList<List<Map<String, String>>>();	
+			nodesByGenes =  (combinedNodes.size() > 0) ? combinedNodes.get(0) : new ArrayList<Map<String, String>>();		
+			nodesByTaxa =  (combinedNodes.size() > 0) ? combinedNodes.get(1) : new ArrayList<Map<String, String>>();					
+				
+			if(taxon.contains("GENE"))
+				nodesByGenes.add(nodeProps);
+			else
+				nodesByTaxa.add(nodeProps);
+			combinedNodes.add(nodesByGenes);
+			combinedNodes.add(nodesByTaxa);
+			
+			nodesByChar.put(character, combinedNodes);
+		}
+		return nodesByChar;
+	}
+	
+	/**
+	 * These methods were implemented for the SICB prototype demonstrated at the SICB meeting in Boston, MA
+	 * in January 2009
+	 */
+	
+	/**
 	 * The method to summarize anatomical terms
 	 * @param termId
 	 * @throws IOException
@@ -216,6 +274,7 @@ public class AnatomyResource extends Resource {
 	 * @throws JSONException
 	 * @throws IllegalArgumentException
 	 */
+	@Deprecated
 	private void getAnatomyTermSummary(String termId) throws IOException,
 	SQLException, ClassNotFoundException, JSONException,
 	IllegalArgumentException {
