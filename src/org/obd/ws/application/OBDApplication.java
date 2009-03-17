@@ -48,6 +48,19 @@ public class OBDApplication extends Application {
 			
 			this.getContext().getAttributes().put("shard", obdsql);
 			this.getContext().getAttributes().put("conn", conn);
+			
+			InputStream queriesFile = this.getClass().getResourceAsStream("queries.properties");
+			Properties queries = new Properties();
+			queries.load(queriesFile);
+			
+			String aq = queries.getProperty("anatomyQuery");
+			String tq = queries.getProperty("taxonQuery");
+			String gq = queries.getProperty("geneQuery");
+			
+			this.getContext().getAttributes().put("anatomyQuery", aq);
+			this.getContext().getAttributes().put("taxonQuery", tq);
+			this.getContext().getAttributes().put("geneQuery", gq);
+			
 		}
 		catch(Exception e){
 			e.printStackTrace();
