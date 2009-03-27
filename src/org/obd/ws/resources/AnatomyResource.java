@@ -54,6 +54,8 @@ public class AnatomyResource extends Resource {
 	private Map<String, Integer> statementCountByGenotype;
 	private Map<String, Integer> statementCountByGene;
 	
+	private Set<String> geneSet, taxonSet;
+	
 	private int annotationCount;
 
 	private final String OBOOWL_SUBSET_RELATION = "oboInOwl:inSubset";
@@ -117,7 +119,7 @@ public class AnatomyResource extends Resource {
 				
 				Map<String, List<List<Map<String, String>>>> nodesByChar = getNewAnatomyTermSummary(termId);
 				
-				JSONObject charObj, geneForCharObj, taxonForCharObj;
+				JSONObject charObj, geneForCharObj, taxonForCharObj, geneAnnotSummaryObj, taxonAnnotSummaryObj;
 				List<JSONObject> charObjs = new ArrayList<JSONObject>();
 				List<JSONObject> genesForCharObj;
 				List<JSONObject> taxaForCharObj;
@@ -129,28 +131,38 @@ public class AnatomyResource extends Resource {
 					List<Map<String, String>> gNodes = allNodes.get(0);
 					List<Map<String, String>> tNodes = allNodes.get(1);
 					charObj.put("character", cStr);
-					charObj.put("geneAnnotationsCount", gNodes.size());
-					charObj.put("taxonAnnotationsCount", tNodes.size());
 					charObj.put("totalAnnotationsCount", tNodes.size() + gNodes.size());
+					geneAnnotSummaryObj = new JSONObject();
+					taxonAnnotSummaryObj = new JSONObject();
+					geneAnnotSummaryObj.put("annotationCount", gNodes.size());
+					geneSet = new HashSet<String>();
 					for(Map<String, String> gNode : gNodes){
 						geneForCharObj = new JSONObject();
 						geneForCharObj.put("gene", gNode.get("exhibitedBy"));
+						geneSet.add(gNode.get("exhibitedBy"));
 						geneForCharObj.put("state", gNode.get("hasState")); 
 						geneForCharObj.put("entity", gNode.get("inheresIn"));
 						genesForCharObj.add(geneForCharObj);
 					}
+					geneAnnotSummaryObj.put("geneCount", geneSet.size());
+					taxonAnnotSummaryObj.put("annotationCount", tNodes.size());
+					taxonSet = new HashSet<String>();
 					for(Map<String, String> tNode : tNodes){
 						taxonForCharObj = new JSONObject();
 						taxonForCharObj.put("taxon", tNode.get("exhibitedBy"));
+						taxonSet.add(tNode.get("exhibitedBy"));
 						taxonForCharObj.put("state", tNode.get("hasState"));
 						taxonForCharObj.put("entity", tNode.get("inheresIn"));
 						taxaForCharObj.add(taxonForCharObj);
 					}
-					charObj.put("geneAnnotations", genesForCharObj);
-					charObj.put("taxonAnnotations", taxaForCharObj);
+					taxonAnnotSummaryObj.put("taxonCount", taxonSet.size());
+					//charObj.put("geneAnnotationDetails", genesForCharObj);
+					//charObj.put("taxonAnnotationDetails", taxaForCharObj);
+					charObj.put("taxonAnnotations", taxonAnnotSummaryObj);
+					charObj.put("geneAnnotations", geneAnnotSummaryObj);
 					charObjs.add(charObj);
 				}
-				this.jObjs.put("attributes", charObjs);
+				this.jObjs.put("qualities", charObjs);
 			} else {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
