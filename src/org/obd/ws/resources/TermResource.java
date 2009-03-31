@@ -112,7 +112,7 @@ public class TermResource extends Resource {
 			String name = obdsql.getNode(termId).getLabel();
 																		
 			jsonObj.put("name", name);
-			Collection<Node> synonymNodes = obdsql.getNodesForSearchTermBySynonym(name, false, null, false);
+			Collection<Node> synonymNodes = obdsql.getSynonymsForTerm(name);
 			String synonym = "No name";
 			for(Node node : synonymNodes){
 				for(Statement stmt :	node.getStatements()){
