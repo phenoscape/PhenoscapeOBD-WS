@@ -1,8 +1,6 @@
 package org.obd.ws.resources;
 
-import java.io.IOException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
@@ -29,6 +28,8 @@ import org.restlet.resource.Variant;
 
 public class AnnotationSummaryResource extends Resource {
 	
+	Logger log = Logger.getLogger(this.getClass());
+	
 	private String subject_id;
 	private String entity_id;
 	private String quality_id; 
@@ -42,7 +43,6 @@ public class AnnotationSummaryResource extends Resource {
 	private Connection conn;
 	private OBDQuery obdq;
 	
-	private Set<String> geneSet, taxonSet;
 	
 	public AnnotationSummaryResource(Context context, Request request, Response response) {
 		super(context, request, response);
@@ -51,17 +51,17 @@ public class AnnotationSummaryResource extends Resource {
 		this.conn = (Connection)this.getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject_id") != null){
-			this.subject_id = Reference.decode((String) (request.getAttributes().get("subject_id")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject") != null){
+			this.subject_id = Reference.decode((String) (request.getResourceRef().getQueryAsForm().getFirstValue("subject")));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("entity_id") != null){
-			this.entity_id = Reference.decode((String)(request.getAttributes().get("entity_id")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("entity") != null){
+			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("entity")));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("quality_id") != null){
-			this.quality_id = Reference.decode((String)(request.getAttributes().get("quality_id")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("quality") != null){
+			this.quality_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("quality")));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication_id") != null){
-			this.publication_id = Reference.decode((String)(request.getAttributes().get("publication_id")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
+			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
 		}
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("examples_count") != null){
 			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getAttributes().get("examples_count"))));
@@ -124,15 +124,92 @@ public class AnnotationSummaryResource extends Resource {
 				}
 			}
 		}
+		
+		Map<String, Map<String, List<Set<String>>>> ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id);
+		
+		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj; 
+		JSONObject ecObject, eObject, cObject;
+		List<JSONObject> gExampleObjs, tExampleObjs, qExampleObjs;
+		List<JSONObject> ecObjects = new ArrayList<JSONObject>();
+		
+		try{
+			for(String entityId : ecAnnots.keySet()){
+				Map<String, List<Set<String>>> cAnnots = ecAnnots.get(entityId); 
+				for(String charId : cAnnots.keySet()){
+					
+					ecObject = new JSONObject();
+					eObject = new JSONObject();
+					cObject = new JSONObject();
+					eObject.put("id", entityId);
+					eObject.put("name", obdsql.getNode(entityId).getLabel());
+					cObject.put("id", charId);
+					cObject.put("name", obdsql.getNode(charId).getLabel());
+					ecObject.put("entity", eObject);
+					ecObject.put("character_quality", cObject);
+					
+					genesObj= new JSONObject();
+					taxaObj = new JSONObject();
+					qualitiesObj = new JSONObject();
+					Set<String> genesSet = cAnnots.get(charId).get(0);
+					Set<String> taxaSet = cAnnots.get(charId).get(1);
+					Set<String> qualitiesSet = cAnnots.get(charId).get(2);
+					gExampleObjs = new ArrayList<JSONObject>();
+					tExampleObjs = new ArrayList<JSONObject>();
+					qExampleObjs = new ArrayList<JSONObject>();
+					genesObj.put("count", genesSet.size());
+					for(int i = 0; i < (Math.min(examples_count, genesSet.size())); i++){
+						String geneId = genesSet.iterator().next();
+						exampleObj = new JSONObject();
+						exampleObj.put("id", geneId);
+						exampleObj.put("name", obdsql.getNode(geneId).getLabel());
+						gExampleObjs.add(exampleObj);
+					}
+					genesObj.put("examples", gExampleObjs);
+					taxaObj.put("count", taxaSet.size());
+					for(int i = 0; i < (Math.min(examples_count, taxaSet.size())); i++){
+						String taxonId = taxaSet.iterator().next();
+						exampleObj = new JSONObject();
+						exampleObj.put("id", taxonId);
+						exampleObj.put("name", obdsql.getNode(taxonId).getLabel());
+						tExampleObjs.add(exampleObj);
+					}
+					taxaObj.put("examples", tExampleObjs);
+					qualitiesObj.put("count", qualitiesSet.size());
+					for(int i = 0; i < (Math.min(examples_count, qualitiesSet.size())); i++){
+						String qualityId = qualitiesSet.iterator().next();
+						exampleObj = new JSONObject();
+						exampleObj.put("id", qualityId);
+						exampleObj.put("name", obdsql.getNode(qualityId).getLabel());
+						qExampleObjs.add(exampleObj);
+					}
+					qualitiesObj.put("examples", qExampleObjs);
+					
+					ecObject.put("qualities", qualitiesObj);
+					ecObject.put("taxa", taxaObj);
+					ecObject.put("genes", genesObj);
+					ecObjects.add(ecObject);
+				}
+			}
+			this.jObjs.put("characters", ecObjects);
+		}
+		catch(JSONException jsone){
+			jsone.printStackTrace();
+		}
 		rep = new JsonRepresentation(this.jObjs);
 		return rep;
 	}
 
-	private Map<String, Map<String, List<List<Map<String, String>>>>> getAnnotationSummary(String subject_id, String entity_id, String quality_id) 
-				throws IOException, SQLException, ClassNotFoundException, JSONException, IllegalArgumentException{
+	private Map<String, Map<String, List<Set<String>>>> getAnnotationSummary(String subject_id, String entity_id, String char_id){
 		
 		Map<String, String> nodeProps;
-		String relId, target, character = null, taxon = null, entity = null, quality = null;
+				
+		Map<String, Map<String, List<Set<String>>>> entityCharAnnots = 
+			new HashMap<String, Map<String, List<Set<String>>>>(); 
+		Map<String, List<Set<String>>> charAnnots;
+		List<Set<String>> annots;
+		Set<String> gAnnots, tAnnots, qAnnots;
+		
+		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null;
 		String query, searchTerm;
 		if(subject_id != null){
 			searchTerm = subject_id;
@@ -148,8 +225,8 @@ public class AnnotationSummaryResource extends Resource {
 				searchTerm = entity_id;
 			query = obdq.getAnatomyQuery();
 		}
-		
-		for(Node node : obdq.executeQuery(query, searchTerm)){
+		log.trace("Search Term: " + searchTerm + " Query: " + query);
+		for(Node node : obdq.executeQuery(query, searchTerm, new String[]{entity_id, char_id, subject_id})){
 			nodeProps = new HashMap<String, String>();
 			for(Statement stmt : node.getStatements()){
 				relId = stmt.getRelationId();
@@ -157,14 +234,58 @@ public class AnnotationSummaryResource extends Resource {
 				nodeProps.put(relId, target);
 			} 
 			nodeProps.put("id", node.getId());
-			character = nodeProps.get("hasCharacter");
-			taxon = nodeProps.get("exhibitedBy");
-			entity = nodeProps.get("inheresIn");
-			quality = nodeProps.get("hasState");
+			characterId = nodeProps.get("hasCharacterId");
+			taxonId = nodeProps.get("exhibitedById");
+			entityId = nodeProps.get("inheresInId");
+			qualityId = nodeProps.get("hasStateId");
 			
-			
-			
+			if(entityCharAnnots.keySet().contains(entityId)){
+				charAnnots = entityCharAnnots.get(entityId);
+				
+				if(charAnnots.keySet().contains(characterId)){
+					annots = charAnnots.get(characterId);
+					gAnnots = annots.get(0);
+					tAnnots = annots.get(1);
+					qAnnots = annots.get(2);
+				}
+				else{
+					annots = new ArrayList<Set<String>>();
+					gAnnots = new HashSet<String>();
+					tAnnots = new HashSet<String>();
+					qAnnots = new HashSet<String>();
+				}
+				qAnnots.add(qualityId);
+				if(taxonId.contains("GENE")){
+					gAnnots.add(taxonId);
+				}
+				else{
+					tAnnots.add(taxonId);
+				}
+				annots.add(0, gAnnots);
+				annots.add(1, tAnnots);
+				annots.add(2, qAnnots);
+				charAnnots.put(characterId, annots);
+			}
+			else{
+				charAnnots = new HashMap<String, List<Set<String>>>();
+				annots = new ArrayList<Set<String>>();
+				gAnnots = new HashSet<String>();
+				tAnnots = new HashSet<String>();
+				qAnnots = new HashSet<String>();
+				qAnnots.add(qualityId);
+				if(taxonId.contains("GENE")){
+					gAnnots.add(taxonId);
+				}
+				else{
+					tAnnots.add(taxonId);
+				}
+				annots.add(0, gAnnots);
+				annots.add(1, tAnnots);
+				annots.add(2, qAnnots);
+				charAnnots.put(characterId, annots);
+			}
+			entityCharAnnots.put(entityId, charAnnots);
 		}
-		return null;
+		return entityCharAnnots;
 	}
 }
