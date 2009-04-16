@@ -42,7 +42,7 @@ public class AutoCompleteResource extends Resource {
 	
 	private final String ID_STRING = "id";
 	private final String NAME_STRING = "name";
-	private final String SYNONYM_STRING = "synoynm";
+	private final String SYNONYM_STRING = "synoym";
 	private final String DEF_STRING = "definition";
 	private final String MATCH_TYPE_STRING = "match_type";
 	private final String MATCH_TEXT_STRING = "match_text";
