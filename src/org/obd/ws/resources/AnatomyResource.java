@@ -418,7 +418,7 @@ public class AnatomyResource extends Resource {
 	 * @param genotypeId
 	 */
 	private String getGeneForGenotype(String quality, String genotypeId) {
-		Collection<Statement> stmts = obdq.genericTermSearch(genotypeId);
+		Collection<Statement> stmts = obdq.genericTermSearch(genotypeId, null);
 		for (Statement stmt : stmts) {
 			if (stmt.getRelationId().equals(HAS_ALLELE_RELATION)) {
 				return stmt.getNodeId();

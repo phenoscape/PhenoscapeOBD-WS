@@ -1,19 +1,21 @@
 package org.obd.ws.resources;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.nescent.informatics.OBDQuery;
 import org.obd.model.LiteralStatement;
 import org.obd.model.Node;
 import org.obd.model.Statement;
+import org.obd.query.LinkQueryTerm;
 import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -30,14 +32,62 @@ public class TermResource extends Resource {
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
-	private Connection conn;
+	
+	private Map<String, Set<String>> nameToOntologyMap;
 	
 	public TermResource(Context context, Request request, Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
-		this.conn = (Connection)getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
+		
+		Set<String> ontologyList;
+		nameToOntologyMap = new HashMap<String, Set<String>>();
+		ontologyList = new HashSet<String>();
+		ontologyList.add("oboInOwl");
+		ontologyList.add("oboInOwl:Subset");
+		nameToOntologyMap.put("oboInOwl", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("relationship");
+		nameToOntologyMap.put("OBO_REL", ontologyList);
+
+		ontologyList = new HashSet<String>();
+		ontologyList.add("quality");
+		ontologyList.add("pato.ontology");
+		nameToOntologyMap.put("PATO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("zebrafish_anatomy");
+		nameToOntologyMap.put("ZFA", ontologyList);
+		
+		ontologyList = new HashSet<String>();		
+		ontologyList.add("teleost_anatomy");
+		nameToOntologyMap.put("TAO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("teleost-taxonomy");
+		nameToOntologyMap.put("TTO",ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("museum");
+		nameToOntologyMap.put("COLLECTION", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("spatial"); 
+		nameToOntologyMap.put("BSPO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("sequence");
+		nameToOntologyMap.put("SO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("unit.ontology");
+		nameToOntologyMap.put("UO", ontologyList);
+		
+		ontologyList = new HashSet<String>();
+		ontologyList.add("phenoscape_vocab");
+		nameToOntologyMap.put("PHENOSCAPE", ontologyList);
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		// System.out.println(termId);
@@ -65,16 +115,12 @@ public class TermResource extends Resource {
 			}
 			// stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (JSONException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		// System.out.println(stringRep);
@@ -86,9 +132,6 @@ public class TermResource extends Resource {
 	private JSONObject getTermInfo(String termId) throws IOException,
 			SQLException, ClassNotFoundException, JSONException {
 
-		OBDQuery obdq = new OBDQuery(obdsql, conn);
-
-		Set<Statement> stmts = obdq.genericTermSearch(termId);
 		JSONObject jsonObj = new JSONObject();
 		if(termId.indexOf(":") < 0){
 			return null;
@@ -96,6 +139,31 @@ public class TermResource extends Resource {
 		if (obdsql.getNode(termId) != null) {
 			
 			String prefix = termId.substring(0, termId.indexOf(":"));
+			
+			Set<Statement> sourceStatements = new HashSet<Statement>();
+			Set<Statement> targetStatements = new HashSet<Statement>();
+			
+			LinkQueryTerm slqt, tlqt;
+			slqt = new LinkQueryTerm();
+			slqt.setNode(termId);
+			slqt.setInferred(false);
+			
+			//this is hacky but it's done because restricting by ontology using QueryTerm.setSource() does not seem to work
+			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(slqt)){
+				if(!stmt.getTargetId().contains("^") && !stmt.getTargetId().contains("INTERSECTION")
+						&& stmt.getTargetId().contains(prefix) && !stmt.getTargetId().contains("RESTRICTION")){
+					sourceStatements.add(stmt);
+				}
+			}
+			tlqt = new LinkQueryTerm();
+			tlqt.setTarget(termId);
+			tlqt.setInferred(false);
+			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(tlqt)){
+				if(!stmt.getNodeId().contains("^") && !stmt.getNodeId().contains("INTERSECTION") && 
+						stmt.getNodeId().contains(prefix) && !stmt.getNodeId().contains("RESTRICTION"))
+					targetStatements.add(stmt);
+			}
+			
 			Set<JSONObject> parents = new HashSet<JSONObject>();
 			Set<JSONObject> children = new HashSet<JSONObject>();
 			Set<JSONObject> synonyms = new HashSet<JSONObject>();
@@ -127,13 +195,11 @@ public class TermResource extends Resource {
 			jsonObj.put("synonyms", synonyms);
 			if (def.length() > 0)
 				jsonObj.put("definition", def);
-			for (Statement stmt : stmts) {
-				String subj = stmt.getNodeId();
+			for (Statement stmt : sourceStatements) {
 				String pred = stmt.getRelationId();
 				String obj = stmt.getTargetId();
-				if (pred != null && pred.length() > 0) {
-					if (subj.equals(termId) &&
-							obj.substring(0, obj.indexOf(":")).equals(prefix)) {
+				if (pred != null && pred.length() > 0 &&
+						obdsql.getNode(pred) != null && obdsql.getNode(obj) != null) {
 						JSONObject parent = new JSONObject();
 						JSONObject relation = new JSONObject();
 						JSONObject target = new JSONObject();
@@ -144,8 +210,13 @@ public class TermResource extends Resource {
 						parent.put("relation", relation);
 						parent.put("target", target);
 						parents.add(parent);
-					} else if (obj.equals(termId) &&
-							subj.substring(0, obj.indexOf(":")).equals(prefix)) {
+				}
+			}
+			for(Statement tStmt : targetStatements){
+				String subj = tStmt.getNodeId();
+				String pred = tStmt.getRelationId();
+				if (pred != null && pred.length() > 0 &&
+						obdsql.getNode(pred) != null && obdsql.getNode(subj) != null) {
 						JSONObject child = new JSONObject();
 						JSONObject relation = new JSONObject();
 						JSONObject target = new JSONObject();
@@ -156,10 +227,8 @@ public class TermResource extends Resource {
 						child.put("relation", relation);
 						child.put("target", target);
 						children.add(child);
-					}
 				}
 			}
-
 			jsonObj.put("parents", parents);
 			jsonObj.put("children", children);
 			// jsonObj.put("otherRelations", otherRelations);

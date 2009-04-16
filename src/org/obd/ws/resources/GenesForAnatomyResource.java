@@ -201,7 +201,7 @@ public class GenesForAnatomyResource extends Resource {
 	}
 	
 	private String getGeneForGenotype(String taxOrGenoId) {
-		Collection<Statement> stmts = obdq.genericTermSearch(taxOrGenoId);
+		Collection<Statement> stmts = obdq.genericTermSearch(taxOrGenoId, null);
 		for (Statement stmt : stmts) {
 			if (stmt.getRelationId().equals(HAS_ALLELE_RELATION)) {
 				return stmt.getNodeId();
