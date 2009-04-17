@@ -35,7 +35,7 @@ public class PhenotypeSummaryResource extends Resource {
 	private String entity_id;
 	private String quality_id; 
 	private String publication_id;
-	private int examples_count = 2;
+	private int examples_count = 0;
 	
 	private Map<String, String> parameters;
 	
