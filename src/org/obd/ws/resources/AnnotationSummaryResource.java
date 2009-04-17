@@ -227,7 +227,7 @@ public class AnnotationSummaryResource extends Resource {
 		filterOptions[1] = null;
 		filterOptions[0] = subject_id;
 		filterOptions[2] = char_id;
-		filterOptions[3] = pub_id; 
+		filterOptions[3] = null; //TODO pub_id goes here; 
 		
 		log.debug("Search Term: " + searchTerm + " Query: " + query);
 		for(Node node : obdq.executeQuery(query, searchTerm, filterOptions)){
