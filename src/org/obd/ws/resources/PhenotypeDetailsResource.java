@@ -3,10 +3,8 @@ package org.obd.ws.resources;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -117,14 +115,16 @@ public class PhenotypeDetailsResource extends Resource {
 			}
 		}
 		
-		Set<List<String[]>> annots = 
+		List<List<String[]>> annots = 
 			getAnnotations(subject_id, entity_id, quality_id, publication_id);
+		List<String[]> comp;
 		
 		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj; 
 		List<JSONObject> phenotypeObjs = new ArrayList<JSONObject>();
 		
 		try{
-			for(List<String[]> comp : annots){
+			for(int i = 0; i < annots.size(); i++){
+				comp = annots.get(i);
 				phenotypeObj = new JSONObject();
 				subjectObj = new JSONObject();
 				entityObj = new JSONObject();
@@ -150,13 +150,13 @@ public class PhenotypeDetailsResource extends Resource {
 		return rep;
 	}
 
-	private Set<List<String[]>> 
+	private List<List<String[]>> 
 			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id){
 		
 		Map<String, String> nodeProps;
 				
-		Set<List<String[]>> results = new HashSet<List<String[]>>();
-		List<String[]> annots = new ArrayList<String[]>();
+		List<List<String[]>> results = new ArrayList<List<String[]>>();
+		List<String[]> annots;
 		
 		String[] filterOptions = new String[4];
 		
@@ -172,7 +172,7 @@ public class PhenotypeDetailsResource extends Resource {
 		filterOptions[2] = char_id;
 		filterOptions[3] = null; //TODO pub_id goes here; 
 		
-		log.debug("Search Term: " + searchTerm + " Query: " + query);
+		log.trace("Search Term: " + searchTerm + " Query: " + query);
 		for(Node node : obdq.executeQuery(query, searchTerm, filterOptions)){
 			nodeProps = new HashMap<String, String>();
 			for(Statement stmt : node.getStatements()){
@@ -191,7 +191,7 @@ public class PhenotypeDetailsResource extends Resource {
 			quality = nodeProps.get("hasState");
 			log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 					entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-			
+			annots = new ArrayList<String[]>();
 			annots.add(new String[]{taxonId, taxon});
 			annots.add(new String[]{entityId, entity});
 			annots.add(new String[]{qualityId, quality});
