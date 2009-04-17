@@ -64,8 +64,8 @@ public class AnnotationSummaryResource extends Resource {
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
 			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("examples_count") != null){
-			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("examples_count"))));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("examples") != null){
+			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("examples"))));
 		}
 		String aq = (String)this.getContext().getAttributes().get("anatomyQuery");
 		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
