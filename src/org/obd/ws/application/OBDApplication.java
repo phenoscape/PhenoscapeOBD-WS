@@ -78,8 +78,8 @@ public class OBDApplication extends Application {
         final Router router = new Router(this.getContext());
         // URL mappings
        // router.attachDefault(HelloWorldResource.class);
-        
-        router.attach("/phenotypes/summary", org.obd.ws.resources.AnnotationSummaryResource.class);
+        router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
+        router.attach("/phenotypes/summary", org.obd.ws.resources.PhenotypeSummaryResource.class);
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/phenotypes/summary/anatomy/{termID}", org.obd.ws.resources.AnatomyResource.class);
