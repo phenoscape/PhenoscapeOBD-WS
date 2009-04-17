@@ -7,6 +7,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -177,7 +179,9 @@ public class TermResource extends Resource {
 					def = lstmt.getTargetId();
 				}
 			}
-			String name = obdsql.getNode(termId).getLabel();
+			String name = obdsql.getNode(termId).getLabel() != null?
+							obdsql.getNode(termId).getLabel() : resolveLabel(termId);
+			
 																		
 			jsonObj.put("name", name);
 			Collection<Node> synonymNodes = obdsql.getSynonymsForTerm(name);
@@ -236,5 +240,22 @@ public class TermResource extends Resource {
 			jsonObj = null;
 		}
 		return jsonObj;
+	}
+	
+	public String resolveLabel(String cd){
+		String label = cd;
+		label = label.replaceAll("\\^", " ");
+		String oldLabel = label;
+		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
+		Matcher m = pat.matcher(oldLabel);
+		while(m.find()){
+			String s2replace = oldLabel.substring(m.start(), m.end());
+			String replaceS = obdsql.getNode(s2replace).getLabel();
+			if(replaceS == null)
+				replaceS = s2replace.substring(s2replace.indexOf(":") + 1);
+			label = label.replace(s2replace, replaceS);
+		}
+		label = label.replace("_", " ");
+		return label;
 	}
 }
