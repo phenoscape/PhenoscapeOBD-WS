@@ -111,7 +111,7 @@ public class AnnotationSummaryResource extends Resource {
 		parameters.put("entity_id", entity_id);
 		parameters.put("quality_id", quality_id);
 		parameters.put("subject_id", subject_id);
-		//parameters.put("publication_id", publication_id);
+		parameters.put("publication_id", publication_id);
 		
 		for(String key : parameters.keySet()){
 			if(parameters.get(key) != null){
@@ -123,7 +123,8 @@ public class AnnotationSummaryResource extends Resource {
 			}
 		}
 		
-		Map<String, Map<String, List<Set<String>>>> ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id);
+		Map<String, Map<String, List<Set<String>>>> ecAnnots = 
+			getAnnotationSummary(subject_id, entity_id, quality_id, publication_id);
 		
 		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj; 
 		JSONObject ecObject, eObject, cObject;
@@ -204,7 +205,8 @@ public class AnnotationSummaryResource extends Resource {
 		return rep;
 	}
 
-	private Map<String, Map<String, List<Set<String>>>> getAnnotationSummary(String subject_id, String entity_id, String char_id){
+	private Map<String, Map<String, List<Set<String>>>> 
+			getAnnotationSummary(String subject_id, String entity_id, String char_id, String pub_id){
 		
 		Map<String, String> nodeProps;
 				
@@ -218,26 +220,15 @@ public class AnnotationSummaryResource extends Resource {
 		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null,
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
-		if(subject_id != null){
-			searchTerm = subject_id;
-			filterOptions[0] = null;
-			if(subject_id.contains("GENE"))
-				query = obdq.getGeneQuery();
-			else
-				query = obdq.getTaxonQuery();
-			filterOptions[1] = entity_id != null ? entity_id : null;
-		}
-		else{
-			filterOptions[0] = null;
-			filterOptions[1] = null;
-			if(entity_id == null)
-				searchTerm = "TAO:0100000";
-			else 
-				searchTerm = entity_id;
-			query = obdq.getAnatomyQuery();
-		}
-		filterOptions[2] = char_id != null ? char_id : null;
-		filterOptions[3] = null; //TODO: This will change when publications are added
+		
+		query = obdq.getAnatomyQuery();
+		
+		searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
+		filterOptions[1] = null;
+		filterOptions[0] = subject_id;
+		filterOptions[2] = char_id;
+		filterOptions[3] = pub_id; 
+		
 		log.debug("Search Term: " + searchTerm + " Query: " + query);
 		for(Node node : obdq.executeQuery(query, searchTerm, filterOptions)){
 			nodeProps = new HashMap<String, String>();
