@@ -157,9 +157,7 @@ public class OBDQuery {
 
 	public String resolveLabel(String cd){
 		String label = cd;
-		label = label.replaceAll("\\^", " AND ");
-		label = label.replace('(', ' ');
-		label = label.replace(')', ' ');
+		label = label.replaceAll("\\^", " ");
 		String oldLabel = label;
 		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
 		Matcher m = pat.matcher(oldLabel);
