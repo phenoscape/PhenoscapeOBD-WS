@@ -73,7 +73,7 @@ public class PhenotypeDetailsResource extends Resource {
 
 		Representation rep;
 
-		if (subject_id != null && !subject_id.startsWith("TTO:") && !subject_id.contains("GENE:")) {
+		if (subject_id != null && !subject_id.startsWith("TTO:") && !subject_id.contains("GENE")) {
 			this.jObjs = null;
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
@@ -164,11 +164,21 @@ public class PhenotypeDetailsResource extends Resource {
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
 		
-		query = obdq.getAnatomyQuery();
+		if(subject_id != null && entity_id == null){
+			if(subject_id.contains("GENE"))
+				query = obdq.getGeneQuery();
+			else
+				query = obdq.getTaxonQuery();
+			searchTerm = subject_id;
+			filterOptions[0] = null;
+		}
+		else{
+			query = obdq.getAnatomyQuery();
+			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
+			filterOptions[0] = subject_id;
+		}
 		
-		searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 		filterOptions[1] = null;
-		filterOptions[0] = subject_id;
 		filterOptions[2] = char_id;
 		filterOptions[3] = null; //TODO pub_id goes here; 
 		

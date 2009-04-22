@@ -115,28 +115,30 @@ public class OBDQuery {
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
 				if(!filterNode(filterOptions, new String[]{rs.getString(2), rs.getString(8), rs.getString(6)})){
-					Node phenotypeNode = new Node(rs.getString(1));
-					Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
-					Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
-					Statement stateSt = new Statement(phenotypeNode.getId(), "hasState", rs.getString(5));
-					Statement stateIdSt = new Statement(phenotypeNode.getId(), "hasStateId", rs.getString(4));
-					Statement characterSt = new Statement(phenotypeNode.getId(), "hasCharacter", rs.getString(7));
-					Statement characterIdSt = new Statement(phenotypeNode.getId(), "hasCharacterId", rs.getString(6));
-					entityLabel = rs.getString(9);
-					if(entityLabel == null){
-						entityLabel = resolveLabel(rs.getString(8));
+					if(searchTerm.contains("GENE") || !rs.getString(2).contains("GENO")){
+						Node phenotypeNode = new Node(rs.getString(1));
+						Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
+						Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
+						Statement stateSt = new Statement(phenotypeNode.getId(), "hasState", rs.getString(5));
+						Statement stateIdSt = new Statement(phenotypeNode.getId(), "hasStateId", rs.getString(4));
+						Statement characterSt = new Statement(phenotypeNode.getId(), "hasCharacter", rs.getString(7));
+						Statement characterIdSt = new Statement(phenotypeNode.getId(), "hasCharacterId", rs.getString(6));
+						entityLabel = rs.getString(9);
+						if(entityLabel == null){
+							entityLabel = resolveLabel(rs.getString(8));
+						}	
+						Statement entitySt = new Statement(phenotypeNode.getId(), "inheresIn", entityLabel);
+						Statement entityIdSt = new Statement(phenotypeNode.getId(), "inheresInId", rs.getString(8));
+						phenotypeNode.addStatement(taxonOrGeneSt);
+						phenotypeNode.addStatement(taxonOrGeneIdSt);
+						phenotypeNode.addStatement(stateSt);
+						phenotypeNode.addStatement(stateIdSt);
+						phenotypeNode.addStatement(characterSt);
+						phenotypeNode.addStatement(characterIdSt);
+						phenotypeNode.addStatement(entitySt);
+						phenotypeNode.addStatement(entityIdSt);
+						results.add(phenotypeNode);
 					}
-					Statement entitySt = new Statement(phenotypeNode.getId(), "inheresIn", entityLabel);
-					Statement entityIdSt = new Statement(phenotypeNode.getId(), "inheresInId", rs.getString(8));
-					phenotypeNode.addStatement(taxonOrGeneSt);
-					phenotypeNode.addStatement(taxonOrGeneIdSt);
-					phenotypeNode.addStatement(stateSt);
-					phenotypeNode.addStatement(stateIdSt);
-					phenotypeNode.addStatement(characterSt);
-					phenotypeNode.addStatement(characterIdSt);
-					phenotypeNode.addStatement(entitySt);
-					phenotypeNode.addStatement(entityIdSt);
-					results.add(phenotypeNode);
 				}
 			}
 		}
