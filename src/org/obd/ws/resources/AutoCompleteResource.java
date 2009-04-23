@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.nescent.informatics.OBDQuery;
@@ -140,11 +141,6 @@ public class AutoCompleteResource extends Resource {
 
 		try {
 			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
-			if(this.jObjs == null){
-				getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "ERROR: ZFIN ontology cannot be used in conjunction with other ontologies");
-				return null;
-			}
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (SQLException e) {
@@ -174,22 +170,16 @@ public class AutoCompleteResource extends Resource {
 		List<String> byOntologyOption = null;
 		boolean zfinOption = false;
 		if(options[2] != null && options[2].length() > 0){
-			if (options[2].equals("ZFIN")){
+			if (options[2].contains("ZFIN"))
 				zfinOption = true;
-			}
-			else if(options[2].contains("ZFIN")){
-				return null;
-			}
-			else{
-				byOntologyOption = new ArrayList<String>();
-				for(String choice : options[2].split(",")){
-					if(nameToOntologyMap.containsKey(choice)){
-						byOntologyOption.addAll(nameToOntologyMap.get(choice));
-					}
+			byOntologyOption = new ArrayList<String>();
+			for(String choice : options[2].split(",")){
+				if(nameToOntologyMap.containsKey(choice)){
+					byOntologyOption.addAll(nameToOntologyMap.get(choice));
 				}
 			}
 		}
-
+		
 		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text, zfinOption, byOntologyOption,
 				new String[] {bySynonymOption, byDefinitionOption});
 		
