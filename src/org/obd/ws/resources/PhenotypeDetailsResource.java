@@ -32,6 +32,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private String entity_id;
 	private String quality_id; 
 	private String publication_id;
+	private String type;
 	
 	private Map<String, String> parameters;
 	
@@ -58,6 +59,9 @@ public class PhenotypeDetailsResource extends Resource {
 		}
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
 			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
+		}
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("type") != null){
+			this.type = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("type")));
 		}
 		
 		String aq = (String)this.getContext().getAttributes().get("anatomyQuery");
@@ -97,6 +101,14 @@ public class PhenotypeDetailsResource extends Resource {
 							+ "is not a recognized PATO quality");
 			return null;
 		}
+		if(type != null && !type.equals("evo") && !type.equals("devo")){
+			this.jObjs = null;
+			getResponse().setStatus(
+					Status.CLIENT_ERROR_BAD_REQUEST,
+					"ERROR: [INVALID PARAMETER] The input parameter for taxon type can only be "
+							+ "'evo' or 'devo'");
+			return null;
+		}
 			
 		//TODO Publication ID check
 		
@@ -116,7 +128,7 @@ public class PhenotypeDetailsResource extends Resource {
 		}
 		
 		List<List<String[]>> annots = 
-			getAnnotations(subject_id, entity_id, quality_id, publication_id);
+			getAnnotations(subject_id, entity_id, quality_id, publication_id, type);
 		List<String[]> comp;
 		
 		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj; 
@@ -151,7 +163,7 @@ public class PhenotypeDetailsResource extends Resource {
 	}
 
 	private List<List<String[]>> 
-			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id){
+			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id, String type){
 		
 		Map<String, String> nodeProps;
 				
@@ -164,21 +176,21 @@ public class PhenotypeDetailsResource extends Resource {
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
 		
-		if(subject_id != null && entity_id == null){
+		if(subject_id != null){
 			if(subject_id.contains("GENE"))
 				query = obdq.getGeneQuery();
 			else
 				query = obdq.getTaxonQuery();
 			searchTerm = subject_id;
 			filterOptions[0] = null;
+			filterOptions[1] = entity_id;
 		}
 		else{
 			query = obdq.getAnatomyQuery();
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 			filterOptions[0] = subject_id;
+			filterOptions[1] = null;
 		}
-		
-		filterOptions[1] = null;
 		filterOptions[2] = char_id;
 		filterOptions[3] = null; //TODO pub_id goes here; 
 		
@@ -200,13 +212,23 @@ public class PhenotypeDetailsResource extends Resource {
 			qualityId = nodeProps.get("hasStateId");
 			quality = nodeProps.get("hasState");
 			log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
-					entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-			annots = new ArrayList<String[]>();
-			annots.add(new String[]{taxonId, taxon});
-			annots.add(new String[]{entityId, entity});
-			annots.add(new String[]{qualityId, quality});
-			results.add(annots);
+				entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
+			if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || (type == null)){
+				annots = new ArrayList<String[]>();
+				annots.add(new String[]{taxonId, taxon});
+				annots.add(new String[]{entityId, entity});
+				annots.add(new String[]{qualityId, quality});
+				results.add(annots);
+			}
 		}
 		return results;
+	}
+	
+	private boolean filterNodeForEvoOrDevo(String taxon, String type){
+		if((type.equals("evo") && taxon.contains("TTO"))
+				|| (type.equals("devo") && taxon.contains("GENE"))){
+			return false;
+		}
+		return true;
 	}
 }

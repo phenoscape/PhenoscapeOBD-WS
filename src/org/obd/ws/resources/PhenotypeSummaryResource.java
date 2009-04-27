@@ -221,20 +221,21 @@ public class PhenotypeSummaryResource extends Resource {
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
 		
-		if(subject_id != null && entity_id == null){
+		if(subject_id != null){
 			if(subject_id.contains("GENE"))
 				query = obdq.getGeneQuery();
 			else
 				query = obdq.getTaxonQuery();
 			searchTerm = subject_id;
 			filterOptions[0] = null;
+			filterOptions[1] = entity_id;
 		}
 		else{
 			query = obdq.getAnatomyQuery();
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 			filterOptions[0] = subject_id;
+			filterOptions[1] = null;
 		}
-		filterOptions[1] = null;
 		filterOptions[2] = char_id;
 		filterOptions[3] = null; //TODO pub_id goes here; 
 		
