@@ -115,7 +115,7 @@ public class OBDQuery {
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
 				if(!filterNode(filterOptions, new String[]{rs.getString(2), rs.getString(8), rs.getString(6)})){
-					if(searchTerm.contains("GENE") || !rs.getString(2).contains("GENO")){
+					if(!rs.getString(2).contains("GENO")){
 						Node phenotypeNode = new Node(rs.getString(1));
 						Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
 						Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
