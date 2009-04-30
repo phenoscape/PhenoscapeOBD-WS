@@ -57,7 +57,8 @@ jars coming from other OBO projects - not well tested yet-->
     </path>
     
 <!-- The compile target runs javac on all the java files, and saves them into  the classfiles directory  -->
-    <target name="compile" depends="init">
+    <target name="compile" depends="init" 
+            description="runs javac on all the java files">
         <javac srcdir="${src}" destdir="${classfiles}" debug="yes">
             <classpath refid="project.classpath"/>
         </javac>
@@ -86,7 +87,8 @@ jars coming from other OBO projects - not well tested yet-->
     </target>
     
 <!-- prints to stdout all messages -->
-    <target name="verbose-test" depends="build-test" description="Unit tests">
+    <target name="verbose-test" depends="build-test" 
+            description="Unit tests with messages going to stdout">
         <junit fork="yes" printsummary="withOutAndErr" maxmemory="1024m">
             <classpath>
                 <pathelement path="."/>
@@ -123,7 +125,8 @@ jars coming from other OBO projects - not well tested yet-->
 <!-- clean and compile everything -->
     <target name="build-all" depends="clean,compile,build-test"/>
     
-    <target name="war" depends="compile">
+    <target name="war" depends="compile"
+            description="clean, compile everything, build war file">
         <war destfile="${warfile}" webxml="WebContent/WEB-INF/web.xml" manifest="WebContent/META-INF/MANIFEST.MF">
             <classes dir="${classfiles}"/>
 			<!-- user should have a file called "connectionInfo.properties" in 
