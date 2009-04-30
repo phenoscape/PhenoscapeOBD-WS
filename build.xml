@@ -126,6 +126,13 @@ jars coming from other OBO projects - not well tested yet-->
     <target name="war" depends="compile">
         <war destfile="${warfile}" webxml="WebContent/WEB-INF/web.xml" manifest="WebContent/META-INF/MANIFEST.MF">
             <classes dir="${classfiles}"/>
+			<!-- user should have a file called "connectionInfo.properties" in 
+			the org.obd.ws.application package with the following properties:
+			dbHost=jdbc:postgresql://host/db_name
+			uid=db_username
+			pwd=db_password
+			 -->
+			<classes dir="${src}" includes="org/obd/ws/application/*.properties"/>
 			<lib dir="${lib}" />
         </war>
     </target>
