@@ -19,7 +19,8 @@
         <mkdir dir="${classfiles}"/>
     </target>
 	
-<!-- OBO dependency information -->
+<!-- OBO dependency information - these targets are for developers to use to update
+jars coming from other OBO projects - not well tested yet-->
     <property name="bbop_dest" location="../BBOP"/>
     <property name="obo_dest" location="../OBO"/>
     <property name="obdapi_dest" location="../OBDAPI"/>
