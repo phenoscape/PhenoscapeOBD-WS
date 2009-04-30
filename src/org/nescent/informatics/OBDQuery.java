@@ -24,6 +24,9 @@ import org.obd.query.impl.OBDSQLShard;
 import org.phenoscape.bridge.OBDModelBridge;
 import org.purl.obo.vocab.RelationVocabulary;
 
+/**
+ * FIXME Class comment missing.
+ */
 public class OBDQuery {
 
 	private static RelationVocabulary relationVocabulary = new RelationVocabulary();
@@ -32,17 +35,24 @@ public class OBDQuery {
 	private Map<String, Integer> relationNodeIds;
 	
 	public Logger log;
-	
-	private static String IS_A_RELATION_ID = "OBO_REL:is_a"; 
-	private static String INHERES_IN_RELATION_ID = "OBO_REL:inheres_in";
-	private static String HAS_ALLELE_RELATION_ID = "PHENOSCAPE:has_allele";
-	private static String EXHIBITS_RELATION_ID = "PHENOSCAPE:exhibits";
-	private static String VALUE_FOR_RELATION_ID = "PHENOSCAPE:value_for";
+
+    /* FIXME this file seems like a bad place for these constants -
+     * aren't they used by other classes too? shouldn't there an
+     * OBDRelation or OBDConstants class?
+     */
+	private final static String IS_A_RELATION_ID = "OBO_REL:is_a"; 
+	private final static String INHERES_IN_RELATION_ID = "OBO_REL:inheres_in";
+	private final static String HAS_ALLELE_RELATION_ID = "PHENOSCAPE:has_allele";
+	private final static String EXHIBITS_RELATION_ID = "PHENOSCAPE:exhibits";
+	private final static String VALUE_FOR_RELATION_ID = "PHENOSCAPE:value_for";
 	
 	private String anatomyQuery; 			
 	private String taxonQuery;
 	private String geneQuery;  
 	
+        /**
+         * FIXME Constructor and parameter documentation missing.
+         */
 	public OBDQuery(Shard shard, Connection conn, String[] queries){
 		this(shard, conn);
 			
@@ -50,36 +60,63 @@ public class OBDQuery {
 		this.taxonQuery = queries[1];
 		this.geneQuery = queries[2];
 		
-		anatomyQuery = anatomyQuery.replaceAll("___inheres_in", "" + relationNodeIds.get("inheres_in"));
-		taxonQuery = taxonQuery.replaceAll("___inheres_in", "" + relationNodeIds.get("inheres_in"));
-		geneQuery = geneQuery.replaceAll("___inheres_in", "" + relationNodeIds.get("inheres_in"));
+                // FIXME the replacement strings should be constants,
+                // should be documented, and should be in a different file.
+                
+                // FIXME this looks repetitive - rewrite this as a loop
+
+                // FIXME why aren't we using the accessor method
+                // (getRelationNodeIds()) here?
+		anatomyQuery = anatomyQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
+		taxonQuery = taxonQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
+		geneQuery = geneQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
 			
-		anatomyQuery = anatomyQuery.replaceAll("___exhibits", "" + relationNodeIds.get("exhibits"));
-		taxonQuery = taxonQuery.replaceAll("___exhibits", "" + relationNodeIds.get("exhibits"));
-		geneQuery = geneQuery.replaceAll("___exhibits", "" + relationNodeIds.get("exhibits"));
+		anatomyQuery = anatomyQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
+		taxonQuery = taxonQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
+		geneQuery = geneQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
 			
-		anatomyQuery = anatomyQuery.replaceAll("___has_allele", "" + relationNodeIds.get("has_allele"));
-		taxonQuery = taxonQuery.replaceAll("___has_allele", "" + relationNodeIds.get("has_allele"));
-		geneQuery = geneQuery.replaceAll("___has_allele", "" + relationNodeIds.get("has_allele"));
+		anatomyQuery = anatomyQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
+		taxonQuery = taxonQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
+		geneQuery = geneQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
 			
-		anatomyQuery = anatomyQuery.replaceAll("___value_for", "" + relationNodeIds.get("value_for"));
-		taxonQuery = taxonQuery.replaceAll("___value_for", "" + relationNodeIds.get("value_for"));
-		geneQuery = geneQuery.replaceAll("___value_for", "" + relationNodeIds.get("value_for"));
+		anatomyQuery = anatomyQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
+		taxonQuery = taxonQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
+		geneQuery = geneQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
 			
-		anatomyQuery = anatomyQuery.replaceAll("___is_a", "" + relationNodeIds.get("is_a"));
-		taxonQuery = taxonQuery.replaceAll("___is_a", "" + relationNodeIds.get("is_a"));
-		geneQuery = geneQuery.replaceAll("___is_a", "" + relationNodeIds.get("is_a"));
-			
+		anatomyQuery = anatomyQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
+		taxonQuery = taxonQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
+		geneQuery = geneQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
+
+                // FIXME should print context to it's clear from the
+                // logs what this is. Also, why are taxonQuery and
+                // geneQuery not being debugged here too?
 		log.debug(anatomyQuery);
 	}
 	
+        /**
+         * FIXME Constructor and parameter documentation missing.
+         */
 	public OBDQuery(Shard shard, Connection conn){
 		this.shard = shard;
+                // FIXME if the shard instanceof AbstractSQLShard,
+                // could obtain the connection from the shard
 		this.conn = conn;
 			
 		this.log = Logger.getLogger(this.getClass());
 		
 		relationNodeIds = new HashMap<String, Integer>();
+
+                // FIXME why is this not using the relationship
+                // constants defined above? At any rate, the keys need
+                // to be constants or elements of an enumeration.
+
+                // FIXME why are we assuming that we have an
+                // OBDSQLShard or derived class here? And if that's
+                // what we must have, why is it not the type requested
+                // in the constructor argument declaration?
+
+                // FIXME why aren't we using the accessor method
+                // (getRelationNodeIds()) here?
 		relationNodeIds.put("is_a", ((OBDSQLShard) this.shard).getNodeInternalId(IS_A_RELATION_ID));
 		relationNodeIds.put("inheres_in", ((OBDSQLShard) this.shard).getNodeInternalId(INHERES_IN_RELATION_ID));
 		relationNodeIds.put("has_allele", ((OBDSQLShard) this.shard).getNodeInternalId(HAS_ALLELE_RELATION_ID));
@@ -103,11 +140,22 @@ public class OBDQuery {
 		return geneQuery;
 	}
 
+        /**
+         * FIXME Method and parameter documentation missing.
+         */
+    /* FIXME according to the code in filterNode(), the variable
+     * filterOptions parameter isn't actually variable - if there are
+     * not precisely 3 values, the result will be IndexOutOfBounds
+     */
+    /* FIXME poorly named method - this seems to be more like
+     * fetchNodes(), or fetchPhenotypeNodes().
+     */
 	public Collection<Node> executeQuery(String queryStr, String searchTerm, String... filterOptions){
 		Collection<Node> results = new ArrayList<Node>();
 		String entityLabel;
+                PreparedStatement pstmt = null;
 		try{
-			PreparedStatement pstmt = conn.prepareStatement(queryStr);
+			pstmt = conn.prepareStatement(queryStr);
 			pstmt.setString(1, searchTerm);
 			log.trace(pstmt.toString());
 			long startTime = System.currentTimeMillis();
@@ -115,9 +163,18 @@ public class OBDQuery {
 			long endTime = System.currentTimeMillis();
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
+                            
+                            // FIXME it's completely obscure what is
+                            // going on in this while() loop, and the
+                            // method name doesn't provide any clue
+                            // either. Please deobfuscate.
+
 				if(!filterNode(filterOptions, new String[]{rs.getString(2), rs.getString(8), rs.getString(6)})){
 					if(!rs.getString(2).contains("GENO")){
 						Node phenotypeNode = new Node(rs.getString(1));
+                // FIXME why is this not using the relationship
+                // constants defined above?
+
 						Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
 						Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
 						Statement stateSt = new Statement(phenotypeNode.getId(), "hasState", rs.getString(5));
@@ -144,11 +201,36 @@ public class OBDQuery {
 			}
 		}
 		catch(SQLException sqle){
-			sqle.printStackTrace();
+                    log.error(sqle);
+                    // FIXME we don't really want to chain exceptions
+                    // here but ideally just rethrow the SQLException
+                    // so that a caller has more information on what
+                    // went wrong, but that requires changing the
+                    // method signature (it's a checked exception).
+                    throw new RuntimeException(sqle);
 		}
+                finally {
+                    if (pstmt != null) {
+                        try { pstmt.close(); }
+                        catch (SQLException ex) {
+                            log.error(ex);
+                            // let's not worry further about the close() failing
+                        }
+                    }
+                }
 		return results;
 	}
 	
+        /**
+         * FIXME Method and parameter documentation missing.
+         */
+    /*
+     * FIXME Poorly method - calling code seems to be doing something
+     * if the method returns false, and skip a row if the method
+     * returns true - should this be isSkipRow() or isFilterOut()?
+     * What if the two arrays are of unequal length? Nothing seems to
+     * protect against that.
+     */
 	private boolean filterNode(String[] filterOptions, String[] ids) {
 		for(int i = 0 ; i < filterOptions.length; i++){
 			if(filterOptions[i] != null && !filterOptions[i].equals(ids[i])){
@@ -158,10 +240,14 @@ public class OBDQuery {
 		return false;
 	}
 
+        /**
+         * FIXME Method and parameter documentation missing.
+         */
 	public String resolveLabel(String cd){
-		String label = cd;
-		label = label.replaceAll("\\^", " ");
+		String label = cd.replaceAll("\\^", " ");
 		String oldLabel = label;
+                // FIXME need to document what this pattern does - is
+                // this trying to identify OBO-style term identifiers?
 		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
 		Matcher m = pat.matcher(oldLabel);
 		while(m.find()){
@@ -176,11 +262,9 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * The methods in the first section below have been developed for the Phenoscape application to be demo'ed
-	 * at the SICB workshop in Boston, MA in January 2009
-	 */
-	
-	/**
+         * FIXME Parameter documentation and what the method does and
+         * how it does it are missing.
+         *
 	 * @author cartik
 	 * @param term
 	 * @return
@@ -194,12 +278,14 @@ public class OBDQuery {
 		
 		Set<Statement> results = new HashSet<Statement>();
 		results.addAll(this.shard.getStatementsWithSearchTerm(term, null, null, source, false, false));
-//		results.addAll(this.shard.getStatementsWithSearchTerm(null, term, null, null, false, false));
 		results.addAll(this.shard.getStatementsWithSearchTerm(null, null, term, source, false, false));
 		return results;
 	}
 	
 	/**
+         * FIXME Parameter documentation and what the method does and
+         * how it does it are missing.
+         *
 	 * @author cartik
 	 * @param term
 	 * @param options
@@ -215,6 +301,8 @@ public class OBDQuery {
 		Collection<Node> nodesByName = this.shard.getNodesForSearchTermByLabel(term, zfinOption, ontologyList);
 		nodesByName = pruneNodesForUUID(nodesByName);
 		
+                // FIXME the keys should be constants that are visible
+                // to calling classes, or elements of an enumeration
 		results.put("name-matches", nodesByName);
 		if(bySynonymOption){
 			Collection<Node> nodesBySynonym = this.shard.getNodesForSearchTermBySynonym(term, zfinOption, ontologyList, true);
@@ -230,6 +318,9 @@ public class OBDQuery {
 	}
 		
 	/**
+         * FIXME Parameter documentation and what the method does and
+         * how it does it are missing.
+         *
 	 * @author cartik
 	 * @param nodes
 	 * @return
@@ -249,7 +340,11 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * This method is designed to find statements that contain a specific relation-target combination
+         * FIXME Parameter documentation and what the method does and
+         * how it does it are missing.
+         *
+	 * This method is designed to find statements that contain a
+	 * specific relation-target combination
 	 * @param term
 	 * @return
 	 */
@@ -261,6 +356,9 @@ public class OBDQuery {
 	}
 	
 	/**
+         * FIXME Parameter documentation and what the method does and
+         * how it does it are missing.
+         *
 	 * This method is designed to find specific targets of a node by traversing a specific relation
 	 */
 	public Collection<Statement> getStatementsWithSubjectAndPredicate(String subj, String pred){
@@ -283,13 +381,15 @@ public class OBDQuery {
 	 * @param taxon
 	 * @param entity
 	 * @param quality
-	 * @return - a set (collection) of string arrays that represent every
-	 *         statement that was found in the OBD database about the search
-	 *         string which could be a taxon, or an entity, or a quality
-	 * @throws IllegalArgumentException
-	 *             This method is the controller that decides which of the more
-	 *             specific methods are to be invoked to satisfy a client
-	 *             request.
+	 * @return - a set (collection) of string arrays that
+	 *         represent every statement that was found in the OBD
+	 *         database about the search string which could be a
+	 *         taxon, or an entity, or a quality
+	 * @throws IllegalArgumentException 
+         *
+         * This method is the controller that decides which of the
+	 * more specific methods are to be invoked to satisfy a client
+	 * request.
 	 */
 
 	public Set<Statement> genericSearch(String taxon, String entity,
@@ -318,8 +418,7 @@ public class OBDQuery {
 
 	/**
 	 * @author Cartik1.0
-	 * @param Prints
-	 *            out annotations about every data matrix in the database
+	 * Prints out annotations about every data matrix in the database
 	 */
 	public void getStatementsAboutNexusMatrix() {
 
@@ -348,6 +447,8 @@ public class OBDQuery {
 	}
 
 	/**
+         * FIXME Parameter documentation missing.
+         *
 	 * @author Cartik1.0
 	 * @param character
 	 * @return a set of string arrays. Each member of the array contains the
@@ -360,29 +461,7 @@ public class OBDQuery {
 
 		Set<Statement> taxa = new HashSet<Statement>();
 
-	
-		/*
-		QueryTerm charAnnotQuery = new AnnotationLinkQueryTerm(character);
-		QueryTerm charQuery = new LinkQueryTerm(character);
-
-		Collection<Statement> annots = obdsql2
-				.getStatementsByQuery(charAnnotQuery);
-		for (Statement annot : annots) {
-			taxa.add(annot);
-		}
-		Collection<Statement> links = obdsql2.getStatementsByQuery(charQuery);
-		for (Statement link : links) {
-			taxa.add(link);
-		}
-
-		Collection<Statement> edges = obdsql2.getStatementsByNode(character);
-		for (Statement edge : edges) {
-			taxa.add(edge);
-		}
-		
-		*/
-		
-		for (Statement s : this.shard.getStatementsForNode(character,false)){
+       		for (Statement s : this.shard.getStatementsForNode(character,false)){
 			if (!s.isAnnotation()){
 				taxa.add(s);
 			}
@@ -406,9 +485,11 @@ public class OBDQuery {
 
 
 	/**
+         * FIXME Documentation about what the method does and
+         * how it does it are missing.
+         *
 	 * @author Cartik1.0
-	 * @param taxon
-	 *            - the taxon identifier such as TTO:1001979
+	 * @param taxon The taxon identifier such as TTO:1001979
 	 * @return A Set(Collection) of String arrays containing assertions about
 	 *         the taxon being searched for. Only assertions are returned,
 	 *         trivial inferences are not
@@ -417,15 +498,6 @@ public class OBDQuery {
 
 		Set<Statement> statements = new HashSet<Statement>();
 	
-		/*
-		Collection<Statement> stmts = obdsql2.getStatementsByNode(taxon);
-
-		for (Statement stmt : stmts) {
-			statements.add(stmt);
-		}
-		
-		*/
-		
 		for (Statement s : this.shard.getStatementsForNode(taxon,false)){
 			if (!s.isAnnotation()){
 				statements.add(s);
@@ -446,8 +518,7 @@ public class OBDQuery {
 
 	/**
 	 * @author Cartik1.0
-	 * @param patoId
-	 *            - A PATO identifier for a state
+	 * @param patoId A PATO identifier for a state
 	 * @return a Set (Collection) of String arrays representing all found
 	 *         assertions about the state in the ODB database
 	 */
@@ -455,29 +526,6 @@ public class OBDQuery {
 
 		Set<Statement> statements = new HashSet<Statement>();
 
-		/*
-		Collection<Statement> stmts = obdsql2.getStatementsByNode(patoId);
-		for (Statement stmt : stmts) {
-			statements.add(stmt);
-		}
-
-		QueryTerm qualAnnotQuery = new AnnotationLinkQueryTerm(patoId);
-		QueryTerm qualQuery = new LinkQueryTerm(patoId);
-
-		Collection<Statement> annots = obdsql2
-				.getStatementsByQuery(qualAnnotQuery);
-
-		for (Statement annot : annots) {
-			statements.add(annot);
-		}
-
-		Collection<Statement> links = obdsql2.getStatementsByQuery(qualQuery);
-		for (Statement link : links) {
-			statements.add(link);
-		}
-		
-		*/
-		
 		for (Statement s : this.shard.getStatementsForNode(patoId,false)){
 			if (!s.isAnnotation()){
 				statements.add(s);
@@ -500,10 +548,8 @@ public class OBDQuery {
 
 	/**
 	 * @author Cartik1.0
-	 * @param taxon
-	 *            - TTO term
-	 * @param character
-	 *            - TAO term
+	 * @param taxon TTO term
+	 * @param character TAO term
 	 * @return set (collection) of string arrays for every statement in the ODB
 	 *         that has both the TTO term and the TAO term in it
 	 */
@@ -541,18 +587,14 @@ public class OBDQuery {
 				statements.add(s);
 			}
 		}
-		/*
-		Collection<Statement> stmts = obdsql2.getStatementsByNode(taxon);
-		for (Statement stmt : stmts) {
-			if (stmt.getTargetId().contains(character)) {
-					statements.add(stmt);
-			}
-		} */
 
 		return statements;
 	}
 
 	/**
+         * FIXME Documentation about what the method does and
+         * how it does it are missing.
+         *
 	 * @author Cartik1.0
 	 * @param character - TAO term
 	 * @param state - PATO term
@@ -563,16 +605,6 @@ public class OBDQuery {
 			String state) {
 	
 		Set<Statement> statements = new HashSet<Statement>();
-		
-//		CompositionalDescription cd = new CompositionalDescription(Predicate.INTERSECTION);
-//		cd.addArgument(state);
-//		cd.addArgument(relationVocabulary.inheres_in(), character);
-		
-//		System.out.println("CD: " + cd);
-		
-//		CompositionalDescriptionQueryTerm cdqt = new CompositionalDescriptionQueryTerm(cd);
-		
-//		Collection<Statement> stmts = obdsql.getStatementsByQuery(new LinkQueryTerm(cdqt));
 		
 		String phenotype = state + "%inheres%" + character;
 		Collection<Statement> stmts = this.shard.getStatementsWithSearchTerm(null, null, phenotype, null, false, null);
@@ -587,6 +619,9 @@ public class OBDQuery {
 	}
 
 	/**
+         * FIXME Documentation about what the method does and
+         * how it does it are missing.
+         *
 	 * @author Cartik1.0
 	 * @param taxon - TTO term
 	 * @param state - PATO term
@@ -598,12 +633,7 @@ public class OBDQuery {
 	
 		 
 		Set<Statement> statements = new HashSet<Statement>();
-		/*Collection<Statement> stmts = obdsql2.getStatementsByNode(taxon);
-		for(Statement stmt : stmts){
-			if(stmt.getTargetId().contains(state)){
-				statements.add(stmt);
-			}
-		}*/
+
 		for (Statement s : this.shard.getStatementsForNode(taxon,false)){
 			if (!s.isAnnotation()){
 				if(s.getTargetId().contains(state)){
@@ -637,6 +667,9 @@ public class OBDQuery {
 
 	
 	/**
+         * FIXME Documentation about what the method does and
+         * how it does it are missing.
+         *
 	 * @author Cartik1.0
 	 * @param taxon - TTO term
 	 * @param entity - TAO term
