@@ -102,6 +102,7 @@ public class OBDQuery {
 	public String getGeneQuery(){
 		return geneQuery;
 	}
+
 	public Collection<Node> executeQuery(String queryStr, String searchTerm, String... filterOptions){
 		Collection<Node> results = new ArrayList<Node>();
 		String entityLabel;
