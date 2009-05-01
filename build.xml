@@ -66,7 +66,9 @@
 <!-- The compile target runs javac on all the java files, and saves them into  the classfiles directory  -->
     <target name="compile" depends="init" 
             description="compiles all the java files">
-        <javac srcdir="${src}" destdir="${classfiles}" debug="yes">
+        <javac srcdir="${src}" destdir="${classfiles}" 
+               debug="yes"
+               deprecation="yes">
             <classpath refid="project.classpath"/>
         </javac>
     </target>
