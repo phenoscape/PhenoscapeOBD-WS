@@ -28,6 +28,7 @@ import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
 import org.restlet.resource.Variant;
+import org.restlet.resource.ResourceException;
 
 public class TermResource extends Resource {
 
@@ -92,7 +93,6 @@ public class TermResource extends Resource {
 		nameToOntologyMap.put("PHENOSCAPE", ontologyList);
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
-		// System.out.println(termId);
 	}
 
 	// this constructor is to be used only for testing purposes
@@ -103,10 +103,11 @@ public class TermResource extends Resource {
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 	}
 
-	public Representation getRepresentation(Variant variant) {
+        @Override
+	public Representation represent(Variant variant) 
+            throws ResourceException {
 
 		Representation rep = null;
-		// String stringRep = "";
 
 		try {
 			this.jObjs = getTermInfo(this.termId);
@@ -115,24 +116,21 @@ public class TermResource extends Resource {
 						"The search term was not found");
 				return null;
 			}
-			// stringRep = this.renderJsonObjectAsString(this.jObjs, 0);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		} catch (JSONException e) {
+                    /* FIXME Never swallow exceptions. Need to rethrow
+                     * this to provide information to the client, and
+                     * add an appropriate message but that requires
+                     * method signature changes.
+                     */
+                    /* FIXME need to use a logger here */
 			e.printStackTrace();
+                        throw new ResourceException(e);
 		}
-		// System.out.println(stringRep);
-		rep = new JsonRepresentation(this.jObjs);
-		return rep;
+		return new JsonRepresentation(this.jObjs);
 
 	}
 
-	private JSONObject getTermInfo(String termId) throws IOException,
-			SQLException, ClassNotFoundException, JSONException {
+	private JSONObject getTermInfo(String termId) throws JSONException {
 
 		JSONObject jsonObj = new JSONObject();
 		if(termId.indexOf(":") < 0){
@@ -242,6 +240,7 @@ public class TermResource extends Resource {
 		return jsonObj;
 	}
 	
+    
 	public String resolveLabel(String cd){
 		String label = cd;
 		label = label.replaceAll("\\^", " ");
