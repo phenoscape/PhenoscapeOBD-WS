@@ -21,7 +21,6 @@ import org.obd.query.AnnotationLinkQueryTerm;
 import org.obd.query.QueryTerm;
 import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
-import org.phenoscape.bridge.OBDModelBridge;
 import org.purl.obo.vocab.RelationVocabulary;
 
 /**
