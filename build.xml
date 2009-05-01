@@ -117,16 +117,20 @@ jars coming from other OBO projects - not well tested yet-->
         </junit>
     </target>
     
-<!-- The clean target just erases the classes -->
+    <!-- The clean target just erases the classes -->
     <target name="clean">
         <delete dir="${classfiles}"/>
     </target>
     
-<!-- clean and compile everything -->
+    <!-- clean and compile everything -->
     <target name="build-all" depends="clean,compile,build-test"/>
     
+    <!-- clean and build the war -->
+    <target name="rebuild" depends="clean,war" 
+            description="Recompile and recreate war file"/>
+    
     <target name="war" depends="compile"
-            description="clean, compile everything, build war file">
+            description="compile everything, build war file">
         <war destfile="${warfile}" webxml="WebContent/WEB-INF/web.xml" manifest="WebContent/META-INF/MANIFEST.MF">
             <classes dir="${classfiles}"/>
 			<!-- user should have a file called "connectionInfo.properties" in 
