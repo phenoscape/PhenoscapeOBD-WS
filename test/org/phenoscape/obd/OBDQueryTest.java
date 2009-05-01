@@ -1,4 +1,4 @@
-package org.nescent.informatics;
+package org.phenoscape.obd;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -21,7 +21,6 @@ import org.obd.model.Graph;
 import org.obd.model.LinkStatement;
 import org.obd.model.Node;
 import org.obd.model.Statement;
-//import org.obd.model.Statement;
 import org.obd.query.LabelQueryTerm;
 import org.obd.query.LinkQueryTerm;
 import org.obd.query.QueryTerm;
@@ -148,25 +147,4 @@ public class OBDQueryTest {
 
 	}
 	*/
-	/*
-	 * "TTO:1003080"
-	 * 
-	 * @Test public void testGetStatementsByTaxon(){ Set<String[]> stmts =
-	 * obdq.getStatementsByTaxon("TTO:1003080"); int i = 0;
-	 * for(Iterator<String[]> it = stmts.iterator(); it.hasNext();){ String[]
-	 * entry = it.next(); System.out.println(++i + ". " + entry[0] + "\t\t::\t"
-	 * + entry[1] + "\t\t::\t" + entry[2]); } }
-	 * 
-	 * @Test public void testGetStatementsByCharacter(){
-	 * System.out.println("Reading Map............"); Set<String[]> taxa =
-	 * obdq.getStatementsByCharacter("TAO:0001173"); String[] entry; int i = 0;
-	 * for(Iterator<String[]> it = taxa.iterator(); it.hasNext();){ entry =
-	 * it.next(); System.out.println(++i + ". " + entry[0] + "\t\t\t\t" +
-	 * entry[1] + "\t\t\t" + entry[2] + "\t\t\t" + entry[3]); } }
-	 * 
-	 * @Test public void testGetStatementsByState(){ Set<String[]> stmts =
-	 * obdq.getStatementsByState("PATO:0001400"); int i = 0; for(String[] stmt :
-	 * stmts){ System.out.println(++i + ". " + stmt[0] + "\t\t\t\t" + stmt[1] +
-	 * "\t\t\t" + stmt[2]); } }
-	 */
 }

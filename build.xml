@@ -9,7 +9,7 @@
     <property name="classfiles" value="build/classes"/>
     <property name="webroot" value="WebContent"/>
     <property name="weblib" value="${webroot}/WEB-INF/lib"/>
-    <property name="lib" value="${weblib}"/>
+    <property name="lib" value="lib"/>
     <property name="warfile" value="OBD-WS.war"/>
     <tstamp>
         <format property="NOW" pattern="yyyy-MM-dd_HH:mm:ss"/>
@@ -55,6 +55,9 @@
     </target>
     
     <path id="project.classpath">
+        <fileset dir="${weblib}">
+            <include name="*"/>
+        </fileset>
         <fileset dir="${lib}">
             <include name="*"/>
         </fileset>
@@ -113,9 +116,7 @@
             <classpath>
                 <pathelement path="."/>
                 <pathelement path="${classfiles}"/>
-                <fileset dir="${lib}">
-                    <include name="*.jar"/>
-                </fileset>
+                <pathelement refid="project.classpath"/>
             </classpath>
             <test name="${junit.test.class.name}"/>
         </junit>
