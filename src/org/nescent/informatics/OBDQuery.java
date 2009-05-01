@@ -242,6 +242,14 @@ public class OBDQuery {
 
         /**
          * FIXME Method and parameter documentation missing.
+         *
+         * FIXME Poorly named method. Apparently what this is trying
+         * to do is transform the label of post-composed terms to
+         * something consumable by humans.
+         *
+         * FIXME This is probably the wrong way to achieve this. This
+         * should rather be using an API-based approach, presumably
+         * using the CompositionalDescription class(es).
          */
 	public String resolveLabel(String cd){
 		String label = cd.replaceAll("\\^", " ");
@@ -277,6 +285,7 @@ public class OBDQuery {
 		}
 		
 		Set<Statement> results = new HashSet<Statement>();
+                // search term first as subject, then as object of triples 
 		results.addAll(this.shard.getStatementsWithSearchTerm(term, null, null, source, false, false));
 		results.addAll(this.shard.getStatementsWithSearchTerm(null, null, term, source, false, false));
 		return results;
@@ -291,6 +300,13 @@ public class OBDQuery {
 	 * @param options
 	 * @return
 	 * a method for term auto completions
+         *
+         * FIXME a variable list of string options is a bad way of
+         * passing what seems essentially to be 2 boolean parameters.
+         *
+         * FIXME zfinOption seems poorly named - does this mean this
+         * method can only be called for searches against a repository
+         * containing ZFIN data?
 	 */
 	public Map<String, Collection<Node>> getCompletionsForSearchTerm(String term, boolean zfinOption, List<String> ontologyList, String... options){
 		boolean bySynonymOption = Boolean.parseBoolean(options[0]);
@@ -315,28 +331,6 @@ public class OBDQuery {
 			results.put("definition-matches", nodesByDefinition);
 		}
 		return results;
-	}
-		
-	/**
-         * FIXME Parameter documentation and what the method does and
-         * how it does it are missing.
-         *
-	 * @author cartik
-	 * @param nodes
-	 * @return
-	 * Another helper method for the auto completion method above to prune nodes that do not have ontology based identifiers
-	 */
-	
-	
-	public Collection<Node> pruneNodesForUUID(Collection<Node> nodes){
-		Collection<Node> nodes2return = new ArrayList<Node>();
-		for(Node node: nodes){
-			if (!Pattern.matches(
-					"[0-9a-z]+-[0-9a-z]+-[0-9a-z]+-[0-9a-z]+-[0-9a-z]+", node.getId())) { // avoid UUID class generated identifiers
-				nodes2return.add(node);
-			}
-		}
-		return nodes2return;
 	}
 	
 	/**
