@@ -315,19 +315,16 @@ public class OBDQuery {
 		Map<String, Collection<Node>> results = new HashMap<String, Collection<Node>>();
 
 		Collection<Node> nodesByName = this.shard.getNodesForSearchTermByLabel(term, zfinOption, ontologyList);
-		nodesByName = pruneNodesForUUID(nodesByName);
 		
                 // FIXME the keys should be constants that are visible
                 // to calling classes, or elements of an enumeration
 		results.put("name-matches", nodesByName);
 		if(bySynonymOption){
 			Collection<Node> nodesBySynonym = this.shard.getNodesForSearchTermBySynonym(term, zfinOption, ontologyList, true);
-			nodesBySynonym = pruneNodesForUUID(nodesBySynonym);
 			results.put("synonym-matches", nodesBySynonym);
 		}
 		if(byDefinitionOption){
 			Collection<Node> nodesByDefinition = this.shard.getNodesForSearchTermByDefinition(term, zfinOption, ontologyList);
-			nodesByDefinition = pruneNodesForUUID(nodesByDefinition);
 			results.put("definition-matches", nodesByDefinition);
 		}
 		return results;
