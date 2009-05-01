@@ -1,4 +1,4 @@
-package org.nescent.informatics;
+package org.phenoscape.obd;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

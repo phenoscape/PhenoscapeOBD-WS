@@ -15,7 +15,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.nescent.informatics.OBDQuery;
+import org.phenoscape.obd.OBDQuery;
 import org.obd.model.Node;
 import org.obd.query.Shard;
 import org.restlet.Context;

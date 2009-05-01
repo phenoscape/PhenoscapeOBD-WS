@@ -9,7 +9,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.nescent.informatics.OBDQuery;
+import org.phenoscape.obd.OBDQuery;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
