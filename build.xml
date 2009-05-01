@@ -7,20 +7,24 @@
     <property name="src" value="src"/>
     <property name="test" value="test"/>
     <property name="classfiles" value="build/classes"/>
-    <property name="lib" value="WebContent/WEB-INF/lib"/>
+    <property name="webroot" value="WebContent"/>
+    <property name="weblib" value="${webroot}/WEB-INF/lib"/>
+    <property name="lib" value="${weblib}"/>
     <property name="warfile" value="OBD-WS.war"/>
     <tstamp>
         <format property="NOW" pattern="yyyy-MM-dd_HH:mm:ss"/>
     </tstamp>
     <property name="build_date" value="${NOW}"/>
     
-<!-- The init target makes sure that the prerequisite directories exist. -->
+    <!-- The init target makes sure that the prerequisite directories exist. -->
     <target name="init">
         <mkdir dir="${classfiles}"/>
     </target>
 	
-<!-- OBO dependency information - these targets are for developers to use to update
-jars coming from other OBO projects - not well tested yet-->
+    <!-- OBO dependency information - these targets are for developers
+         to use to update jars coming from other OBO projects - not
+         well tested yet
+    -->
     <property name="bbop_dest" location="../BBOP"/>
     <property name="obo_dest" location="../OBO"/>
     <property name="obdapi_dest" location="../OBDAPI"/>
@@ -58,7 +62,7 @@ jars coming from other OBO projects - not well tested yet-->
     
 <!-- The compile target runs javac on all the java files, and saves them into  the classfiles directory  -->
     <target name="compile" depends="init" 
-            description="runs javac on all the java files">
+            description="compiles all the java files">
         <javac srcdir="${src}" destdir="${classfiles}" debug="yes">
             <classpath refid="project.classpath"/>
         </javac>
@@ -70,8 +74,8 @@ jars coming from other OBO projects - not well tested yet-->
         </javac>
     </target>
     
-<!-- terse FAIL or PASS -->
-    <target name="test" depends="build-test" description="Unit tests">
+    <!-- terse FAIL or PASS -->
+    <target name="test" depends="build-test" description="Run unit tests">
         <junit fork="yes" printsummary="on" maxmemory="1024m">
             <classpath>
                 <pathelement path="."/>
@@ -120,6 +124,7 @@ jars coming from other OBO projects - not well tested yet-->
     <!-- The clean target just erases the classes -->
     <target name="clean">
         <delete dir="${classfiles}"/>
+        <delete file="${warfile}"/>
     </target>
     
     <!-- clean and compile everything -->
@@ -131,16 +136,18 @@ jars coming from other OBO projects - not well tested yet-->
     
     <target name="war" depends="compile"
             description="compile everything, build war file">
-        <war destfile="${warfile}" webxml="WebContent/WEB-INF/web.xml" manifest="WebContent/META-INF/MANIFEST.MF">
+        <war destfile="${warfile}" 
+             webxml="${webroot}/WEB-INF/web.xml">
             <classes dir="${classfiles}"/>
-			<!-- user should have a file called "connectionInfo.properties" in 
-			the org.obd.ws.application package with the following properties:
-			dbHost=jdbc:postgresql://host/db_name
-			uid=db_username
-			pwd=db_password
-			 -->
-			<classes dir="${src}" includes="org/obd/ws/application/*.properties"/>
-			<lib dir="${lib}" />
+            <!-- user should have a file called "connectionInfo.properties" in 
+                 the org.obd.ws.application package with the following properties:
+                 dbHost=jdbc:postgresql://host/db_name
+                 uid=db_username
+                 pwd=db_password
+            -->
+            <classes dir="${src}" 
+                     includes="org/obd/ws/application/*.properties"/>
+            <lib dir="${weblib}" />
         </war>
     </target>
     
