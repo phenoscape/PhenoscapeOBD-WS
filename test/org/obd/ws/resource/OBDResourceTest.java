@@ -1,4 +1,4 @@
-package org.obd.ws.application.test;
+package org.obd.ws.resources;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,7 +15,7 @@ import org.obd.ws.resources.TermResource;
 import org.restlet.resource.Representation;
 import org.restlet.resource.ResourceException;
 
-public class OBDApplicationTest {
+public class OBDResourceTest {
 
 	@Test
 	public void testTermSearch() 
