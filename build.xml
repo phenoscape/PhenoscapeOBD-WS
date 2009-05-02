@@ -74,20 +74,21 @@
     </target>
     
     <target name="build-test" depends="compile">
-        <javac srcdir="${test}" destdir="${classfiles}" debug="yes">
+        <javac srcdir="${test}" destdir="${classfiles}" 
+               debug="yes"
+               deprecation="yes">
             <classpath refid="project.classpath"/>
         </javac>
     </target>
     
     <!-- terse FAIL or PASS -->
-    <target name="test" depends="build-test" description="Run unit tests">
+    <target name="test" depends="build-test" 
+            description="Run unit tests, report fail/pass statistics">
         <junit fork="yes" printsummary="on" maxmemory="1024m">
             <classpath>
                 <pathelement path="."/>
                 <pathelement path="${classfiles}"/>
-                <fileset dir="${lib}">
-                    <include name="*.jar"/>
-                </fileset>
+                <path refid="project.classpath"/>
             </classpath>
             <batchtest>
                 <fileset dir="${test}"/>
@@ -102,9 +103,7 @@
             <classpath>
                 <pathelement path="."/>
                 <pathelement path="${classfiles}"/>
-                <fileset dir="${lib}">
-                    <include name="*.jar"/>
-                </fileset>
+                <path refid="project.classpath"/>
             </classpath>
             <batchtest>
                 <fileset dir="${test}"/>
