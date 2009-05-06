@@ -17,27 +17,42 @@ import java.util.regex.Pattern;
 import org.apache.log4j.Logger;
 import org.obd.model.Node;
 import org.obd.model.Statement;
-import org.obd.query.AnnotationLinkQueryTerm;
-import org.obd.query.QueryTerm;
 import org.obd.query.Shard;
+import org.obd.query.impl.AbstractSQLShard;
 import org.obd.query.impl.OBDSQLShard;
 import org.purl.obo.vocab.RelationVocabulary;
 
 /**
- * FIXME Class comment missing.
+ * This class interfaces with methods from the OBDAPI, specifically
+ * in the Shard class hierarchy, and invokes these methods. Methods
+ * defined in this class return their results to invoking REST 
+ * resources
  */
+
 public class OBDQuery {
 
 	private static RelationVocabulary relationVocabulary = new RelationVocabulary();
 	private final Shard shard;
 	private Connection conn;
+	/*
+	 * relationNodeIds is a map of actual relation nodes ids that are used in links and the
+	 * node ids they are associated in the database. For example, a row from the NODE table 
+	 * in the database would be
+	 * 
+	 * NODE_ID		UID				LABEL
+	 * -------      ----            ----- 
+	 * 123			OBO_REL:is_a	is_a
+	 * 
+	 * In relationNodeIds, we store the Node-Ids associated with the UIDs because the queries 
+	 * (see below) need them
+	 */
 	private Map<String, Integer> relationNodeIds;
 	
 	public Logger log;
 
-    /* FIXME this file seems like a bad place for these constants -
-     * aren't they used by other classes too? shouldn't there an
-     * OBDRelation or OBDConstants class?
+    /* 
+     * These are actual relation UIDs coming from the OBO Relation and
+     * PHENOSCAPE VOCAB ontologies
      */
 	private final static String IS_A_RELATION_ID = "OBO_REL:is_a"; 
 	private final static String INHERES_IN_RELATION_ID = "OBO_REL:inheres_in";
@@ -45,82 +60,95 @@ public class OBDQuery {
 	private final static String EXHIBITS_RELATION_ID = "PHENOSCAPE:exhibits";
 	private final static String VALUE_FOR_RELATION_ID = "PHENOSCAPE:value_for";
 	
+	/*
+	 * The text strings of these queries are stored in the 'queries.properties' file.
+	 * They are read when the OBD-WS application is loaded and stored as context parameters.
+	 * The invoking REST resources read these parameters from the context and pass them as
+	 * constructor parameters. 
+	 */
+	
 	private String anatomyQuery; 			
 	private String taxonQuery;
 	private String geneQuery;  
+	private String simpleGeneQuery;
 	
-        /**
-         * FIXME Constructor and parameter documentation missing.
-         */
-	public OBDQuery(Shard shard, Connection conn, String[] queries){
-		this(shard, conn);
+	public static enum AutoCompletionMatchTypes{
+		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
+	};
+	
+	public static enum QueryPlaceholder{
+		INHERES_IN("___inheres_in", INHERES_IN_RELATION_ID),
+		VALUE_FOR("___value_for", VALUE_FOR_RELATION_ID),
+		EXHIBITS("___exhibits", EXHIBITS_RELATION_ID),
+		HAS_ALLELE("___has_allele", HAS_ALLELE_RELATION_ID),
+		IS_A("___is_a", IS_A_RELATION_ID);
+		
+		QueryPlaceholder(String name, String rId){
+			this.pattern = name;
+			this.relationUid = rId;
+		}
+		
+		private final String pattern;
+		private final String relationUid;
+		
+		public String pattern(){return pattern;}
+		public String relationUid(){return relationUid;}
+	};
+	
+	/**
+	 * @param shard. the shard to use
+	 * @param queries. the set of queries to use 
+	 * This constructor uses queries which are passed in from the REST resources.
+	 * It invokes the default constructor to get the shards and relation node ids
+	 * etc set up before adding the queries in
+	 */
+	
+	public OBDQuery(Shard shard, String[] queries){
+		this(shard);
 			
 		this.anatomyQuery = queries[0];
 		this.taxonQuery = queries[1];
 		this.geneQuery = queries[2];
+		this.simpleGeneQuery = queries[3];
+
+		/*
+		 * the queries are read in from a properties file, and stored as context parameters. they
+		 * are accessed by the invoking REST resource classes and passed here as construction method
+		 * parameters. The ___<text> patterns are placeholders in these queries, which are replaced
+		 * by actual data from the database
+		 */
 		
-                // FIXME the replacement strings should be constants,
-                // should be documented, and should be in a different file.
-                
-                // FIXME this looks repetitive - rewrite this as a loop
+		for(QueryPlaceholder pattern : QueryPlaceholder.values()){
+			anatomyQuery = anatomyQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
+			taxonQuery = taxonQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
+			geneQuery = geneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
+			simpleGeneQuery = simpleGeneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
+		}
 
-                // FIXME why aren't we using the accessor method
-                // (getRelationNodeIds()) here?
-		anatomyQuery = anatomyQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
-		taxonQuery = taxonQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
-		geneQuery = geneQuery.replaceAll("___inheres_in", relationNodeIds.get("inheres_in").toString());
-			
-		anatomyQuery = anatomyQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
-		taxonQuery = taxonQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
-		geneQuery = geneQuery.replaceAll("___exhibits", relationNodeIds.get("exhibits").toString());
-			
-		anatomyQuery = anatomyQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
-		taxonQuery = taxonQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
-		geneQuery = geneQuery.replaceAll("___has_allele", relationNodeIds.get("has_allele").toString());
-			
-		anatomyQuery = anatomyQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
-		taxonQuery = taxonQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
-		geneQuery = geneQuery.replaceAll("___value_for", relationNodeIds.get("value_for").toString());
-			
-		anatomyQuery = anatomyQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
-		taxonQuery = taxonQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
-		geneQuery = geneQuery.replaceAll("___is_a", relationNodeIds.get("is_a").toString());
-
-                // FIXME should print context to it's clear from the
-                // logs what this is. Also, why are taxonQuery and
-                // geneQuery not being debugged here too?
-		log.debug(anatomyQuery);
+		log.trace(anatomyQuery);
+		log.trace(taxonQuery);
+		log.trace(geneQuery);
+		log.trace(simpleGeneQuery);
 	}
 	
-        /**
-         * FIXME Constructor and parameter documentation missing.
-         */
-	public OBDQuery(Shard shard, Connection conn){
+	/**
+	 * This is the default constructor. It takes a shard, then uses that shard to read in
+	 * node ids for each relation id using a stored procedure 'getNodeInternalId' from the
+	 * database. These node ids are used in replacing placeholders in the queries
+	 * @param shard = the shard to use
+	 */
+	public OBDQuery(Shard shard){
 		this.shard = shard;
-                // FIXME if the shard instanceof AbstractSQLShard,
-                // could obtain the connection from the shard
-		this.conn = conn;
-			
+		this.conn = ((AbstractSQLShard)shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
 		
 		relationNodeIds = new HashMap<String, Integer>();
 
-                // FIXME why is this not using the relationship
-                // constants defined above? At any rate, the keys need
-                // to be constants or elements of an enumeration.
-
-                // FIXME why are we assuming that we have an
-                // OBDSQLShard or derived class here? And if that's
-                // what we must have, why is it not the type requested
-                // in the constructor argument declaration?
-
-                // FIXME why aren't we using the accessor method
-                // (getRelationNodeIds()) here?
-		relationNodeIds.put("is_a", ((OBDSQLShard) this.shard).getNodeInternalId(IS_A_RELATION_ID));
-		relationNodeIds.put("inheres_in", ((OBDSQLShard) this.shard).getNodeInternalId(INHERES_IN_RELATION_ID));
-		relationNodeIds.put("has_allele", ((OBDSQLShard) this.shard).getNodeInternalId(HAS_ALLELE_RELATION_ID));
-		relationNodeIds.put("exhibits", ((OBDSQLShard) this.shard).getNodeInternalId(EXHIBITS_RELATION_ID));
-		relationNodeIds.put("value_for", ((OBDSQLShard) this.shard).getNodeInternalId(VALUE_FOR_RELATION_ID));
+		relationNodeIds.put(IS_A_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(IS_A_RELATION_ID));
+		relationNodeIds.put(INHERES_IN_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(INHERES_IN_RELATION_ID));
+		relationNodeIds.put(HAS_ALLELE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_ALLELE_RELATION_ID));
+		relationNodeIds.put(EXHIBITS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(EXHIBITS_RELATION_ID));
+		relationNodeIds.put(VALUE_FOR_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(VALUE_FOR_RELATION_ID));
 	}
 	
 	public Map<String, Integer> getRelationNodeIds(){
@@ -138,42 +166,53 @@ public class OBDQuery {
 	public String getGeneQuery(){
 		return geneQuery;
 	}
+	
+	public String getSimpleGeneQuery(){
+		return simpleGeneQuery;
+	}
 
-        /**
-         * FIXME Method and parameter documentation missing.
-         */
-    /* FIXME according to the code in filterNode(), the variable
-     * filterOptions parameter isn't actually variable - if there are
-     * not precisely 3 values, the result will be IndexOutOfBounds
-     */
-    /* FIXME poorly named method - this seems to be more like
-     * fetchNodes(), or fetchPhenotypeNodes().
-     */
-	public Collection<Node> executeQuery(String queryStr, String searchTerm, String... filterOptions){
+	/**@throws SQLException 
+	 * @PURPOSE The purpose of this method is to execute the given query with set search term and assemble the results into a 
+	 * makeshift persistence layer. The persistence layer is a collection of Nodes from the OBD model. Columns from each retrieved
+	 * row are packaged into a single Node object. The phenotype is the central entity in this querying procedure. 
+	 * Therefore, the IDs of the each node are set to be the retrieved phenotype. The method assembles
+	 * these nodes into a collection, which are returned
+	 */
+
+	public Collection<Node> executeQueryAndAssembleResults(String queryStr, String searchTerm, Map<String, String> filterOptions) 
+		throws SQLException{
 		Collection<Node> results = new ArrayList<Node>();
 		String entityLabel;
-                PreparedStatement pstmt = null;
+		PreparedStatement pstmt = null;
+		Map<String, String> filterableValues; 
 		try{
 			pstmt = conn.prepareStatement(queryStr);
-			pstmt.setString(1, searchTerm);
+			for(int i = 1; i <= pstmt.getParameterMetaData().getParameterCount(); i++)
+				pstmt.setString(i, searchTerm);
 			log.trace(pstmt.toString());
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = pstmt.executeQuery();
 			long endTime = System.currentTimeMillis();
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
-                            
-                            // FIXME it's completely obscure what is
-                            // going on in this while() loop, and the
-                            // method name doesn't provide any clue
-                            // either. Please deobfuscate.
-
-				if(!filterNode(filterOptions, new String[]{rs.getString(2), rs.getString(8), rs.getString(6)})){
-					if(!rs.getString(2).contains("GENO")){
+                 filterableValues = new HashMap<String, String>();
+                 filterableValues.put("subject", rs.getString(2));
+                 filterableValues.put("entity", rs.getString(8));
+                 filterableValues.put("character", rs.getString(6));
+				/*
+				 * each retrieved row is filtered by passing the filterable values as arguments to a generic 
+				 * filtering method. if the filtering method returns a boolean true for a row, this row is
+				 * excluded from the results. if it returns false, then the row is packaged into a Node object
+				 * and added to the collection which is returned by this method
+				 */
+				
+				if(!isFilterableRow(filterOptions, filterableValues)){
+					if(!rs.getString(2).contains("GENO")){ //sometimes, genotypes are returned and we don;t want these
 						Node phenotypeNode = new Node(rs.getString(1));
-                // FIXME why is this not using the relationship
-                // constants defined above?
-
+						/*
+						 * We keep track of both labels and uids, so we dont have to go looking for labels for uids
+						 * at the REST resource level. The queries return everything anyways.
+						 */
 						Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
 						Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
 						Statement stateSt = new Statement(phenotypeNode.getId(), "hasState", rs.getString(5));
@@ -200,61 +239,56 @@ public class OBDQuery {
 			}
 		}
 		catch(SQLException sqle){
-                    log.error(sqle);
-                    // FIXME we don't really want to chain exceptions
-                    // here but ideally just rethrow the SQLException
-                    // so that a caller has more information on what
-                    // went wrong, but that requires changing the
-                    // method signature (it's a checked exception).
-                    throw new RuntimeException(sqle);
+			log.error(sqle);
+			throw new RuntimeException(sqle);
 		}
-                finally {
-                    if (pstmt != null) {
-                        try { pstmt.close(); }
-                        catch (SQLException ex) {
-                            log.error(ex);
-                            // let's not worry further about the close() failing
-                        }
-                    }
-                }
+		finally {
+			if (pstmt != null) {
+				try { pstmt.close(); }
+                	catch (SQLException ex) {
+                		log.error(ex);
+                		throw new SQLException(ex);
+                		// let's not worry further about the close() failing
+                	}
+				}
+		}
 		return results;
 	}
 	
-        /**
-         * FIXME Method and parameter documentation missing.
-         */
-    /*
-     * FIXME Poorly method - calling code seems to be doing something
-     * if the method returns false, and skip a row if the method
-     * returns true - should this be isSkipRow() or isFilterOut()?
-     * What if the two arrays are of unequal length? Nothing seems to
-     * protect against that.
-     */
-	private boolean filterNode(String[] filterOptions, String[] ids) {
-		for(int i = 0 ; i < filterOptions.length; i++){
-			if(filterOptions[i] != null && !filterOptions[i].equals(ids[i])){
+	/**
+	 * @param filterOptions. These are set by the calling method, they come directly from user input
+	 * @param filterableValues. These are the ids present in the various columns of the row that is being checked
+	 * 
+	 * The purpose of this method is to check a row against the filter values. If the row contains ALL the filter values, 
+	 * ths method returns a false meaning the row is NOT to be filtered.
+	 */
+    
+	private boolean isFilterableRow(Map<String, String> filterOptions, Map<String, String> filterableValues) {
+		for(String key : filterOptions.keySet()){
+			String filterValue = filterOptions.get(key);
+			String valueFromQueryResult = filterableValues.get(key);
+			if(filterValue != null && valueFromQueryResult != null && !filterValue.equals(valueFromQueryResult)){
 					return true;
 			}
 		}
 		return false;
 	}
 
-        /**
-         * FIXME Method and parameter documentation missing.
-         *
-         * FIXME Poorly named method. Apparently what this is trying
-         * to do is transform the label of post-composed terms to
-         * something consumable by humans.
-         *
-         * FIXME This is probably the wrong way to achieve this. This
-         * should rather be using an API-based approach, presumably
-         * using the CompositionalDescription class(es).
-         */
+	 /**
+     * @PURPOSE: This method takes a post composition and creates a 
+     * legible label for it. Because the label field in the DB is null
+     * for post composed terms
+     * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
+     * TAO:0001173 with 'Dorsal fin'. Carats (^) and underscores are replaced 
+     * with white spaces.
+     * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
+     * @return label - is of the form (<entity_label> <rel_label> <entity_label>
+     */
+	
 	public String resolveLabel(String cd){
 		String label = cd.replaceAll("\\^", " ");
 		String oldLabel = label;
-                // FIXME need to document what this pattern does - is
-                // this trying to identify OBO-style term identifiers?
+		/* A PATTERN FOR UIDS */
 		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
 		Matcher m = pat.matcher(oldLabel);
 		while(m.find()){
@@ -269,9 +303,8 @@ public class OBDQuery {
 	}
 	
 	/**
-         * FIXME Parameter documentation and what the method does and
-         * how it does it are missing.
-         *
+	 * @PURPOSE: This method looks for information pertaining to a specific term
+	 * including parent and child nodes of the term
 	 * @author cartik
 	 * @param term
 	 * @return
@@ -291,71 +324,33 @@ public class OBDQuery {
 	}
 	
 	/**
-         * FIXME Parameter documentation and what the method does and
-         * how it does it are missing.
-         *
+     * @PURPOSE The purpose of this method is to return matching nodes for
+     * autocompletion
 	 * @author cartik
-	 * @param term
-	 * @param options
+	 * @param term - search term
+	 * @param ontologyList - list of ontologies to filter terms from
+	 * @param zfinOption - set separately because GENEs are not read from ontologies and
+	 * must be queried separately
+	 * @param synOption - synonym option
+	 * @param defOption - definition option
 	 * @return
-	 * a method for term auto completions
-         *
-         * FIXME a variable list of string options is a bad way of
-         * passing what seems essentially to be 2 boolean parameters.
-         *
-         * FIXME zfinOption seems poorly named - does this mean this
-         * method can only be called for searches against a repository
-         * containing ZFIN data?
 	 */
-	public Map<String, Collection<Node>> getCompletionsForSearchTerm(String term, boolean zfinOption, List<String> ontologyList, String... options){
-		boolean bySynonymOption = Boolean.parseBoolean(options[0]);
-		boolean byDefinitionOption = Boolean.parseBoolean(options[1]);
-
+	public Map<String, Collection<Node>> getCompletionsForSearchTerm(String term, boolean zfinOption, 
+				List<String> ontologyList, boolean synOption, boolean defOption){
+		
 		Map<String, Collection<Node>> results = new HashMap<String, Collection<Node>>();
 
 		Collection<Node> nodesByName = this.shard.getNodesForSearchTermByLabel(term, zfinOption, ontologyList);
 		
-                // FIXME the keys should be constants that are visible
-                // to calling classes, or elements of an enumeration
-		results.put("name-matches", nodesByName);
-		if(bySynonymOption){
+		results.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), nodesByName);
+		if(synOption){
 			Collection<Node> nodesBySynonym = this.shard.getNodesForSearchTermBySynonym(term, zfinOption, ontologyList, true);
-			results.put("synonym-matches", nodesBySynonym);
+			results.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), nodesBySynonym);
 		}
-		if(byDefinitionOption){
+		if(defOption){
 			Collection<Node> nodesByDefinition = this.shard.getNodesForSearchTermByDefinition(term, zfinOption, ontologyList);
-			results.put("definition-matches", nodesByDefinition);
+			results.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), nodesByDefinition);
 		}
 		return results;
-	}
-	
-	/**
-         * FIXME Parameter documentation and what the method does and
-         * how it does it are missing.
-         *
-	 * This method is designed to find statements that contain a
-	 * specific relation-target combination
-	 * @param term
-	 * @return
-	 */
-	public Collection<Statement> getStatementsWithPredicateAndObject(String target, String relation){
-		if(target == null || relation == null){
-			throw new IllegalArgumentException("ERROR: Input parameter is null");
-		}
-		return this.shard.getStatementsWithSearchTerm(null, relation, target, null, false, false);
-	}
-	
-	/**
-         * FIXME Parameter documentation and what the method does and
-         * how it does it are missing.
-         *
-	 * This method is designed to find specific targets of a node by traversing a specific relation
-	 */
-	public Collection<Statement> getStatementsWithSubjectAndPredicate(String subj, String pred){
-		if(subj == null || pred == null){
-			throw new IllegalArgumentException("ERROR: Input parameter is null");
-		}
-		return this.shard.getStatementsWithSearchTerm(subj, pred, null, null, false, false);
-	}
-	
+	}	
 }
