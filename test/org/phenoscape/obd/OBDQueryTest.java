@@ -2,32 +2,17 @@ package org.phenoscape.obd;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
-import org.obd.model.Graph;
-import org.obd.model.LinkStatement;
 import org.obd.model.Node;
 import org.obd.model.Statement;
-import org.obd.query.LabelQueryTerm;
-import org.obd.query.LinkQueryTerm;
-import org.obd.query.QueryTerm;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
 import org.obd.query.impl.OBDSQLShard;
-import org.postgresql.Driver;
 
 public class OBDQueryTest {
 
@@ -58,10 +43,6 @@ public class OBDQueryTest {
 //			String localDbHost = (String)props.get("localDbHost");
 //			String localUid = (String)props.get("localUid");
 //			String localPwd = (String)props.get("localPwd");
-			String driverName = "org.postgresql.Driver";
-			Class.forName(driverName);
-			Connection conn = DriverManager.getConnection(dbHost, uid, pwd);
-//			Connection conn = DriverManager.getConnection(localDbHost, localUid, localPwd);
 			
 			Shard obdsql = new OBDSQLShard();
 			((AbstractSQLShard) obdsql).connect(dbHost, uid, pwd);
@@ -75,14 +56,15 @@ public class OBDQueryTest {
 			String aq = (String)queries.get("anatomyQuery");
 			String tq = (String)queries.get("taxonQuery");
 			String gq = (String)queries.get("geneQuery");
+			String sgq = (String)queries.get("simpleGeneQuery");
 			
-			OBDQuery obdq = new OBDQuery(obdsql, conn, new String[]{aq, tq, gq});
+			OBDQuery obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq});
 			
 			
-			Map<String, String> nodeProps;
+			Map<String, String> nodeProps, filterOptions = new HashMap<String, String>();
 			String relId, target, character = null, taxon = null, state = null, entity = null;
 			long testStartTime = System.currentTimeMillis(); 
-			for(Node node : obdq.executeQuery(obdq.getAnatomyQuery(), "TAO:0000108", new String[]{null, null, null})){				
+			for(Node node : obdq.executeQueryAndAssembleResults(obdq.getAnatomyQuery(), "TAO:0000108", filterOptions)){				
 				nodeProps = new HashMap<String, String>();
 				
 				for(Statement stmt : node.getStatements()){
