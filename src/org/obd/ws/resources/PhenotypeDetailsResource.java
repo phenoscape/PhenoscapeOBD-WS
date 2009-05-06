@@ -1,6 +1,6 @@
 package org.obd.ws.resources;
 
-import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,10 +9,10 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.phenoscape.obd.OBDQuery;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
+import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -38,14 +38,12 @@ public class PhenotypeDetailsResource extends Resource {
 	
 	private JSONObject jObjs;
 	private Shard obdsql;
-	private Connection conn;
 	private OBDQuery obdq;
 	
 	public PhenotypeDetailsResource(Context context, Request request, Response response) {
 		super(context, request, response);
 
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
-		this.conn = (Connection)this.getContext().getAttributes().get("conn");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject") != null){
@@ -67,8 +65,9 @@ public class PhenotypeDetailsResource extends Resource {
 		String aq = (String)this.getContext().getAttributes().get("anatomyQuery");
 		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
 		String gq = (String)this.getContext().getAttributes().get("geneQuery");
+		String sgq = (String)this.getContext().getAttributes().get("simpleGeneQuery");
 		
-		obdq = new OBDQuery(obdsql, conn, new String[]{aq, tq, gq});
+		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq});
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 	}
@@ -76,6 +75,7 @@ public class PhenotypeDetailsResource extends Resource {
 	public Representation getRepresentation(Variant variant) {
 
 		Representation rep;
+		List<List<String[]>> annots;
 
 		if (subject_id != null && !subject_id.startsWith("TTO:") && !subject_id.contains("GENE")) {
 			this.jObjs = null;
@@ -127,8 +127,15 @@ public class PhenotypeDetailsResource extends Resource {
 			}
 		}
 		
-		List<List<String[]>> annots = 
-			getAnnotations(subject_id, entity_id, quality_id, publication_id, type);
+		try{
+			annots = getAnnotations(subject_id, entity_id, quality_id, publication_id, type);
+		}
+		/* 'getAnnotations' method returns null in case of a server side exception*/
+		catch(SQLException sqle){
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+					"[SQL EXCEPTION] Something broke server side. Consult server logs");
+			return null;
+		}
 		List<String[]> comp;
 		
 		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj; 
@@ -162,71 +169,105 @@ public class PhenotypeDetailsResource extends Resource {
 		return rep;
 	}
 
+	/**
+	 * @PURPOSE: This method takes the nodes returned by OBDQuery class and packages them into a 
+	 * data structure
+	 * @param subject_id - can be a TTO taxon or ZFIN GENE
+	 * @param entity_id - can only be a TAO term (anatomical entity)
+	 * @param char_id - PATO character
+	 * @param pub_id - publication id or citation information
+	 * @param type - can take one of two values. 'evo' for taxon data or 'devo' for ZFIN data
+	 * @return 
+	 * @throws SQLException 
+	 */
 	private List<List<String[]>> 
-			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id, String type){
+			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id, String type) 
+			throws SQLException{
 		
 		Map<String, String> nodeProps;
 				
 		List<List<String[]>> results = new ArrayList<List<String[]>>();
 		List<String[]> annots;
 		
-		String[] filterOptions = new String[4];
+		/* This is a data structure to keep track of user specified filter options. 
+		 * Four filtering options can be specified viz. entity, character, subject, and 
+		 * publication  */
+		Map<String, String> filterOptions = new HashMap<String, String>();
 		
 		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null,
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
-		
+		/* 
+		 * This IF-THEN decides which query to use. Ideally if subject is provided, we will use
+		 * gene or taxon query. Otherwise, we use entity query
+		 */
 		if(subject_id != null){
 			if(subject_id.contains("GENE"))
-				query = obdq.getGeneQuery();
+				query = obdq.getSimpleGeneQuery();
 			else
 				query = obdq.getTaxonQuery();
 			searchTerm = subject_id;
-			filterOptions[0] = null;
-			filterOptions[1] = entity_id;
+			filterOptions.put("subject", null);
+			filterOptions.put("entity", entity_id);
 		}
 		else{
 			query = obdq.getAnatomyQuery();
+			/*	neither subject or entity are provided. so we use the root TAO term
+			 * which returns every phenotype in the database
+			 */
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
-			filterOptions[0] = subject_id;
-			filterOptions[1] = null;
+			filterOptions.put("subject", subject_id);
+			filterOptions.put("entity", null);
 		}
-		filterOptions[2] = char_id;
-		filterOptions[3] = null; //TODO pub_id goes here; 
+		filterOptions.put("character", char_id);
+		filterOptions.put("publication", null); //TODO pub_id goes here;
 		
 		log.trace("Search Term: " + searchTerm + " Query: " + query);
-		for(Node node : obdq.executeQuery(query, searchTerm, filterOptions)){
-			nodeProps = new HashMap<String, String>();
-			for(Statement stmt : node.getStatements()){
-				relId = stmt.getRelationId();
-				target = stmt.getTargetId();
-				nodeProps.put(relId, target);
-			} 
-			nodeProps.put("id", node.getId());
-			characterId = nodeProps.get("hasCharacterId");
-			character = nodeProps.get("hasCharacter");
-			taxonId = nodeProps.get("exhibitedById");
-			taxon = nodeProps.get("exhibitedBy");
-			entityId = nodeProps.get("inheresInId");
-			entity = nodeProps.get("inheresIn");
-			qualityId = nodeProps.get("hasStateId");
-			quality = nodeProps.get("hasState");
-			log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
-				entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-			if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || (type == null)){
-				annots = new ArrayList<String[]>();
-				annots.add(new String[]{taxonId, taxon});
-				annots.add(new String[]{entityId, entity});
-				annots.add(new String[]{qualityId, quality});
-				results.add(annots);
+		try{
+			for(Node node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
+				nodeProps = new HashMap<String, String>();
+				for(Statement stmt : node.getStatements()){
+					relId = stmt.getRelationId();
+					target = stmt.getTargetId();
+					nodeProps.put(relId, target);
+				} 
+				nodeProps.put("id", node.getId());
+				characterId = nodeProps.get("hasCharacterId");
+				character = nodeProps.get("hasCharacter");
+				taxonId = nodeProps.get("exhibitedById");
+				taxon = nodeProps.get("exhibitedBy");
+				entityId = nodeProps.get("inheresInId");
+				entity = nodeProps.get("inheresIn");
+				qualityId = nodeProps.get("hasStateId");
+				quality = nodeProps.get("hasState");
+				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
+						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
+				if((type != null && !filterNodeForEvoOrDevo(searchTerm, type)) || //type is set, so we filter
+						(type == null)){
+					annots = new ArrayList<String[]>();
+					annots.add(new String[]{taxonId, taxon});
+					annots.add(new String[]{entityId, entity});
+					annots.add(new String[]{qualityId, quality});
+					results.add(annots);
+				}
 			}
+		}
+		catch(SQLException e){
+			log.fatal(e.getStackTrace().toString());
+			throw new SQLException(e);
 		}
 		return results;
 	}
 	
-	private boolean filterNodeForEvoOrDevo(String taxon, String type){
-		if((type.equals("evo") && taxon.contains("TTO"))
-				|| (type.equals("devo") && taxon.contains("GENE"))){
+	/**
+	 * This method filters a node based on input parameter 'type'
+	 * @param searchTerm - this may be a TTO term or GENE term
+	 * @param type - this can be 'evo' or 'devo'
+	 * @return
+	 */
+	private boolean filterNodeForEvoOrDevo(String searchTerm, String type){
+		if((type.equals("evo") && !searchTerm.contains("GENE"))
+				|| (type.equals("devo") && !searchTerm.contains("TTO"))){
 			return false;
 		}
 		return true;

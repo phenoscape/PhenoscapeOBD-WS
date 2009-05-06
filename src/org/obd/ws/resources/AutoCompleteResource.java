@@ -1,7 +1,6 @@
 package org.obd.ws.resources;
 
 import java.io.IOException;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -15,15 +14,14 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.phenoscape.obd.OBDQuery;
 import org.obd.model.Node;
 import org.obd.query.Shard;
+import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
-import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
@@ -35,15 +33,20 @@ public class AutoCompleteResource extends Resource {
 	private String[] options;
 	private JSONObject jObjs;
 	private Shard obdsql;
-	private Connection conn;
+	private Logger log;
 
+	/*
+	 * This structure 'nameToOntologyMap' maps commonly used prefixes to the 
+	 * default namespaces of the ontologies
+	 */
 	private Map<String, Set<String>> nameToOntologyMap;
 	
-	private String synonymOption,definitionOption, ontologies;
+	private String synonymOption,definitionOption, 
+				ontologies = "oboInOwl,Relations,PATO,ZFA,ZFIN,Stages,TAO,TTO,Collection,Spatial,Sequence,Units,Phenoscape";
 	
 	private final String ID_STRING = "id";
 	private final String NAME_STRING = "name";
-	private final String SYNONYM_STRING = "synoym";
+	private final String SYNONYM_STRING = "synonym";
 	private final String DEF_STRING = "definition";
 	private final String MATCH_TYPE_STRING = "match_type";
 	private final String MATCH_TEXT_STRING = "match_text";
@@ -53,10 +56,12 @@ public class AutoCompleteResource extends Resource {
 			Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
-		this.conn = (Connection)this.getContext().getAttributes().get("conn");
 		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
+		/*
+		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
+		 */
 		Set<String> ontologyList;
 		nameToOntologyMap = new HashMap<String, Set<String>>();
 		ontologyList = new HashSet<String>();
@@ -117,12 +122,9 @@ public class AutoCompleteResource extends Resource {
 			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("def"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
 			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
-	//	System.out.println(nameOption);
 		this.options = new String[]{synonymOption, definitionOption, ontologies};
 		
-		/**
-		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
-		 */
+		this.log = Logger.getLogger(this.getClass());
 
 	}
 
@@ -157,18 +159,34 @@ public class AutoCompleteResource extends Resource {
 
 	}
 
+	/**
+	 * This method arranges the user defined options and invokes the OBDQuery method to find
+	 * label (default), synonym and definition (optional) matches for the search string. 
+	 * @param text - search string
+	 * @param options - contains the definition, synonym, and ontology restriction options
+	 * @return
+	 * @throws IOException
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 * @throws JSONException
+	 */
 	private JSONObject getTextMatches(String text, String... options)
 			throws IOException, SQLException, ClassNotFoundException,
 			JSONException {
 
 		JSONObject jObj = new JSONObject();
-		OBDQuery obdq = new OBDQuery(obdsql, conn);
+		OBDQuery obdq = new OBDQuery(obdsql);
 		String bySynonymOption = ((options[0] == null || options[0].length() == 0) ? "false"
 				: options[0]);
 		String byDefinitionOption = ((options[1] == null || options[1].length() == 0) ? "false"
 				: options[1]);
 		List<String> byOntologyOption = null;
-		boolean zfinOption = false;
+		/*
+		 * We use a separate option for ZFIN because GENEs do not come from an ontology
+		 * but from a text file and are to be queried separately. For terms that come from 
+		 * an ontology, we can use source ids in the queries
+		 */
+		boolean zfinOption = false; 
 		if(options[2] != null && options[2].length() > 0){
 			if (options[2].contains("ZFIN"))
 				zfinOption = true;
@@ -181,14 +199,14 @@ public class AutoCompleteResource extends Resource {
 		}
 		
 		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text, zfinOption, byOntologyOption,
-				new String[] {bySynonymOption, byDefinitionOption});
+				Boolean.parseBoolean(bySynonymOption), Boolean.parseBoolean(byDefinitionOption));
 		
-		Collection<Node> nameNodes = results.get("name-matches");
-		Collection<Node> synonymNodes = results.get("synonym-matches");
-		Collection<Node> definitionNodes = results.get("definition-matches");
+		Collection<Node> nameNodes = results.get(OBDQuery.AutoCompletionMatchTypes.LABEL_MATCH.name());
+		Collection<Node> synonymNodes = results.get(OBDQuery.AutoCompletionMatchTypes.SYNONYM_MATCH.name());
+		Collection<Node> definitionNodes = results.get(OBDQuery.AutoCompletionMatchTypes.DEFINITION_MATCH.name());
 		
 		Set<JSONObject> matches = new HashSet<JSONObject>();
-		
+		int i = 0, j = 0, k = 0;
 		if(nameNodes.size() > 0){
 			for(Node node : nameNodes){
 				JSONObject nameMatch = new JSONObject();
@@ -197,7 +215,7 @@ public class AutoCompleteResource extends Resource {
 				nameMatch.put(MATCH_TYPE_STRING, NAME_STRING);
 				nameMatch.put(MATCH_TEXT_STRING, node.getLabel());
 				matches.add(nameMatch);
-//				System.out.println(". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
+				log.debug( ++i + ". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
 			}
 		}
 		if(synonymNodes != null && synonymNodes.size() > 0){
@@ -208,8 +226,8 @@ public class AutoCompleteResource extends Resource {
 				synonymMatch.put(MATCH_TYPE_STRING, SYNONYM_STRING);
 				synonymMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
 				matches.add(synonymMatch);
-	//			System.out.println(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
-	//					node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
+				log.debug(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
+						node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
 			}
 		}
 		if(definitionNodes != null && definitionNodes.size() > 0){
@@ -220,8 +238,8 @@ public class AutoCompleteResource extends Resource {
 				definitionMatch.put(MATCH_TYPE_STRING, DEF_STRING);
 				definitionMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
 				matches.add(definitionMatch);
-				//	System.out.println(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
-				//	node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
+				log.debug(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
+					node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
 			}
 		}
 		jObj.put("search_term", text);
@@ -230,17 +248,16 @@ public class AutoCompleteResource extends Resource {
 			jObj.put(MATCHES_STRING, sortedMatches);
 		}
 		catch(JSONException e){
+			log.error("JSON Exception: " + e.getMessage());
 			jObj.put(MATCHES_STRING, matches);
 		}
-
-		
-//		jObj.put("synonymMatches", synonymMatches);
-//		jObj.put("definitionMatches", definitionMatches);
 		return jObj;
 	}
 
 	/**
 	 * This method has been created to sort the matches returned by the search string
+	 * Terms starting with the search string are placed higher than terms which only
+	 * contain the search string. And labels go first, synonyms next, definitions last
 	 * @param matches
 	 * @return
 	 */
@@ -289,6 +306,12 @@ public class AutoCompleteResource extends Resource {
 		return sortedMatches;
 	}
 	
+	/**
+	 * This method sorts the JSON objects in the input list by name 
+	 * @param inputList
+	 * @return
+	 * @throws JSONException
+	 */
 	List<JSONObject> assort(List<JSONObject> inputList) throws JSONException{
 		Map<String, JSONObject> nameToObjectMap = new HashMap<String, JSONObject>();
 		List<String> names = new ArrayList<String>();

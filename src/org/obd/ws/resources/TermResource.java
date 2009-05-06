@@ -1,7 +1,5 @@
 package org.obd.ws.resources;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +8,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.model.LiteralStatement;
@@ -27,14 +26,15 @@ import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
-import org.restlet.resource.Variant;
 import org.restlet.resource.ResourceException;
+import org.restlet.resource.Variant;
 
 public class TermResource extends Resource {
 
 	private final String termId;
 	private JSONObject jObjs;
 	private Shard obdsql;
+	private Logger log;
 	
 	private Map<String, Set<String>> nameToOntologyMap;
 	
@@ -93,6 +93,8 @@ public class TermResource extends Resource {
 		nameToOntologyMap.put("PHENOSCAPE", ontologyList);
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
+		
+		this.log = Logger.getLogger(this.getClass());
 	}
 
 	// this constructor is to be used only for testing purposes
@@ -117,19 +119,23 @@ public class TermResource extends Resource {
 				return null;
 			}
 		} catch (JSONException e) {
-                    /* FIXME Never swallow exceptions. Need to rethrow
-                     * this to provide information to the client, and
-                     * add an appropriate message but that requires
-                     * method signature changes.
-                     */
-                    /* FIXME need to use a logger here */
-			e.printStackTrace();
-                        throw new ResourceException(e);
+			log.fatal("JSON EXCEPTION:\n" + e.getStackTrace().toString());
+			getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,
+					"JSON EXCEPTION");
+            return null;
 		}
 		return new JsonRepresentation(this.jObjs);
-
 	}
 
+    /**
+     * This method invokes the OBDQuery class and its methods
+     * for finding term information. Returned results from the
+     * OBDQuery methods are
+     * packaged into the JSON Object and returned    
+     * @param termId - search term
+     * @return JSON Object
+     * @throws JSONException
+     */
 	private JSONObject getTermInfo(String termId) throws JSONException {
 
 		JSONObject jsonObj = new JSONObject();
@@ -148,8 +154,11 @@ public class TermResource extends Resource {
 			slqt.setNode(termId);
 			slqt.setInferred(false);
 			
-			//this is hacky but it's done because restricting by ontology using QueryTerm.setSource() does not seem to work
+			/* 
+			 * this is hacky but it's done because restricting by ontology using QueryTerm.setSource() does not seem to work 
+			*/
 			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(slqt)){
+				/* Filter out compositional descriptions and terms from outside the ontology */
 				if(!stmt.getTargetId().contains("^") && !stmt.getTargetId().contains("INTERSECTION")
 						&& stmt.getTargetId().contains(prefix) && !stmt.getTargetId().contains("RESTRICTION")){
 					sourceStatements.add(stmt);
@@ -159,6 +168,7 @@ public class TermResource extends Resource {
 			tlqt.setTarget(termId);
 			tlqt.setInferred(false);
 			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(tlqt)){
+				/* Filter out compositional descriptions and terms from outside the ontology */
 				if(!stmt.getNodeId().contains("^") && !stmt.getNodeId().contains("INTERSECTION") && 
 						stmt.getNodeId().contains(prefix) && !stmt.getNodeId().contains("RESTRICTION"))
 					targetStatements.add(stmt);
@@ -233,14 +243,22 @@ public class TermResource extends Resource {
 			}
 			jsonObj.put("parents", parents);
 			jsonObj.put("children", children);
-			// jsonObj.put("otherRelations", otherRelations);
 		} else {
 			jsonObj = null;
 		}
 		return jsonObj;
 	}
 	
-    
+    /**
+     * @PURPOSE: This method takes a post composition and creates a 
+     * legible label for it. Because the label field in the DB is null
+     * for post composed terms
+     * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
+     * TAO:0001173 with 'Dorsal fin'. Carats (^) and underscores are replaced 
+     * with white spaces.
+     * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
+     * @return label - is of the form (<entity_label> <rel_label> <entity_label>
+     */
 	public String resolveLabel(String cd){
 		String label = cd;
 		label = label.replaceAll("\\^", " ");
@@ -249,7 +267,7 @@ public class TermResource extends Resource {
 		Matcher m = pat.matcher(oldLabel);
 		while(m.find()){
 			String s2replace = oldLabel.substring(m.start(), m.end());
-			String replaceS = obdsql.getNode(s2replace).getLabel();
+			String replaceS = obdsql.getNode(s2replace).getLabel(); //DB consultation
 			if(replaceS == null)
 				replaceS = s2replace.substring(s2replace.indexOf(":") + 1);
 			label = label.replace(s2replace, replaceS);
