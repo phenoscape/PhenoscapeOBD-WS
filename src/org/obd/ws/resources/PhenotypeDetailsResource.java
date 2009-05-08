@@ -242,7 +242,7 @@ public class PhenotypeDetailsResource extends Resource {
 				quality = nodeProps.get("hasState");
 				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-				if((type != null && !filterNodeForEvoOrDevo(searchTerm, type)) || //type is set, so we filter
+				if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || //type is set, so we filter
 						(type == null)){
 					annots = new ArrayList<String[]>();
 					annots.add(new String[]{taxonId, taxon});
@@ -265,9 +265,9 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @param type - this can be 'evo' or 'devo'
 	 * @return
 	 */
-	private boolean filterNodeForEvoOrDevo(String searchTerm, String type){
-		if((type.equals("evo") && !searchTerm.contains("GENE"))
-				|| (type.equals("devo") && !searchTerm.contains("TTO"))){
+	private boolean filterNodeForEvoOrDevo(String taxonId, String type){
+		if((type.equals("evo") && taxonId.contains("TTO"))
+				|| (type.equals("devo") && taxonId.contains("GENE"))){
 			return false;
 		}
 		return true;
