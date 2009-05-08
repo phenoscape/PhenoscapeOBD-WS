@@ -334,22 +334,28 @@ public class OBDQuery {
 	 * @param synOption - synonym option
 	 * @param defOption - definition option
 	 * @return
+	 * @throws SQLException 
 	 */
 	public Map<String, Collection<Node>> getCompletionsForSearchTerm(String term, boolean zfinOption, 
-				List<String> ontologyList, boolean synOption, boolean defOption){
+				List<String> ontologyList, boolean synOption, boolean defOption) throws SQLException{
 		
 		Map<String, Collection<Node>> results = new HashMap<String, Collection<Node>>();
+		try{
+			Collection<Node> nodesByName = this.shard.getNodesForSearchTermByLabel(term, zfinOption, ontologyList);
 
-		Collection<Node> nodesByName = this.shard.getNodesForSearchTermByLabel(term, zfinOption, ontologyList);
-		
-		results.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), nodesByName);
-		if(synOption){
-			Collection<Node> nodesBySynonym = this.shard.getNodesForSearchTermBySynonym(term, zfinOption, ontologyList, true);
-			results.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), nodesBySynonym);
+			results.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), nodesByName);
+			if(synOption){
+				Collection<Node> nodesBySynonym = this.shard.getNodesForSearchTermBySynonym(term, zfinOption, ontologyList, true);
+				results.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), nodesBySynonym);
+			}
+			if(defOption){
+				Collection<Node> nodesByDefinition = this.shard.getNodesForSearchTermByDefinition(term, zfinOption, ontologyList);
+				results.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), nodesByDefinition);
+			}
 		}
-		if(defOption){
-			Collection<Node> nodesByDefinition = this.shard.getNodesForSearchTermByDefinition(term, zfinOption, ontologyList);
-			results.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), nodesByDefinition);
+		catch(SQLException e){
+			e.printStackTrace();
+			throw new SQLException(e);
 		}
 		return results;
 	}	

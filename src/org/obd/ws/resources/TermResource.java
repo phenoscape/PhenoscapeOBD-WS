@@ -1,5 +1,6 @@
 package org.obd.ws.resources;
 
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -123,6 +124,10 @@ public class TermResource extends Resource {
 			getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,
 					"JSON EXCEPTION");
             return null;
+		} catch(SQLException e){
+			log.fatal("SQL Exception:\n" + e.getStackTrace().toString());
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "SQL Exception");
+			return null;
 		}
 		return new JsonRepresentation(this.jObjs);
 	}
@@ -136,7 +141,7 @@ public class TermResource extends Resource {
      * @return JSON Object
      * @throws JSONException
      */
-	private JSONObject getTermInfo(String termId) throws JSONException {
+	private JSONObject getTermInfo(String termId) throws JSONException, SQLException {
 
 		JSONObject jsonObj = new JSONObject();
 		if(termId.indexOf(":") < 0){
@@ -192,18 +197,26 @@ public class TermResource extends Resource {
 			
 																		
 			jsonObj.put("name", name);
-			Collection<Node> synonymNodes = obdsql.getSynonymsForTerm(name);
-			String synonym = "No name";
-			for(Node node : synonymNodes){
-				for(Statement stmt :	node.getStatements()){
-					if(stmt.getRelationId().equals("hasSynonym")){
-						synonym = stmt.getTargetId();
-						JSONObject synonymObj = new JSONObject();
-						synonymObj.put("name", synonym);
-						synonyms.add(synonymObj);
+			Collection<Node> synonymNodes;
+			try {
+				synonymNodes = obdsql.getSynonymsForTerm(name);
+				String synonym = "No name";
+				for(Node node : synonymNodes){
+					for(Statement stmt :	node.getStatements()){
+						if(stmt.getRelationId().equals("hasSynonym")){
+							synonym = stmt.getTargetId();
+							JSONObject synonymObj = new JSONObject();
+							synonymObj.put("name", synonym);
+							synonyms.add(synonymObj);
+						}
 					}
 				}
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				throw new SQLException(e);
 			}
+			
 			jsonObj.put("synonyms", synonyms);
 			if (def.length() > 0)
 				jsonObj.put("definition", def);
