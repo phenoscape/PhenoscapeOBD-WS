@@ -25,11 +25,12 @@ import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class PhenotypeSummaryResource extends Resource {
 	
-	Logger log = Logger.getLogger(this.getClass());
+	protected Logger log = Logger.getLogger(this.getClass());
 	
 	private String subject_id;
 	private String entity_id;
@@ -44,7 +45,10 @@ public class PhenotypeSummaryResource extends Resource {
 	private OBDQuery obdq;
 	
 	
-	public PhenotypeSummaryResource(Context context, Request request, Response response) {
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
+public PhenotypeSummaryResource(Context context, Request request, Response response) {
 		super(context, request, response);
 
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
@@ -74,7 +78,11 @@ public class PhenotypeSummaryResource extends Resource {
 		parameters = new HashMap<String, String>();
 	}
 
-	public Representation getRepresentation(Variant variant) {
+    /**
+     * FIXME Method and parameter documentation missing.
+     */
+	public Representation represent(Variant variant) 
+            throws ResourceException {
 
 		Representation rep;
 		Map<String, Map<String, List<Set<String>>>> ecAnnots;
@@ -203,14 +211,20 @@ public class PhenotypeSummaryResource extends Resource {
 			this.jObjs.put("characters", ecObjects);
 		}
 		catch(JSONException jsone){
-			jsone.printStackTrace();
+                    /* FIXME Need to provide information to the
+                     * client, so add an appropriate message.
+                     */
+                    log.error(jsone);
+                    throw new ResourceException(jsone);
 		}
 		rep = new JsonRepresentation(this.jObjs);
 		return rep;
 	}
+
 	/**
-	 * @PURPOSE: This method takes the nodes returned by OBDQuery class and packages them into a 
-	 * summary data structure. The summary structure is grouped by quality and subgrouped by 
+	 * This method takes the nodes returned by OBDQuery class and
+	 * packages them into a summary data structure. The summary
+	 * structure is grouped by quality and subgrouped by
 	 * anatomical entity
 	 * @param subject_id - can be a TTO taxon or ZFIN GENE
 	 * @param entity_id - can only be a TAO term (anatomical entity)
@@ -219,6 +233,9 @@ public class PhenotypeSummaryResource extends Resource {
 	 * @return 
 	 * @throws SQLException 
 	 */
+    /**
+     * FIXME Method documentation incomplete.
+     */
 	private Map<String, Map<String, List<Set<String>>>> 
 			getAnnotationSummary(String subject_id, String entity_id, String char_id, String pub_id) 
 			throws SQLException{
@@ -333,8 +350,8 @@ public class PhenotypeSummaryResource extends Resource {
 			}
 		}
 		catch(SQLException e){
-			log.fatal(e.getStackTrace().toString());
-			throw new SQLException(e);
+			log.fatal(e);
+			throw e;
 		}
 		return entityCharAnnots;
 	}
