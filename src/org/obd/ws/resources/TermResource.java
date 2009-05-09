@@ -39,12 +39,21 @@ public class TermResource extends Resource {
 	
 	private Map<String, Set<String>> nameToOntologyMap;
 	
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
 	public TermResource(Context context, Request request, Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
 		
+                /* FIXME This seems to be a poor way of doing
+                 * this. Shouldn't this at a minimum be read in from a
+                 * file, and/or use constants are encoded in a
+                 * separate class. And can this not dynamically be
+                 * obtained from the database?
+                 */
 		Set<String> ontologyList;
 		nameToOntologyMap = new HashMap<String, Set<String>>();
 		ontologyList = new HashSet<String>();
@@ -98,9 +107,11 @@ public class TermResource extends Resource {
 		this.log = Logger.getLogger(this.getClass());
 	}
 
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
 	// this constructor is to be used only for testing purposes
-	@Deprecated
-	public TermResource(Shard obdsql, String termId) {
+	TermResource(Shard obdsql, String termId) {
 		this.termId = termId;
 		this.obdsql = obdsql;
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -120,12 +131,12 @@ public class TermResource extends Resource {
 				return null;
 			}
 		} catch (JSONException e) {
-			log.fatal("JSON EXCEPTION:\n" + e.getStackTrace().toString());
+			log.fatal(e);
 			getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,
 					"JSON EXCEPTION");
             return null;
 		} catch(SQLException e){
-			log.fatal("SQL Exception:\n" + e.getStackTrace().toString());
+			log.fatal(e);
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "SQL Exception");
 			return null;
 		}
@@ -212,9 +223,8 @@ public class TermResource extends Resource {
 					}
 				}
 			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-				throw new SQLException(e);
+                            log.error(e);
+                            throw e;
 			}
 			
 			jsonObj.put("synonyms", synonyms);
@@ -267,10 +277,16 @@ public class TermResource extends Resource {
      * legible label for it. Because the label field in the DB is null
      * for post composed terms
      * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
-     * TAO:0001173 with 'Dorsal fin'. Carats (^) and underscores are replaced 
+     * TAO:0001173 with 'Dorsal fin'. Carets (^) and underscores are replaced 
      * with white spaces.
      * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
      * @return label - is of the form (<entity_label> <rel_label> <entity_label>
+     */
+    /**
+     * FIXME Method and parameter documentation missing.
+     */
+    /* FIXME don't we have nearly or exactly the same method in
+     * OBDQuery? Please fix the duplication.
      */
 	public String resolveLabel(String cd){
 		String label = cd;
