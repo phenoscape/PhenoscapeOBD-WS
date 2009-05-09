@@ -240,17 +240,16 @@ public class OBDQuery {
 		}
 		catch(SQLException sqle){
 			log.error(sqle);
-			throw new RuntimeException(sqle);
+			throw sqle;
 		}
 		finally {
 			if (pstmt != null) {
-				try { pstmt.close(); }
-                	catch (SQLException ex) {
+                            try { pstmt.close(); }
+                            catch (SQLException ex) {
                 		log.error(ex);
-                		throw new SQLException(ex);
                 		// let's not worry further about the close() failing
-                	}
-				}
+                            }
+                        }
 		}
 		return results;
 	}
@@ -354,8 +353,8 @@ public class OBDQuery {
 			}
 		}
 		catch(SQLException e){
-			e.printStackTrace();
-			throw new SQLException(e);
+                    log.error(e);
+                    throw e;
 		}
 		return results;
 	}	
