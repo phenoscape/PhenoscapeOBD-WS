@@ -22,6 +22,7 @@ import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class PhenotypeDetailsResource extends Resource {
@@ -40,6 +41,9 @@ public class PhenotypeDetailsResource extends Resource {
 	private Shard obdsql;
 	private OBDQuery obdq;
 	
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
 	public PhenotypeDetailsResource(Context context, Request request, Response response) {
 		super(context, request, response);
 
@@ -72,7 +76,11 @@ public class PhenotypeDetailsResource extends Resource {
 		parameters = new HashMap<String, String>();
 	}
 	
-	public Representation getRepresentation(Variant variant) {
+    /**
+     * FIXME Method and parameter documentation missing.
+     */
+	public Representation represent(Variant variant) 
+            throws ResourceException {
 
 		Representation rep;
 		List<List<String[]>> annots;
@@ -163,7 +171,11 @@ public class PhenotypeDetailsResource extends Resource {
 			this.jObjs.put("phenotypes", phenotypeObjs);
 		}
 		catch(JSONException jsone){
-			jsone.printStackTrace();
+                    /* FIXME Need to provide information to the
+                     * client, so add an appropriate message.
+                     */
+                    log.error(jsone);
+                    throw new ResourceException(jsone);
 		}
 		rep = new JsonRepresentation(this.jObjs);
 		return rep;
@@ -253,12 +265,15 @@ public class PhenotypeDetailsResource extends Resource {
 			}
 		}
 		catch(SQLException e){
-			log.fatal(e.getStackTrace().toString());
-			throw new SQLException(e);
+			log.fatal(e);
+			throw e;
 		}
 		return results;
 	}
 	
+    /**
+     * FIXME Method and parameter documentation incomplete.
+     */
 	/**
 	 * This method filters a node based on input parameter 'type'
 	 * @param searchTerm - this may be a TTO term or GENE term
