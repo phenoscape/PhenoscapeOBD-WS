@@ -165,13 +165,17 @@ public class AutoCompleteResource extends Resource {
 		try {
 			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
 		} catch (JSONException e) {
-                    /* FIXME Never swallow exceptions. Need to provide
-                     * information to the client, so add an
-                     * appropriate message.
+                    /* FIXME Need to provide information to the
+                     * client, so add an appropriate message.
                      */
-                    /* FIXME need to use a logger here */
-			e.printStackTrace();
-                        throw new ResourceException(e);
+                    log.error(e);
+                    throw new ResourceException(e);
+		} catch (SQLException e) {
+                    /* FIXME Need to provide information to the
+                     * client, so add an appropriate message.
+                     */
+                    log.error(e);
+                    throw new ResourceException(e);
 		}
 		
 		rep = new JsonRepresentation(this.jObjs);
@@ -192,7 +196,7 @@ public class AutoCompleteResource extends Resource {
 	 * @throws JSONException
 	 */
 	private JSONObject getTextMatches(String text, String... options)
-			throws JSONException {
+            throws JSONException, SQLException {
 
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
