@@ -25,6 +25,7 @@ import org.restlet.data.Response;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class AutoCompleteResource extends Resource {
@@ -41,6 +42,9 @@ public class AutoCompleteResource extends Resource {
 	 */
 	private Map<String, Set<String>> nameToOntologyMap;
 	
+    /* FIXME it sounds like a bad idea to hard-code the list of
+     * ontologies in a general purpose piece of OBD-WS code
+     */
 	private String synonymOption,definitionOption, 
 				ontologies = "oboInOwl,Relations,PATO,ZFA,ZFIN,Stages,TAO,TTO,Collection,Spatial,Sequence,Units,Phenoscape";
 	
@@ -52,6 +56,9 @@ public class AutoCompleteResource extends Resource {
 	private final String MATCH_TEXT_STRING = "match_text";
 	private final String MATCHES_STRING = "matches";
 	
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
 	public AutoCompleteResource(Context context, Request request,
 			Response response) {
 		super(context, request, response);
@@ -59,6 +66,13 @@ public class AutoCompleteResource extends Resource {
 		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
+                /* FIXME This seems to be a poor way of doing
+                 * this. Shouldn't this at a minimum be read in from a
+                 * file, and/or use constants are encoded in a
+                 * separate class. And can this not dynamically be
+                 * obtained from the database? It is also more or less
+                 * duplicated from TermResource.
+                 */
 		/*
 		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
 		 */
@@ -128,29 +142,36 @@ public class AutoCompleteResource extends Resource {
 
 	}
 
+    /**
+     * FIXME Constructor and parameter documentation missing.
+     */
 	// this constructor is to be used only for testing purposes
-	@Deprecated
-	public AutoCompleteResource(Shard obdsql, String text, String... options) {
+	AutoCompleteResource(Shard obdsql, String text, String... options) {
 		this.text = text;
 		this.obdsql = obdsql;
 		this.options = options;
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 	}
 
-	public Representation getRepresentation(Variant variant) {
+    /**
+     * FIXME Method and parameter documentation missing.
+     */
+        @Override
+	public Representation represent(Variant variant) 
+            throws ResourceException {
 
 		Representation rep = null;
 
 		try {
 			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
 		} catch (JSONException e) {
+                    /* FIXME Never swallow exceptions. Need to provide
+                     * information to the client, so add an
+                     * appropriate message.
+                     */
+                    /* FIXME need to use a logger here */
 			e.printStackTrace();
+                        throw new ResourceException(e);
 		}
 		
 		rep = new JsonRepresentation(this.jObjs);
@@ -171,8 +192,7 @@ public class AutoCompleteResource extends Resource {
 	 * @throws JSONException
 	 */
 	private JSONObject getTextMatches(String text, String... options)
-			throws IOException, SQLException, ClassNotFoundException,
-			JSONException {
+			throws JSONException {
 
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
@@ -250,10 +270,14 @@ public class AutoCompleteResource extends Resource {
 		catch(JSONException e){
 			log.error("JSON Exception: " + e.getMessage());
 			jObj.put(MATCHES_STRING, matches);
+                        /* FIXME why are we swollowing this exception? */
 		}
 		return jObj;
 	}
 
+    /**
+     * FIXME Method (what, why, how) and parameter documentation missing.
+     */
 	/**
 	 * This method has been created to sort the matches returned by the search string
 	 * Terms starting with the search string are placed higher than terms which only
@@ -306,6 +330,9 @@ public class AutoCompleteResource extends Resource {
 		return sortedMatches;
 	}
 	
+    /**
+     * FIXME Method and parameter documentation missing.
+     */
 	/**
 	 * This method sorts the JSON objects in the input list by name 
 	 * @param inputList
