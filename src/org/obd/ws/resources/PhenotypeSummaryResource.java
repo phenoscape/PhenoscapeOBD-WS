@@ -72,8 +72,9 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
 		String gq = (String)this.getContext().getAttributes().get("geneQuery");
 		String sgq = (String)this.getContext().getAttributes().get("simpleGeneQuery");
+		String tsq = (String)this.getContext().getAttributes().get("taxonSummaryQuery");
 		
-		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq});
+		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq, tsq});
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 	}
@@ -264,7 +265,7 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 			if(subject_id.contains("GENE"))
 				query = obdq.getGeneQuery();
 			else
-				query = obdq.getTaxonQuery();
+				query = obdq.getTaxonSummaryQuery();
 			searchTerm = subject_id;
 			filterOptions.put("subject", null);
 			filterOptions.put("entity", entity_id);

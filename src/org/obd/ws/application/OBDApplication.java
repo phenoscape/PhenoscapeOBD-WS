@@ -48,11 +48,13 @@ public class OBDApplication extends Application {
 			String tq = queries.getProperty("taxonQuery");
 			String gq = queries.getProperty("geneQuery");
 			String sgq = queries.getProperty("simpleGeneQuery");
+			String tsq = queries.getProperty("taxonSummaryQuery");
 			
 			this.getContext().getAttributes().put("anatomyQuery", aq);
 			this.getContext().getAttributes().put("taxonQuery", tq);
 			this.getContext().getAttributes().put("geneQuery", gq);
 			this.getContext().getAttributes().put("simpleGeneQuery", sgq);
+			this.getContext().getAttributes().put("taxonSummaryQuery", tsq);
 			
 		}
 		catch(Exception e){

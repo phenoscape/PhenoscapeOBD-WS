@@ -71,6 +71,7 @@ public class OBDQuery {
 	private String taxonQuery;
 	private String geneQuery;  
 	private String simpleGeneQuery;
+	private String taxonSummaryQuery;
 	
 	public static enum AutoCompletionMatchTypes{
 		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
@@ -110,6 +111,8 @@ public class OBDQuery {
 		this.taxonQuery = queries[1];
 		this.geneQuery = queries[2];
 		this.simpleGeneQuery = queries[3];
+		this.taxonSummaryQuery = queries[4];
+		
 
 		/*
 		 * the queries are read in from a properties file, and stored as context parameters. they
@@ -123,12 +126,14 @@ public class OBDQuery {
 			taxonQuery = taxonQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
 			geneQuery = geneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
 			simpleGeneQuery = simpleGeneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
+			taxonSummaryQuery = taxonSummaryQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
 		}
 
 		log.trace(anatomyQuery);
 		log.trace(taxonQuery);
 		log.trace(geneQuery);
 		log.trace(simpleGeneQuery);
+		log.trace(taxonSummaryQuery);
 	}
 	
 	/**
@@ -169,6 +174,10 @@ public class OBDQuery {
 	
 	public String getSimpleGeneQuery(){
 		return simpleGeneQuery;
+	}
+	
+	public String getTaxonSummaryQuery(){
+		return taxonSummaryQuery;
 	}
 
 	/**@throws SQLException 
