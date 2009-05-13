@@ -70,8 +70,9 @@ public class PhenotypeDetailsResource extends Resource {
 		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
 		String gq = (String)this.getContext().getAttributes().get("geneQuery");
 		String sgq = (String)this.getContext().getAttributes().get("simpleGeneQuery");
+		String tsq = (String)this.getContext().getAttributes().get("taxonSummaryQuery");
 		
-		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq});
+		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq, tsq});
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 	}
