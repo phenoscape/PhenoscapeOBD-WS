@@ -13,6 +13,7 @@ import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
 import org.obd.query.impl.OBDSQLShard;
+import org.obd.ws.util.Queries;
 
 public class OBDQueryTest {
 
@@ -48,23 +49,14 @@ public class OBDQueryTest {
 			((AbstractSQLShard) obdsql).connect(dbHost, uid, pwd);
 //			((AbstractSQLShard) obdsql).connect(localDbHost, localUid, localPwd);
 	
-			
-			InputStream queriesFile = new FileInputStream("connectionInfo/queries.properties");
-			Properties queries = new Properties();
-			queries.load(queriesFile);
-
-			String aq = (String)queries.get("anatomyQuery");
-			String tq = (String)queries.get("taxonQuery");
-			String gq = (String)queries.get("geneQuery");
-			String sgq = (String)queries.get("simpleGeneQuery");
-			
-			OBDQuery obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq});
+			Queries queries = new Queries(obdsql);
+			OBDQuery obdq = new OBDQuery(obdsql);
 			
 			
 			Map<String, String> nodeProps, filterOptions = new HashMap<String, String>();
 			String relId, target, character = null, taxon = null, state = null, entity = null;
 			long testStartTime = System.currentTimeMillis(); 
-			for(Node node : obdq.executeQueryAndAssembleResults(obdq.getAnatomyQuery(), "TAO:0000108", filterOptions)){				
+			for(Node node : obdq.executeQueryAndAssembleResults(queries.getAnatomyQuery(), "TAO:0000108", filterOptions)){				
 				nodeProps = new HashMap<String, String>();
 				
 				for(Statement stmt : node.getStatements()){

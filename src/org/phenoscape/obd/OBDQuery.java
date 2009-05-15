@@ -34,150 +34,20 @@ public class OBDQuery {
 	private static RelationVocabulary relationVocabulary = new RelationVocabulary();
 	private final Shard shard;
 	private Connection conn;
-	/*
-	 * relationNodeIds is a map of actual relation nodes ids that are used in links and the
-	 * node ids they are associated in the database. For example, a row from the NODE table 
-	 * in the database would be
-	 * 
-	 * NODE_ID		UID				LABEL
-	 * -------      ----            ----- 
-	 * 123			OBO_REL:is_a	is_a
-	 * 
-	 * In relationNodeIds, we store the Node-Ids associated with the UIDs because the queries 
-	 * (see below) need them
-	 */
-	private Map<String, Integer> relationNodeIds;
-	
 	public Logger log;
-
-    /* 
-     * These are actual relation UIDs coming from the OBO Relation and
-     * PHENOSCAPE VOCAB ontologies
-     */
-	private final static String IS_A_RELATION_ID = "OBO_REL:is_a"; 
-	private final static String INHERES_IN_RELATION_ID = "OBO_REL:inheres_in";
-	private final static String HAS_ALLELE_RELATION_ID = "PHENOSCAPE:has_allele";
-	private final static String EXHIBITS_RELATION_ID = "PHENOSCAPE:exhibits";
-	private final static String VALUE_FOR_RELATION_ID = "PHENOSCAPE:value_for";
-	
-	/*
-	 * The text strings of these queries are stored in the 'queries.properties' file.
-	 * They are read when the OBD-WS application is loaded and stored as context parameters.
-	 * The invoking REST resources read these parameters from the context and pass them as
-	 * constructor parameters. 
-	 */
-	
-	private String anatomyQuery; 			
-	private String taxonQuery;
-	private String geneQuery;  
-	private String simpleGeneQuery;
-	private String taxonSummaryQuery;
-	
 	public static enum AutoCompletionMatchTypes{
 		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
 	};
 	
-	public static enum QueryPlaceholder{
-		INHERES_IN("___inheres_in", INHERES_IN_RELATION_ID),
-		VALUE_FOR("___value_for", VALUE_FOR_RELATION_ID),
-		EXHIBITS("___exhibits", EXHIBITS_RELATION_ID),
-		HAS_ALLELE("___has_allele", HAS_ALLELE_RELATION_ID),
-		IS_A("___is_a", IS_A_RELATION_ID);
-		
-		QueryPlaceholder(String name, String rId){
-			this.pattern = name;
-			this.relationUid = rId;
-		}
-		
-		private final String pattern;
-		private final String relationUid;
-		
-		public String pattern(){return pattern;}
-		public String relationUid(){return relationUid;}
-	};
 	
 	/**
-	 * @param shard. the shard to use
-	 * @param queries. the set of queries to use 
-	 * This constructor uses queries which are passed in from the REST resources.
-	 * It invokes the default constructor to get the shards and relation node ids
-	 * etc set up before adding the queries in
-	 */
-	
-	public OBDQuery(Shard shard, String[] queries){
-		this(shard);
-			
-		this.anatomyQuery = queries[0];
-		this.taxonQuery = queries[1];
-		this.geneQuery = queries[2];
-		this.simpleGeneQuery = queries[3];
-		this.taxonSummaryQuery = queries[4];
-		
-
-		/*
-		 * the queries are read in from a properties file, and stored as context parameters. they
-		 * are accessed by the invoking REST resource classes and passed here as construction method
-		 * parameters. The ___<text> patterns are placeholders in these queries, which are replaced
-		 * by actual data from the database
-		 */
-		
-		for(QueryPlaceholder pattern : QueryPlaceholder.values()){
-			anatomyQuery = anatomyQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
-			taxonQuery = taxonQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
-			geneQuery = geneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
-			simpleGeneQuery = simpleGeneQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
-			taxonSummaryQuery = taxonSummaryQuery.replace(pattern.pattern(), getRelationNodeIds().get(pattern.relationUid()) + "");
-		}
-
-		log.trace(anatomyQuery);
-		log.trace(taxonQuery);
-		log.trace(geneQuery);
-		log.trace(simpleGeneQuery);
-		log.trace(taxonSummaryQuery);
-	}
-	
-	/**
-	 * This is the default constructor. It takes a shard, then uses that shard to read in
-	 * node ids for each relation id using a stored procedure 'getNodeInternalId' from the
-	 * database. These node ids are used in replacing placeholders in the queries
+	 * This is the default constructor. 
 	 * @param shard = the shard to use
 	 */
 	public OBDQuery(Shard shard){
 		this.shard = shard;
 		this.conn = ((AbstractSQLShard)shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
-		
-		relationNodeIds = new HashMap<String, Integer>();
-
-		relationNodeIds.put(IS_A_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(IS_A_RELATION_ID));
-		relationNodeIds.put(INHERES_IN_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(INHERES_IN_RELATION_ID));
-		relationNodeIds.put(HAS_ALLELE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_ALLELE_RELATION_ID));
-		relationNodeIds.put(EXHIBITS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(EXHIBITS_RELATION_ID));
-		relationNodeIds.put(VALUE_FOR_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(VALUE_FOR_RELATION_ID));
-	}
-	
-	public Map<String, Integer> getRelationNodeIds(){
-		return relationNodeIds;
-	}
-	
-	public String getAnatomyQuery(){
-		return anatomyQuery;
-	}
-	
-	public String getTaxonQuery(){
-		return taxonQuery;
-	}
-	
-	public String getGeneQuery(){
-		return geneQuery;
-	}
-	
-	public String getSimpleGeneQuery(){
-		return simpleGeneQuery;
-	}
-	
-	public String getTaxonSummaryQuery(){
-		return taxonSummaryQuery;
 	}
 
 	/**@throws SQLException 
@@ -234,6 +104,7 @@ public class OBDQuery {
 						}	
 						Statement entitySt = new Statement(phenotypeNode.getId(), "inheresIn", entityLabel);
 						Statement entityIdSt = new Statement(phenotypeNode.getId(), "inheresInId", rs.getString(8));
+						Statement reifIdSt =  new Statement(phenotypeNode.getId(), "hasReifId", rs.getString(10));
 						phenotypeNode.addStatement(taxonOrGeneSt);
 						phenotypeNode.addStatement(taxonOrGeneIdSt);
 						phenotypeNode.addStatement(stateSt);
@@ -242,6 +113,7 @@ public class OBDQuery {
 						phenotypeNode.addStatement(characterIdSt);
 						phenotypeNode.addStatement(entitySt);
 						phenotypeNode.addStatement(entityIdSt);
+						phenotypeNode.addStatement(reifIdSt);
 						results.add(phenotypeNode);
 					}
 				}

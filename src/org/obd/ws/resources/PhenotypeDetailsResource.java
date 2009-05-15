@@ -12,6 +12,7 @@ import org.json.JSONObject;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
+import org.obd.ws.util.Queries;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -41,6 +42,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private Shard obdsql;
 	private OBDQuery obdq;
 	
+	private Queries queries;
     /**
      * FIXME Constructor and parameter documentation missing.
      */
@@ -66,13 +68,8 @@ public class PhenotypeDetailsResource extends Resource {
 			this.type = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("type")));
 		}
 		
-		String aq = (String)this.getContext().getAttributes().get("anatomyQuery");
-		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
-		String gq = (String)this.getContext().getAttributes().get("geneQuery");
-		String sgq = (String)this.getContext().getAttributes().get("simpleGeneQuery");
-		String tsq = (String)this.getContext().getAttributes().get("taxonSummaryQuery");
-		
-		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq, tsq});
+		queries = new Queries(obdsql);
+		obdq = new OBDQuery(obdsql);
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 	}
@@ -147,7 +144,7 @@ public class PhenotypeDetailsResource extends Resource {
 		}
 		List<String[]> comp;
 		
-		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj; 
+		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj; 
 		List<JSONObject> phenotypeObjs = new ArrayList<JSONObject>();
 		
 		try{
@@ -157,15 +154,18 @@ public class PhenotypeDetailsResource extends Resource {
 				subjectObj = new JSONObject();
 				entityObj = new JSONObject();
 				qualityObj = new JSONObject();
+				reifObj = new JSONObject();
 				subjectObj.put("id", comp.get(0)[0]);
 				subjectObj.put("name", comp.get(0)[1]);
 				entityObj.put("id", comp.get(1)[0]);
 				entityObj.put("name", comp.get(1)[1]);
 				qualityObj.put("id", comp.get(2)[0]);
 				qualityObj.put("name", comp.get(2)[1]);
+				reifObj.put("reif_id", comp.get(3)[0]);
 				phenotypeObj.put("subject", subjectObj);
 				phenotypeObj.put("entity", entityObj);
 				phenotypeObj.put("quality", qualityObj);
+				phenotypeObj.put("reified_link", reifObj);	
 				phenotypeObjs.add(phenotypeObj);
 			}
 			log.trace(annots.size() + " annotations returned");
@@ -208,7 +208,7 @@ public class PhenotypeDetailsResource extends Resource {
 		Map<String, String> filterOptions = new HashMap<String, String>();
 		
 		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null,
-					character = null, taxon = null, entity = null, quality = null;
+					character = null, taxon = null, entity = null, quality = null, reifId = null;
 		String query, searchTerm;
 		/* 
 		 * This IF-THEN decides which query to use. Ideally if subject is provided, we will use
@@ -216,15 +216,15 @@ public class PhenotypeDetailsResource extends Resource {
 		 */
 		if(subject_id != null){
 			if(subject_id.contains("GENE"))
-				query = obdq.getSimpleGeneQuery();
+				query = queries.getGeneQuery();
 			else
-				query = obdq.getTaxonQuery();
+				query = queries.getTaxonQuery();
 			searchTerm = subject_id;
 			filterOptions.put("subject", null);
 			filterOptions.put("entity", entity_id);
 		}
 		else{
-			query = obdq.getAnatomyQuery();
+			query = queries.getAnatomyQuery();
 			/*	neither subject or entity are provided. so we use the root TAO term
 			 * which returns every phenotype in the database
 			 */
@@ -253,6 +253,7 @@ public class PhenotypeDetailsResource extends Resource {
 				entity = nodeProps.get("inheresIn");
 				qualityId = nodeProps.get("hasStateId");
 				quality = nodeProps.get("hasState");
+				reifId = nodeProps.get("hasReifId");
 				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || //type is set, so we filter
@@ -261,6 +262,7 @@ public class PhenotypeDetailsResource extends Resource {
 					annots.add(new String[]{taxonId, taxon});
 					annots.add(new String[]{entityId, entity});
 					annots.add(new String[]{qualityId, quality});
+					annots.add(new String[]{reifId});
 					results.add(annots);
 				}
 			}

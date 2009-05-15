@@ -15,6 +15,7 @@ import org.json.JSONObject;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
+import org.obd.ws.util.Queries;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -43,7 +44,7 @@ public class PhenotypeSummaryResource extends Resource {
 	private JSONObject jObjs;
 	private Shard obdsql;
 	private OBDQuery obdq;
-	
+	private Queries queries;
 	
     /**
      * FIXME Constructor and parameter documentation missing.
@@ -68,15 +69,11 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("examples") != null){
 			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("examples"))));
 		}
-		String aq = (String)this.getContext().getAttributes().get("anatomyQuery");
-		String tq = (String)this.getContext().getAttributes().get("taxonQuery");
-		String gq = (String)this.getContext().getAttributes().get("geneQuery");
-		String sgq = (String)this.getContext().getAttributes().get("simpleGeneQuery");
-		String tsq = (String)this.getContext().getAttributes().get("taxonSummaryQuery");
 		
-		obdq = new OBDQuery(obdsql, new String[]{aq, tq, gq, sgq, tsq});
+		obdq = new OBDQuery(obdsql);
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
+		queries = new Queries(obdsql);
 	}
 
     /**
@@ -263,9 +260,9 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		 */
 		if(subject_id != null){
 			if(subject_id.contains("GENE"))
-				query = obdq.getGeneQuery();
+				query = queries.getGeneSummaryQuery();
 			else
-				query = obdq.getTaxonSummaryQuery();
+				query = queries.getTaxonSummaryQuery();
 			searchTerm = subject_id;
 			filterOptions.put("subject", null);
 			filterOptions.put("entity", entity_id);
@@ -274,7 +271,7 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 			/*	neither subject or entity are provided. so we use the root TAO term
 			 * which returns every phenotype in the database
 			 */
-			query = obdq.getAnatomyQuery();
+			query = queries.getAnatomyQuery();
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 			filterOptions.put("subject", subject_id);
 			filterOptions.put("entity", null);
