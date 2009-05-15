@@ -19,7 +19,6 @@ import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
-import org.obd.query.impl.OBDSQLShard;
 import org.purl.obo.vocab.RelationVocabulary;
 
 /**

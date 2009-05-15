@@ -121,8 +121,6 @@ public class TermResource extends Resource {
 	public Representation represent(Variant variant) 
             throws ResourceException {
 
-		Representation rep = null;
-
 		try {
 			this.jObjs = getTermInfo(this.termId);
 			if (this.jObjs == null) {
