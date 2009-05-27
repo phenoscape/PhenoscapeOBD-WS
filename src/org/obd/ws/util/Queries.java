@@ -37,6 +37,11 @@ public class Queries {
 	private final static String EXHIBITS_RELATION_ID = "PHENOSCAPE:exhibits";
 	private final static String VALUE_FOR_RELATION_ID = "PHENOSCAPE:value_for";
 	
+	private static final String HOMOLOG_TO_RELATION_ID = "OBO_REL:homologous_to";
+	private static final String IN_TAXON_RELATION_ID = "PHENOSCAPE:in_taxon";
+	private static final String HAS_PUBLICATION_RELATION_ID = "PHENOSCAPE:has_publication";
+	private static final String HAS_EVIDENCE_CODE_RELATION_ID = "PHENOSCAPE:has_evidence_code";
+	
 	/*
 	 * An enumeration to keep track of the patterns to look for
 	 * in the raw query
@@ -47,7 +52,12 @@ public class Queries {
 		VALUE_FOR("___value_for", VALUE_FOR_RELATION_ID),
 		EXHIBITS("___exhibits", EXHIBITS_RELATION_ID),
 		HAS_ALLELE("___has_allele", HAS_ALLELE_RELATION_ID),
-		IS_A("___is_a", IS_A_RELATION_ID);
+		IS_A("___is_a", IS_A_RELATION_ID),
+		HOMOLOGOUS_TO("___homologous_to", HOMOLOG_TO_RELATION_ID),
+		IN_TAXON("___in_taxon", IN_TAXON_RELATION_ID),
+		HAS_PUBLICATION("___has_publication", HAS_PUBLICATION_RELATION_ID),
+		HAS_EVIDENCE_CODE("___has_evidence_code", HAS_EVIDENCE_CODE_RELATION_ID);
+
 		
 		QueryPlaceholder(String name, String rId){
 			this.pattern = name;
@@ -70,6 +80,13 @@ public class Queries {
 	 */
 	
 	//TODO Add more queries
+	
+	/**
+	 * @INPUT: An anatomical entity (E)
+	 * This query finds all the phenotypes (P) associated with a given anatomical entity. From the found phenotypes (P), 
+	 * this query finds the related taxa (T), genes (G), qualities (Q), and characters (C)that these qualities (Q) 
+	 * are attributes of 
+	 */
 	
 	private String anatomyQuery = 
 		"SELECT DISTINCT " +
@@ -109,6 +126,15 @@ public class Queries {
 		"inheres_in_link.is_inferred = 'f' AND " +
 		"is_a_link.is_inferred = 'f' AND " +
 		"exhibits_link.is_inferred = 'f'";
+	
+	/**
+	 * @INPUT: A gene (G)
+	 * This query finds the anatomical entity - quality (EQ) combinations expressed by the input gene.
+	 * Then it finds the characters (C) for the qualities (Q) directly associated with the gene to
+	 * find a list of entity-character (EC) combinations. 
+	 * Lastly, it finds all the taxa (T) and genes (G) that are associated with phenotypes (P), 
+	 * that are associated with the (EC) combinations 
+	 */
 	
 	private String geneSummaryQuery = 
 		"SELECT DISTINCT " +
@@ -182,6 +208,13 @@ public class Queries {
 		"is_a_link.is_inferred = 'f' AND " +
 		"exhibits_link.is_inferred = 'f')";
 	
+	/**
+	 * @INPUT: A taxon (T)
+	 * This query retrieves all the entities (E), qualities (Q), and characters (C)
+	 * that are associated with the input taxon (T) and its subtaxa (ST)
+	 */
+	
+	
 	private String taxonQuery = 
 		"SELECT DISTINCT " +
 		"phenotype_node.uid AS phenotype, " +
@@ -218,6 +251,12 @@ public class Queries {
 		"is_a_link.is_inferred = 'f' AND " +
 		"exhibits_link.is_inferred = 'f'";
 	
+	/**
+	 * @INPUT: A gene (G)
+	 * This query retrieves all the Entities (E), Qualities (Q), and Characters (C) associated
+	 * with the given gene (G) through the expressed phenotypes (P)
+	 */
+	
 	private String geneQuery = 
 		"SELECT DISTINCT " +
 		"phenotype_node.uid AS phenotype, " +
@@ -250,6 +289,14 @@ public class Queries {
 		"search_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
 		"inheres_in_link.is_inferred = 'f' AND " +
 		"is_a_link.is_inferred = 'f'";
+	
+	/**
+	 * @INPUT: A taxon (T)
+	 * This query finds all the phenotypes (P) directly associated with input taxon (T)
+	 * and its subtaxa (ST). Then it retrieves the unique Entity-Character (EC) 
+	 * combinations from the phenotypes (P). Lastly, it finds all the genes (G) associated 
+	 * with the EC combinations that are also associated with the taxa and its subtaxa
+	 */
 	
 	private String taxonSummaryQuery =  
 		"SELECT DISTINCT " +
@@ -368,6 +415,55 @@ public class Queries {
 		"exhibits_link.is_inferred = 'f'";
 	
 	/**
+	 * @INPUT - An anatomical entity (E)
+	 * This query finds all the homologous entities (E1) and associated taxa (T1) of
+	 * a given input entity (E). The referenced publications and 
+	 * evidence codes are also retrieved.  
+	 */
+	
+	private String homologyQuery =  
+		"SELECT " +
+		"homolog1_node.uid AS homolog1, " +
+		"taxon1_node.uid AS taxon1_uid, " +
+		"taxon1_node.label AS taxon1, " +
+		"entity1_node.uid AS entity1_uid, " +
+		"entity1_node.label AS entity1, " +
+		"homolog2_node AS homolog2, " +
+		"taxon2_node.uid AS taxon_uid2, " +
+		"taxon2_node.label AS taxon2, " +
+		"entity2_node.uid AS entity2_uid, " +
+		"entity2_node.label AS entity2, " +
+		"pub_node.uid AS publication, " +
+		"evid_node.uid AS evidence_id, " +
+		"evid_node.label AS evidence " +
+		"FROM " +
+		"link AS homology_link " +
+		"JOIN node AS homolog1_node ON (homology_link.node_id = homolog1_node.node_id) " +
+		"JOIN node AS homolog2_node ON (homology_link.object_id = homolog2_node.node_id) " +
+		"JOIN link AS taxon1_link ON (taxon1_link.node_id = homolog1_node.node_id AND " +
+			"taxon1_link.predicate_id = ___in_taxon) " +
+		"JOIN node AS taxon1_node ON (taxon1_link.object_id = taxon1_node.node_id) " +
+		"JOIN link AS entity1_link ON (entity1_link.node_id = homolog1_node.node_id AND " +
+			"entity1_link.predicate_id = ___is_a) " +
+		"JOIN node AS entity1_node ON (entity1_link.object_id = entity1_node.node_id) " +
+		"JOIN link AS taxon2_link ON (taxon2_link.node_id = homolog2_node.node_id AND " +
+		"	taxon2_link.predicate_id = ___in_taxon) " +
+		"JOIN node AS taxon2_node ON (taxon2_link.object_id = taxon2_node.node_id) " +
+		"JOIN link AS entity2_link ON (entity2_link.node_id = homolog2_node.node_id AND " +
+			"entity2_link.predicate_id = ___is_a) " +
+		"JOIN node AS entity2_node ON (entity2_link.object_id = entity2_node.node_id) " +
+		"JOIN link AS has_pub_link ON (homology_link.reiflink_node_id = has_pub_link.node_id AND " +
+			"has_pub_link.predicate_id = ___has_publication) " +
+		"JOIN node AS pub_node ON (has_pub_link.object_id = pub_node.node_id) " +
+		"JOIN link AS has_evid_link ON (homology_link.reiflink_node_id = has_evid_link.node_id AND " +
+			"has_evid_link.predicate_id = ___has_evidence_code) " +
+		"JOIN node AS evid_node ON (has_evid_link.object_id = evid_node.node_id) " +
+		"WHERE " +
+		"homology_link.predicate_id = ___homologous_to AND " +
+		"(entity1_node.node_id = (SELECT node_id FROM node WHERE uid = ?) OR " +
+		"entity2_node.node_id = (SELECT node_id FROM node WHERE uid = ?))";
+
+	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
 	 * @param shard
 	 */
@@ -384,6 +480,11 @@ public class Queries {
 		relationNodeIds.put(HAS_ALLELE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_ALLELE_RELATION_ID));
 		relationNodeIds.put(EXHIBITS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(EXHIBITS_RELATION_ID));
 		relationNodeIds.put(VALUE_FOR_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(VALUE_FOR_RELATION_ID));
+		
+		relationNodeIds.put(IN_TAXON_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(IN_TAXON_RELATION_ID));
+		relationNodeIds.put(HOMOLOG_TO_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HOMOLOG_TO_RELATION_ID));
+		relationNodeIds.put(HAS_PUBLICATION_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_PUBLICATION_RELATION_ID));
+		relationNodeIds.put(HAS_EVIDENCE_CODE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_EVIDENCE_CODE_RELATION_ID));
 	}
 	
 	/*
@@ -407,6 +508,10 @@ public class Queries {
 
 	public String getGeneQuery() {
 		return replacePatternsWithIds(geneQuery);
+	}
+	
+	public String getHomologyQuery() {
+		return replacePatternsWithIds(homologyQuery);
 	}
 	
 	/**

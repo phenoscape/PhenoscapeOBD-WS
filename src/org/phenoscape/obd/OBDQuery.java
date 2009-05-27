@@ -19,7 +19,6 @@ import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
-import org.purl.obo.vocab.RelationVocabulary;
 
 /**
  * This class interfaces with methods from the OBDAPI, specifically
@@ -30,7 +29,6 @@ import org.purl.obo.vocab.RelationVocabulary;
 
 public class OBDQuery {
 
-	private static RelationVocabulary relationVocabulary = new RelationVocabulary();
 	private final Shard shard;
 	private Connection conn;
 	public Logger log;
@@ -49,6 +47,81 @@ public class OBDQuery {
 		this.log = Logger.getLogger(this.getClass());
 	}
 
+	/**
+	 * @author cartik
+	 * @param queryString
+	 * @param searchTerm
+	 * @return
+	 * @throws SQLException
+	 * @PURPOSE The purpose of this query is to retrieve all the homolog information from
+	 * the database and package them into a collection of nodes. All the retrieved information
+	 * is added to these Nodes via links
+	 */
+	public Collection<Node> executeHomologyQueryAndAssembleResults(String queryString, String searchTerm) 
+		throws SQLException{
+		Collection<Node> results = new ArrayList<Node>();
+		PreparedStatement pStmt = null;
+		
+		try{
+			pStmt = conn.prepareStatement(queryString);
+			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
+				pStmt.setString(i, searchTerm);
+			log.trace(pStmt.toString());
+			long startTime = System.currentTimeMillis();
+			ResultSet rs = pStmt.executeQuery();
+			long endTime = System.currentTimeMillis();
+			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
+			while(rs.next()){
+				Node homologNode = new Node(rs.getString(1) + "\thasHomolog\t" + rs.getString(6));
+				Statement lhTaxonIdStmt = new Statement(homologNode.getId(), "lhTaxonId", rs.getString(2));
+				Statement lhTaxonStmt = new Statement(homologNode.getId(), "lhTaxon", rs.getString(3));
+				Statement rhTaxonIdStmt = new Statement(homologNode.getId(), "rhTaxonId", rs.getString(7));
+				Statement rhTaxonStmt = new Statement(homologNode.getId(), "rhTaxon", rs.getString(8));
+				Statement lhEntityIdStmt = new Statement(homologNode.getId(), "lhEntityId", rs.getString(4));
+				Statement lhEntityStmt = new Statement(homologNode.getId(), "lhEntity", rs.getString(5));
+				Statement rhEntityIdStmt = new Statement(homologNode.getId(), "rhEntityId", rs.getString(9));
+				Statement rhEntityStmt = new Statement(homologNode.getId(), "rhEntity", rs.getString(10));
+				
+				String publication = rs.getString(11);
+				String evidenceCode = rs.getString(12);
+				String evidence = rs.getString(13);
+				
+				Statement evidenceCodeStmt = new Statement(homologNode.getId(), "hasEvidenceCode", evidenceCode);
+				Statement evidenceStmt = new Statement(homologNode.getId(), "hasEvidence", evidence);
+				Statement sourceStmt = new Statement(homologNode.getId(), "hasPublication", publication); 
+				
+				homologNode.addStatement(lhEntityIdStmt);
+				homologNode.addStatement(lhEntityStmt);
+				homologNode.addStatement(lhTaxonIdStmt);
+				homologNode.addStatement(lhTaxonStmt);
+				homologNode.addStatement(rhEntityIdStmt);
+				homologNode.addStatement(rhEntityStmt);
+				homologNode.addStatement(rhTaxonIdStmt);
+				homologNode.addStatement(rhTaxonStmt);
+				homologNode.addStatement(sourceStmt);
+				homologNode.addStatement(evidenceCodeStmt);
+				homologNode.addStatement(evidenceStmt);
+				
+				results.add(homologNode);
+			}
+		}
+		catch(SQLException sqle){
+			log.error(sqle);
+			throw sqle;
+		}
+		finally {
+			if (pStmt != null) {
+				try { pStmt.close(); }
+				catch (SQLException ex) {
+					log.error(ex);
+                    // let's not worry further about the close() failing
+					throw ex;
+				}
+			}
+		}
+		return results;
+	}
+	
 	/**@throws SQLException 
 	 * @PURPOSE The purpose of this method is to execute the given query with set search term and assemble the results into a 
 	 * makeshift persistence layer. The persistence layer is a collection of Nodes from the OBD model. Columns from each retrieved
@@ -238,4 +311,5 @@ public class OBDQuery {
 		}
 		return results;
 	}	
+	
 }
