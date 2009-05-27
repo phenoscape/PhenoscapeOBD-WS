@@ -48,11 +48,10 @@ public class HomologyResource extends Resource {
 
     public Representation represent(Variant variant) throws ResourceException {
 
-    	List<Map<String, List<String[]>>> results;
+    	List<List<String[]>> results;
     	
     	JSONObject lhEntityObj, lhTaxonObj, rhEntityObj, rhTaxonObj, sourceObj;
-    	JSONObject homologyObj, subjectObj, targetObj;
-    	List<JSONObject> evidenceObjs;
+    	JSONObject homologyObj, subjectObj, targetObj, evidenceObj;
     	List<JSONObject> homologyObjs = new ArrayList<JSONObject>();
     	
     	if(termID != null && !termID.startsWith("TAO:") && !termID.startsWith("ZFA:")){
@@ -73,15 +72,8 @@ public class HomologyResource extends Resource {
     		return null;
     	}
     	
-    	List<String[]> homologyComps;
-    	List<String[]> evidenceCodes;
-    	
-    	Map<String, List<String[]>> homologyToCompMap = results.get(0);
-    	Map<String, List<String[]>> homologyToSourcesMap = results.get(1);
     	try{
-        	for(String key : homologyToCompMap.keySet()){
-        		homologyComps = homologyToCompMap.get(key);
-        		evidenceCodes = homologyToSourcesMap.get(key);
+        	for(List<String[]> row : results){
         		lhEntityObj = new JSONObject();
         		lhTaxonObj = new JSONObject();
         		rhEntityObj = new JSONObject();
@@ -90,35 +82,30 @@ public class HomologyResource extends Resource {
         		
         		homologyObj = new JSONObject();
         		subjectObj = new JSONObject();
-        		targetObj = new JSONObject();
-        		evidenceObjs = new ArrayList<JSONObject>();
+        		targetObj = new JSONObject();  		
+        		evidenceObj = new JSONObject();
         		
-        		lhEntityObj.put("id", homologyComps.get(0)[0]);
-        		lhEntityObj.put("name", homologyComps.get(0)[1]);
-        		lhTaxonObj.put("id", homologyComps.get(1)[0]);
-        		lhTaxonObj.put("name", homologyComps.get(1)[1]);
+        		lhEntityObj.put("id", row.get(0)[0]);
+        		lhEntityObj.put("name", row.get(0)[1]);
+        		lhTaxonObj.put("id", row.get(1)[0]);
+        		lhTaxonObj.put("name", row.get(1)[1]);
         		
         		subjectObj.put("entity", lhEntityObj);
         		subjectObj.put("taxon", lhTaxonObj);
         		
-        		rhEntityObj.put("id", homologyComps.get(2)[0]);
-        		rhEntityObj.put("name", homologyComps.get(2)[1]);
-        		rhTaxonObj.put("id", homologyComps.get(3)[0]);
-        		rhTaxonObj.put("name", homologyComps.get(3)[1]);
+        		rhEntityObj.put("id", row.get(2)[0]);
+        		rhEntityObj.put("name", row.get(2)[1]);
+        		rhTaxonObj.put("id", row.get(3)[0]);
+        		rhTaxonObj.put("name", row.get(3)[1]);
         		
         		targetObj.put("entity", rhEntityObj);
         		targetObj.put("taxon", rhTaxonObj);
         		        		
-        		sourceObj.put("publication", homologyComps.get(4)[0]);
+        		sourceObj.put("publication", row.get(4)[0]);
         		
-        		for(String[] evidence : evidenceCodes){
-        			JSONObject evidenceObj = new JSONObject();
-        			evidenceObj.put("id", evidence[0]);
-        			evidenceObj.put("name", evidence[1]);
-        			evidenceObjs.add(evidenceObj);
-        		}
-        		
-        		sourceObj.put("evidence", evidenceObjs);
+        		evidenceObj.put("id", row.get(5)[0]);
+    			evidenceObj.put("name", row.get(5)[1]);
+           		sourceObj.put("evidence", evidenceObj);
         		
         		homologyObj.put("subject", subjectObj);
         		homologyObj.put("target", targetObj);
@@ -150,24 +137,21 @@ public class HomologyResource extends Resource {
      * @param termId
      * @throws SQLException
      */
-    private List<Map<String, List<String[]>>> getHomologyData(String termId) throws SQLException{
-    	
-    	List<Map<String, List<String[]>>> results = new ArrayList<Map<String, List<String[]>>>();
-    	
+    private List<List<String[]>> getHomologyData(String termId) throws SQLException{
+    	    	
     	Map<String, String> nodeProps;
     	
-    	//This map maps the homolgy node to all the evidence codes
-    	Map<String, List<String[]>> nodeToSourcesMap = new HashMap<String, List<String[]>>();
-    	
     	//This map maps the homolgy node to the left and right hand entities and taxa and publication
-    	Map<String, List<String[]>> nodeToMetadataMap = new HashMap<String, List<String[]>>();
+    	List<List<String[]>> results = new ArrayList<List<String[]>>();
     	
     	// This list stores annotations about the homology data
     	List<String[]> annots;
     	
     	String relId, target;
-    	String nodeId, lhEntityId, lhEntity, lhTaxonId, lhTaxon, rhEntityId, 
-    		rhEntity, rhTaxonId, rhTaxon, publication, evidenceCode, evidence;
+    	String nodeId, lhEntityId, lhEntity, lhTaxonId, lhTaxon, rhEntityId,
+    		rhEntity, rhTaxonId, rhTaxon, publication, evidenceCode, evidence,
+    		sourceEntityId, sourceEntity, targetEntityId, targetEntity, 
+    		sourceTaxonId, sourceTaxon, targetTaxonId, targetTaxon;
     	
     	String sqlQuery = queries.getHomologyQuery();
     	
@@ -189,10 +173,35 @@ public class HomologyResource extends Resource {
 				lhTaxonId = nodeProps.get("lhTaxonId");
 				lhTaxon = nodeProps.get("lhTaxon");
 				
+				
 				rhEntityId = nodeProps.get("rhEntityId");
 				rhEntity = nodeProps.get("rhEntity");
 				rhTaxonId = nodeProps.get("rhTaxonId");
 				rhTaxon = nodeProps.get("rhTaxon");
+
+				if(lhEntityId.equals(termId)){
+					sourceEntityId = lhEntityId;
+					sourceEntity = lhEntity;
+					sourceTaxonId = lhTaxonId;
+					sourceTaxon = lhTaxon;
+					
+					targetEntityId = rhEntityId;
+					targetEntity = rhEntity;
+					targetTaxonId = rhTaxonId;
+					targetTaxon = rhTaxon;
+				}
+				else{
+					sourceEntityId = rhEntityId;
+					sourceEntity = rhEntity;
+					sourceTaxonId = rhTaxonId;
+					sourceTaxon = rhTaxon;
+					
+					targetEntityId = lhEntityId;
+					targetEntity = lhEntity;
+					targetTaxonId = lhTaxonId;
+					targetTaxon = lhTaxon;
+				}
+				
 				publication = nodeProps.get("hasPublication");
 				evidenceCode = nodeProps.get("hasEvidenceCode");
 				evidence = nodeProps.get("hasEvidence");
@@ -201,30 +210,17 @@ public class HomologyResource extends Resource {
 						lhEntityId + "[" + lhEntity + "] LH Taxon: " + lhTaxonId + "[" + lhTaxon + "] PublIcation: " + publication + 
 						"Evidence Code: " + evidenceCode + "Evidence: " + evidence);
 				
-				
-				//kep track of evidence codes associated with the homology statement
-				List<String[]> storedEvidenceCodes;
-				
-				if(nodeToSourcesMap.containsKey(nodeId))
-					storedEvidenceCodes = nodeToSourcesMap.get(nodeId);
-				else
-					storedEvidenceCodes = new ArrayList<String[]>();
-
-				storedEvidenceCodes.add(new String[]{evidenceCode, evidence});
-				nodeToSourcesMap.put(nodeId, storedEvidenceCodes);
-				
 				//we store the left and right hand entities and taxa here
 				annots = new ArrayList<String[]>();
-				annots.add(new String[]{lhEntityId, lhEntity});
-				annots.add(new String[]{lhTaxonId, lhTaxon});
-				annots.add(new String[]{rhEntityId, rhEntity});
-				annots.add(new String[]{rhTaxonId, rhTaxon});
+				annots.add(new String[]{sourceEntityId, sourceEntity});
+				annots.add(new String[]{sourceTaxonId, sourceTaxon});
+				annots.add(new String[]{targetEntityId, targetEntity});
+				annots.add(new String[]{targetTaxonId, targetTaxon});
 				annots.add(new String[]{publication});
+				annots.add(new String[]{evidenceCode, evidence});
 				
-				nodeToMetadataMap.put(nodeId, annots);
+				results.add(annots);
     		}
-    		results.add(nodeToMetadataMap);
-    		results.add(nodeToSourcesMap);
     	}
     	catch (SQLException sqle){
     		log().error(sqle);
