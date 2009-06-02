@@ -50,6 +50,7 @@ public class OBDApplication extends Application {
         // URL mappings
         router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
         router.attach("/phenotypes/summary", org.obd.ws.resources.PhenotypeSummaryResource.class);
+        router.attach("/phenotypes/source/{annotation_id}", org.obd.ws.resources.AnnotationResource.class);
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);

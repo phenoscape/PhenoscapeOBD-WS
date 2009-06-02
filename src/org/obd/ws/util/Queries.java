@@ -42,6 +42,12 @@ public class Queries {
 	private static final String HAS_PUBLICATION_RELATION_ID = "PHENOSCAPE:has_publication";
 	private static final String HAS_EVIDENCE_CODE_RELATION_ID = "PHENOSCAPE:has_evidence_code";
 	
+	private static final String POSITED_BY_RELATION_ID = "posited_by";
+	private static final String HAS_STATE_RELATION_ID = "cdao:has_State";
+	private static final String HAS_DATUM_RELATION_ID = "cdao:has_Datum";
+	private static final String HAS_CURATORS_RELATION_ID = "PHENOSCAPE:has_curators";
+	private static final String HAS_COMMENT_RELATION_ID = "PHENOSCAPE:has_comment";
+	
 	/*
 	 * An enumeration to keep track of the patterns to look for
 	 * in the raw query
@@ -56,7 +62,12 @@ public class Queries {
 		HOMOLOGOUS_TO("___homologous_to", HOMOLOG_TO_RELATION_ID),
 		IN_TAXON("___in_taxon", IN_TAXON_RELATION_ID),
 		HAS_PUBLICATION("___has_publication", HAS_PUBLICATION_RELATION_ID),
-		HAS_EVIDENCE_CODE("___has_evidence_code", HAS_EVIDENCE_CODE_RELATION_ID);
+		HAS_EVIDENCE_CODE("___has_evidence_code", HAS_EVIDENCE_CODE_RELATION_ID),
+		POSITED_BY("___posited_by", POSITED_BY_RELATION_ID),
+		HAS_STATE("___has_State", HAS_STATE_RELATION_ID),
+		HAS_DATUM("___has_Datum", HAS_DATUM_RELATION_ID),
+		HAS_CURATORS("___has_curators", HAS_CURATORS_RELATION_ID),
+		HAS_COMMENT("___has_comment", HAS_COMMENT_RELATION_ID);
 
 		
 		QueryPlaceholder(String name, String rId){
@@ -78,8 +89,6 @@ public class Queries {
 	/*
 	 * These are the queries we are using now. 
 	 */
-	
-	//TODO Add more queries
 	
 	/**
 	 * @INPUT: An anatomical entity (E)
@@ -462,6 +471,65 @@ public class Queries {
 		"homology_link.predicate_id = ___homologous_to AND " +
 		"(entity1_node.node_id = (SELECT node_id FROM node WHERE uid = ?) OR " +
 		"entity2_node.node_id = (SELECT node_id FROM node WHERE uid = ?))";
+	
+	
+	/**
+	 * @INPUT a reif_link_node_id that keeps track of metadata about the <TAXON><EXHIBITS><PHENOTYPE> assertion
+	 * This query is used to retrieve metadata about a <TAXON><EXHIBITS><PHENOTYPE> assertion, such
+	 * as publications, text notes about the state and character, and the curators names as well. 
+	 * The <TAXON> <ENTITY> <QUALITY> triple is retrieved as well
+	 */
+	private String freeTextDataQuery = 
+		"SELECT " +
+		"phenotype_node.uid AS phenotype, " +
+		"taxon_node.uid AS taxon_id, " +
+		"taxon_node.label AS taxon, " +
+		"entity_node.uid AS entity_id, " +
+		"entity_node.label AS entity, " +
+		"quality_node.uid AS quality_id, " +
+		"quality_node.label AS quality, " +
+		"pub_node.uid AS publication, " +
+		"character_node.label AS character_text, " +
+		"char_tag.val AS char_comment, " +
+		"state_node.label AS state_text, " +
+		"state_tag.val AS state_comment, " +
+		"curator_tag.val AS curators " +
+		"FROM " +
+		"link AS exhibits_link " +
+		"JOIN link AS posited_by_link ON (posited_by_link.node_id = exhibits_link.reiflink_node_id) " +
+		"JOIN (link AS has_pub_link " +
+		"JOIN node AS pub_node " +
+		"ON (has_pub_link.object_id = pub_node.node_id)) " +
+		"ON (posited_by_link.object_id = has_pub_link.node_id) " +
+		"JOIN link AS has_state_link ON (has_state_link.node_id =  exhibits_link.reiflink_node_id) " +
+		"JOIN link AS has_state_link2 ON (has_state_link2.node_id = has_state_link.object_id) " +
+		"JOIN node AS state_node ON (has_state_link2.object_id = state_node.node_id) " +
+		"JOIN link AS has_character_link ON (has_character_link.object_id = state_node.node_id) " +
+		"JOIN node AS character_node ON (has_character_link.node_id = character_node.node_id) " +
+		"JOIN node AS phenotype_node ON (exhibits_link.object_id = phenotype_node.node_id) " +
+		"JOIN node AS taxon_node ON (exhibits_link.node_id = taxon_node.node_id) " +
+		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id AND " +
+		"	inheres_in_link.is_inferred = 'f') " +
+		"JOIN node AS entity_node ON (inheres_in_link.object_id = entity_node.node_id) " +
+		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id AND " +
+		"	is_a_link.is_inferred = 'f') " +
+		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
+		"JOIN tagval AS curator_tag ON ((curator_tag.node_id = posited_by_link.object_id) " +
+		"	AND (curator_tag.tag_id = ___has_curators)) " +
+		"JOIN tagval AS char_tag ON ((char_tag.node_id = character_node.node_id)  " +
+		"	AND (char_tag.tag_id = ___has_comment)) " +
+		"JOIN tagval AS state_tag ON ((state_tag.node_id = state_node.node_id) " +
+		"	AND (state_tag.tag_id = ___has_comment)) " +
+		"WHERE " +
+		"exhibits_link.reiflink_node_id = ? AND " +
+		"inheres_in_link.predicate_id = ___inheres_in AND " +
+		"is_a_link.predicate_id = ___is_a AND " +
+		"posited_by_link.predicate_id = ___posited_by AND " +
+		"has_state_link.predicate_id = ___has_State AND " +
+		"has_state_link2.predicate_id = ___has_State AND " +
+		"has_character_link.predicate_id = ___has_Datum AND " +
+		"has_pub_link.predicate_id = ___has_publication AND " +
+		"exhibits_link.is_inferred = 'f' ";
 
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
@@ -485,6 +553,12 @@ public class Queries {
 		relationNodeIds.put(HOMOLOG_TO_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HOMOLOG_TO_RELATION_ID));
 		relationNodeIds.put(HAS_PUBLICATION_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_PUBLICATION_RELATION_ID));
 		relationNodeIds.put(HAS_EVIDENCE_CODE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_EVIDENCE_CODE_RELATION_ID));
+		
+		relationNodeIds.put(POSITED_BY_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(POSITED_BY_RELATION_ID));
+		relationNodeIds.put(HAS_STATE_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_STATE_RELATION_ID));
+		relationNodeIds.put(HAS_DATUM_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_DATUM_RELATION_ID));
+		relationNodeIds.put(HAS_CURATORS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_CURATORS_RELATION_ID));
+		relationNodeIds.put(HAS_COMMENT_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_COMMENT_RELATION_ID));
 	}
 	
 	/*
@@ -512,6 +586,10 @@ public class Queries {
 	
 	public String getHomologyQuery() {
 		return replacePatternsWithIds(homologyQuery);
+	}
+	
+	public String getFreeTextDataQuery(){
+		return replacePatternsWithIds(freeTextDataQuery);
 	}
 	
 	/**

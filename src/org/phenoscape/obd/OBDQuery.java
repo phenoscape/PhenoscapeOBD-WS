@@ -49,11 +49,122 @@ public class OBDQuery {
 
 	/**
 	 * @author cartik
-	 * @param queryString
-	 * @param searchTerm
+	 * @param queryString - the SQL query
+	 * @param searchTerm - the search parameter for the SQL query
 	 * @return
 	 * @throws SQLException
-	 * @PURPOSE The purpose of this query is to retrieve all the homolog information from
+	 * @PURPOSE The purpose of this query is to return all the free text data
+	 * (metadata) associated with a given <TAXON><EXHIBITS><PHENOTYPE> assertion
+	 * The metadata is packaged into a collection of Nodes which are then returned
+	 * back
+	 */
+	public Collection<Node> executeFreeTextQueryAndAssembleResults(String queryString, String searchTerm)
+		throws SQLException{
+		
+		Collection<Node> results = new ArrayList<Node>();
+		PreparedStatement pStmt = null;
+		
+		String taxonId, taxon, entityId, entity, qualityId, quality, 
+				publication, charText, charComments, stateText, stateComments, 
+				curators;
+		
+		try{
+			pStmt = conn.prepareStatement(queryString);
+			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
+				pStmt.setInt(i, Integer.parseInt(searchTerm));
+			log.trace(pStmt.toString());
+			long startTime = System.currentTimeMillis();
+			ResultSet rs = pStmt.executeQuery();
+			long endTime = System.currentTimeMillis();
+			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
+			if(rs.next()){
+				Node annotationNode = new Node(rs.getString(1));
+				
+				taxonId = rs.getString(2);
+				taxon = rs.getString(3);
+				
+				entityId = rs.getString(4);
+				entity = rs.getString(5);
+				
+				//Handling post compositions. TODO THis has to be streamlined
+				if(entity == null || entity.length() == 0){
+					entity = resolveLabel(entityId);
+				}
+				
+				qualityId = rs.getString(6);
+				quality = rs.getString(7);
+				
+				//TODO Streamline post compositions handling method here
+				if(quality == null || quality.length() == 0){
+					quality = resolveLabel(qualityId);
+				}
+				
+				publication = rs.getString(8);
+				
+				charText = rs.getString(9);
+				charComments = rs.getString(10);
+				
+				stateText = rs.getString(11);
+				stateComments = rs.getString(12);
+				
+				curators = rs.getString(13);
+				
+				Statement taxonIdStmt = new Statement(annotationNode.getId(), "hasTaxonId", taxonId);
+				Statement taxonStmt = new Statement(annotationNode.getId(), "hasTaxon", taxon);
+				Statement entityIdStmt = new Statement(annotationNode.getId(), "hasEntityId", entityId);
+				Statement entityStmt = new Statement(annotationNode.getId(), "hasEntity", entity);
+				Statement qualityIdStmt = new Statement(annotationNode.getId(), "hasQualityId", qualityId);
+				Statement qualityStmt = new Statement(annotationNode.getId(), "hasQuality", quality);
+				Statement publicationStmt = new Statement(annotationNode.getId(), "hasPublication", publication);
+				Statement curatorsStmt = new Statement(annotationNode.getId(), "hasCurators", curators);
+				
+				Statement stateTextStmt = new Statement(annotationNode.getId(), "hasStateText", stateText);
+				Statement stateCommentStmt = new Statement(annotationNode.getId(), "hasStateComments", stateComments);
+				
+				Statement charTextStmt = new Statement(annotationNode.getId(), "hasCharText", charText);
+				Statement charCommentStmt = new Statement(annotationNode.getId(), "hasCharComments", charComments);
+				
+				annotationNode.addStatement(qualityIdStmt);
+				annotationNode.addStatement(qualityStmt);
+				annotationNode.addStatement(taxonIdStmt);
+				annotationNode.addStatement(taxonStmt);
+				annotationNode.addStatement(publicationStmt);
+				annotationNode.addStatement(curatorsStmt);
+				annotationNode.addStatement(entityIdStmt);
+				annotationNode.addStatement(entityStmt);
+				annotationNode.addStatement(stateTextStmt);
+				annotationNode.addStatement(stateCommentStmt);
+				annotationNode.addStatement(charTextStmt);
+				annotationNode.addStatement(charCommentStmt);
+				
+				results.add(annotationNode);
+			}
+		}
+		catch(SQLException sqle){
+			log.error(sqle);
+			throw sqle;
+		}
+		finally {
+			if (pStmt != null) {
+				try { pStmt.close(); }
+				catch (SQLException ex) {
+					log.error(ex);
+                    // let's not worry further about the close() failing
+					throw ex;
+				}
+			}
+		}
+		
+		return results;
+	}
+	
+	/**
+	 * @author cartik
+	 * @param queryString - the SQL query
+	 * @param searchTerm - the search parameter for the SQL query
+	 * @return
+	 * @throws SQLException
+	 * @PURPOSE The purpose of this method is to retrieve all the homolog information from
 	 * the database and package them into a collection of nodes. All the retrieved information
 	 * is added to these Nodes via links
 	 */
