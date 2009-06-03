@@ -93,6 +93,7 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 							+ "is not a recognized taxon or gene");
 			return null;
 		}
+		/* Commenting out this section to let post compositions work - Cartik 06/03/09
 		if(entity_id != null && !entity_id.startsWith("TAO:") && !entity_id.startsWith("ZFA:")){
 			this.jObjs = null;
 			getResponse().setStatus(
@@ -101,6 +102,7 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 							+ "is not a recognized anatomical entity");
 			return null;
 		}
+		*/
 		if(quality_id != null && !quality_id.startsWith("PATO:")){
 			this.jObjs = null;
 			getResponse().setStatus(
