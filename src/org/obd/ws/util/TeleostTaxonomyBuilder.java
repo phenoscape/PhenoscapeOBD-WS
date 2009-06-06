@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,7 +34,7 @@ import org.obo.util.TermUtil;
 
 public class TeleostTaxonomyBuilder {
 	
-	private Map<OBOClass, Set<OBOClass>> nodesWithChildren;
+	private Map<OBOClass, Set<OBOClass>> parentToChildrenMap;
 	private Map<OBOClass, OBOClass> childToParentMap;
 
 	private Set<OBOClass> roots;
@@ -54,8 +53,8 @@ public class TeleostTaxonomyBuilder {
 		return leaves;
 	}
 	
-	public Map<OBOClass, Set<OBOClass>> getNodesWithChildren() {
-		return nodesWithChildren;
+	public Map<OBOClass, Set<OBOClass>> getParentToChildrenMap() {
+		return parentToChildrenMap;
 	}
 	
 	public Map<OBOClass, OBOClass> getChildToParentMap(){
@@ -74,7 +73,7 @@ public class TeleostTaxonomyBuilder {
 	 * @throws DataAdapterException 
 	 */
 	public TeleostTaxonomyBuilder() throws IOException, DataAdapterException{
-		nodesWithChildren = new HashMap<OBOClass, Set<OBOClass>>();
+		parentToChildrenMap = new HashMap<OBOClass, Set<OBOClass>>();
 		childToParentMap = new HashMap<OBOClass, OBOClass>();
 		roots = new HashSet<OBOClass>();
 		leaves = new HashSet<OBOClass>();
@@ -155,14 +154,14 @@ public class TeleostTaxonomyBuilder {
 		//we assume a tree. 
 		Link pLink = (Link)node.getParents().toArray()[0];
 		OBOClass parent = (OBOClass)pLink.getParent();
-		if(nodesWithChildren.containsKey(parent)){
-			children = nodesWithChildren.get(parent);
+		if(parentToChildrenMap.containsKey(parent)){
+			children = parentToChildrenMap.get(parent);
 		}
 		else{
 			children = new HashSet<OBOClass>();
 		}
 		children.add(node);
-		nodesWithChildren.put(parent, children);
+		parentToChildrenMap.put(parent, children);
 		childToParentMap.put(node, parent);
 	}
 	
@@ -178,16 +177,13 @@ public class TeleostTaxonomyBuilder {
 			children.add(child);
 			childToParentMap.put(child, node);
 		}
-		
-		nodesWithChildren.put(node, children);
-		
+		parentToChildrenMap.put(node, children);
 	}
 	
 	/**
 	 * @PURPOSE This is a test method to print out the entire
 	 * stored taxonomy with the proper indentation
 	 * @CAUTION Hardcoded file path for writing out the taxonomy
-	 * @param ttb - this instance of the TeleostTaxonomyBuilder class
 	 * @param node - the node whose children are to printed along with the node
 	 * itself
 	 * @param tabCt - the number of indents
@@ -202,7 +198,7 @@ public class TeleostTaxonomyBuilder {
 			tabs += "  ";
 		}
 		if(!getLeaves().contains(node)){//this is not a leaf node
-			for(OBOClass child : getNodesWithChildren().get(node)){
+			for(OBOClass child : getParentToChildrenMap().get(node)){
 				bw.write(tabs + child.getID() + "\t" + child.getName() + "\n");
 				printTaxonomy(child, tabCt + 1, bw);
 			}
@@ -221,7 +217,7 @@ public class TeleostTaxonomyBuilder {
 	 * @param path - the path from the node to the root of the TTO
 	 * @return the path from the given node to the root
 	 */
-	public List<OBOClass> tracePath(String nodeId, List<OBOClass> path){
+	public List<OBOClass> tracePathToRoot(String nodeId, List<OBOClass> path){
 		//we check if this is a root node. Exit condition for 
 		//recursion 
 		for(OBOClass root : roots){
@@ -230,12 +226,34 @@ public class TeleostTaxonomyBuilder {
 				return path;
 			}
 		}
-		
 		//otherwise, we recurse through the collection of nodes
 		//and children
 		OBOClass parent = getChildToParentMap().get(getIdToClassMapper().get(nodeId));
 		path.add(getIdToClassMapper().get(nodeId));
-		return tracePath(parent.getID(), path);
+		return tracePathToRoot(parent.getID(), path);
+	}
+	
+	/**
+	 * @PURPOSE This method computes the path between a given node and 
+	 * an arbitrary node in the tree
+	 * @NOTE This is the same as {@link tracePathToRoot} except the terminus
+	 * is an arbitrary node and not the root in this case
+	 * @param startNodeId - the node to start from 
+	 * @param endNodeId - the node to end at
+	 * @param path - the path from current node to end
+	 * @return the complete path from source to end
+	 */
+	public List<OBOClass> tracePath(OBOClass startNode, OBOClass endNode, List<OBOClass> path){
+		
+		if(startNode.getID().equals(endNode.getID()) ||
+				!this.tracePathToRoot(startNode.getID(), new ArrayList<OBOClass>()).contains(endNode)){
+			path.add(endNode);
+			return path;
+		}
+		
+		OBOClass parent = childToParentMap.get(startNode);
+		path.add(startNode);
+		return tracePath(parent, endNode, path);
 	}
 	
 	/**
@@ -265,24 +283,24 @@ public class TeleostTaxonomyBuilder {
 	 * @param mrca - the other taxon
 	 * @return - the mrca of the two taxa
 	 */
-	private OBOClass findMRCA(OBOClass oClass, OBOClass mrca){
+	public OBOClass findMRCA(OBOClass oClass, OBOClass mrca){
 		//if the MRCA is null, we are just getting started trivially
 		//return the oClass as the MRCA
 		if(mrca == null)
 			return oClass;
 		//if the MRCA lies in the path from the oClass to the Root,
 		//the MRCA stays the MRCA
-		else if(this.tracePath(oClass.getID(), new ArrayList<OBOClass>()).contains(mrca))
+		else if(this.tracePathToRoot(oClass.getID(), new ArrayList<OBOClass>()).contains(mrca))
 			return mrca;
 		//otherwise, if the oClass lies in the path from the MRCA to its root,
 		//the oClass becomes the new MRCA
-		else if(this.tracePath(mrca.getID(), new ArrayList<OBOClass>()).contains(oClass))
+		else if(this.tracePathToRoot(mrca.getID(), new ArrayList<OBOClass>()).contains(oClass))
 			return oClass;
 		else{
 			//get the path from oClass to Root
-			List<OBOClass> pathFromOclass = this.tracePath(oClass.getID(), new ArrayList<OBOClass>());
+			List<OBOClass> pathFromOclass = this.tracePathToRoot(oClass.getID(), new ArrayList<OBOClass>());
 			//get the path from mrca to Root
-			List<OBOClass> pathFromMrca = this.tracePath(mrca.getID(), new ArrayList<OBOClass>());
+			List<OBOClass> pathFromMrca = this.tracePathToRoot(mrca.getID(), new ArrayList<OBOClass>());
 			//find where they intersect, this intersection point is the new MRCA
 			return findBranchingPointInPaths(pathFromOclass, pathFromMrca);
 		}
@@ -301,12 +319,12 @@ public class TeleostTaxonomyBuilder {
 				return taxon;
 			}
 		}
-		return null;
+		return pathFromMrca.get(0);
 	}
 	
 	/**
 	 * @PURPOSE The purpose of this method is to arrange
-	 * the input list of taxa hierarchically in a treem with the
+	 * the input list of taxa hierarchically in a tree with the
 	 * MRCA at the root. Every intermediate node is also
 	 * stored in the tree
 	 * @param taxaList - input list of taxa
@@ -315,75 +333,39 @@ public class TeleostTaxonomyBuilder {
 	 */
 	public TaxonTree constructTreeFromTaxaList(LinkedList<OBOClass> taxaList, 
 												TaxonTree tree){
-		//if we have reached the end of the list, we return the tree
-		if(taxaList.size() == 0)
-			return tree;
-			
-		OBOClass first = taxaList.remove(0);
-		TaxonTree interTree = constructTreeFromTaxonAndRoot(first, tree);
 		
-		return constructTreeFromTaxaList(taxaList, interTree);
+		//get all the branching points, we'll use these
+		Map<OBOClass, Set<OBOClass>> branches = tree.getBranchingPointsAndChildren();
+		Set<OBOClass> children;
+		OBOClass currRoot = null;
+		OBOClass parent;
+		
+		for(OBOClass oboClass : taxaList){
+			//we call the findMRCA method only if the current root 
+			//is not the root of entire ontology
+
+			currRoot = this.findMRCA(oboClass, currRoot);
+			//find path to current MRCA
+			List<OBOClass> pathToMrca = this.tracePath(oboClass, currRoot, new ArrayList<OBOClass>());
+			
+			//process each node in the path
+			for(int index = 0; index < pathToMrca.size() - 1; index++){
+				OBOClass node = pathToMrca.get(index);
+				parent = pathToMrca.get(index + 1);
+				if(branches.containsKey(parent))
+					children = branches.get(parent);
+				else
+					children = new HashSet<OBOClass>();
+				children.add(node);
+				branches.put(parent, children);
+			}
+		}
+		//set the branches of the tree and the root
+		tree.setBranchingPointsAndChildren(branches);
+		tree.setRoot(currRoot);
+		return tree;
 	}
 	
-	/**
-	 * 
-	 * @param taxon - the current taxon to work with
-	 * @param tree - the tree of taxa that have been processed so far
-	 * @return
-	 */
-	private TaxonTree constructTreeFromTaxonAndRoot(OBOClass taxon, 
-										TaxonTree tree){
-		
-		//if there is no current root, first time ths method is called
-		//make the current taxon the root
-		if(tree.getRoot() == null){
-			tree.setRoot(taxon);
-			return tree;
-		}
-		OBOClass currRoot = tree.getRoot();	
-		//find path from taxon to the top of the tree
-		List<OBOClass> taxonToTreetop = this.tracePath(taxon.getID(), new ArrayList<OBOClass>());
-		//find path from current root to the top of the tree
-		List<OBOClass> currRootToTreetop = this.tracePath(currRoot.getID(), new ArrayList<OBOClass>());
-		//if root is located somewhere on the path from the taxon to the top of the tree,
-		//add the path from the taxon to this root only
-		if(taxonToTreetop.contains(currRoot)){
-			tree.setRoot(currRoot);
-			List<OBOClass> newPath = taxonToTreetop.subList(taxonToTreetop.indexOf(taxon), 
-					taxonToTreetop.indexOf(currRoot) + 1);
-			Collections.reverse(newPath);
-			tree.getPaths().add(newPath);
-			return tree;
-		}
-		//if taxon is located somewhere on the path from the current root to the top of 
-		//the tree, add the path from the current root to the taxon. make the current root
-		//the root of the tree
-		else if(currRootToTreetop.contains(taxon)){
-			tree.setRoot(taxon);
-			List<OBOClass> newPath = currRootToTreetop.subList(currRootToTreetop.indexOf(currRoot), 
-					currRootToTreetop.indexOf(taxon) + 1);
-			Collections.reverse(newPath);
-			tree.getPaths().add(newPath);
-			return tree;
-		}
-		//otherwise, look for an intersection point between the paths from the taxon and the current root
-		//to the treetop, and add both paths (upto the intersection point) to the tree. make the intersection
-		//point the root of the tree
-		else{
-			OBOClass intersectionPt = this.findBranchingPointInPaths(taxonToTreetop, currRootToTreetop);
-			tree.setRoot(intersectionPt);
-			List<OBOClass> path1 = taxonToTreetop.subList(taxonToTreetop.indexOf(taxon), 
-					taxonToTreetop.indexOf(intersectionPt) + 1);
-			List<OBOClass> path2 = currRootToTreetop.subList(currRootToTreetop.indexOf(currRoot), 
-					currRootToTreetop.indexOf(intersectionPt) + 1);
-			Collections.reverse(path1);
-			tree.getPaths().add(path1);
-			Collections.reverse(path2);
-			tree.getPaths().add(path2);
-			return tree;
-		}
-	}
-
 	/**
 	 * The main method. This will be used to test the other methods before
 	 * they are invoked directly from the other classes REST resources to
@@ -412,7 +394,6 @@ public class TeleostTaxonomyBuilder {
 			ttoList.add(ttb.getIdToClassMapper().get(tto));
 		}
 
-		int startSize = ttoList.size();
 //		ttoList.add(ttb.getIdToClassMapper().get("TTO:1001979"));
 //		ttoList.add(ttb.getIdToClassMapper().get("TTO:1002351"));
 //		ttoList.add(ttb.getIdToClassMapper().get("TTO:10000039"));
@@ -422,20 +403,17 @@ public class TeleostTaxonomyBuilder {
 //		System.out.println((endTime2 - startTime2) + " milliseconds to find MRCA");
 		
 		TaxonTree tree = new TaxonTree();
-		try{
-			ttb.constructTreeFromTaxaList(ttoList, tree);
-		}
-		catch(Exception e){
-			System.out.println(tree.getRoot());
-			System.out.println(ttoList.get(0));
-		}
-		catch(Error e){
-			System.out.println((startSize - ttoList.size()) + " nodes processed");
-			System.out.println(e);
-		}
-		System.out.println("Root is " + tree.getRoot());
-		//for(List<OBOClass> path : tree.getPaths())
-			//System.out.println(path);
+		
+		long startTime2 = System.currentTimeMillis();
+		tree = ttb.constructTreeFromTaxaList(ttoList, tree);
+		long endTime2 = System.currentTimeMillis();
+		System.out.println((endTime2 - startTime2) + " milliseconds to construct subtree from taxonList");
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("/home/cartik/Desktop/subtree.txt")));
+		System.out.println("root of the tree is " + tree.getRoot());
+		tree.printTaxonomy(tree.getRoot(), 0, bw);
+		bw.flush();
+		bw.close();
 	}
 
 	private Logger log() {
