@@ -19,6 +19,10 @@ import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
+import org.obd.ws.util.Queries;
+import org.obd.ws.util.dto.AnnotationDTO;
+import org.obd.ws.util.dto.HomologDTO;
+import org.obd.ws.util.dto.PhenotypeDTO;
 
 /**
  * This class interfaces with methods from the OBDAPI, specifically
@@ -32,6 +36,7 @@ public class OBDQuery {
 	private final Shard shard;
 	private Connection conn;
 	public Logger log;
+	private Queries queries;
 	public static enum AutoCompletionMatchTypes{
 		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
 	};
@@ -39,18 +44,20 @@ public class OBDQuery {
 	
 	/**
 	 * This is the default constructor. 
-	 * @param shard = the shard to use
+	 * @param shard = the shard to use. THis has to be an AbstractSQLShard to use the connection
+	 * it comes with
 	 */
 	public OBDQuery(Shard shard){
 		this.shard = shard;
 		this.conn = ((AbstractSQLShard)shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
+		this.queries = new Queries(this.shard);
 	}
 
 	/**
 	 * @author cartik
-	 * @param queryString - the SQL query
-	 * @param searchTerm - the search parameter for the SQL query
+	 * @param reifLinkId - the search parameter for the SQL query. This is an INTEGER
+	 * which is provided by the invoking REST service. 
 	 * @return
 	 * @throws SQLException
 	 * @PURPOSE The purpose of this query is to return all the free text data
@@ -58,30 +65,28 @@ public class OBDQuery {
 	 * The metadata is packaged into a collection of Nodes which are then returned
 	 * back
 	 */
-	public Collection<Node> executeFreeTextQueryAndAssembleResults(String queryString, String searchTerm)
+	public Collection<AnnotationDTO> executeFreeTextQueryAndAssembleResults(Integer reifLinkId)
 		throws SQLException{
 		
-		Collection<Node> results = new ArrayList<Node>();
+		Collection<AnnotationDTO> results = new ArrayList<AnnotationDTO>();
 		PreparedStatement pStmt = null;
 		
-		String taxonId, taxon, entityId, entity, qualityId, quality, 
-				publication, charText, charComments, stateText, stateComments, 
-				curators;
+		String entityId, entity, qualityId, quality;
 		
 		try{
-			pStmt = conn.prepareStatement(queryString);
+			pStmt = conn.prepareStatement(queries.getFreeTextDataQuery());
 			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
-				pStmt.setInt(i, Integer.parseInt(searchTerm));
+				pStmt.setInt(i, reifLinkId);
 			log.trace(pStmt.toString());
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = pStmt.executeQuery();
 			long endTime = System.currentTimeMillis();
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			if(rs.next()){
-				Node annotationNode = new Node(rs.getString(1));
+				AnnotationDTO dto = new AnnotationDTO(rs.getString(1));
 				
-				taxonId = rs.getString(2);
-				taxon = rs.getString(3);
+				dto.setTaxonId(rs.getString(2));
+				dto.setTaxon(rs.getString(3));
 				
 				entityId = rs.getString(4);
 				entity = rs.getString(5);
@@ -99,45 +104,22 @@ public class OBDQuery {
 					quality = resolveLabel(qualityId);
 				}
 				
-				publication = rs.getString(8);
+				dto.setEntityId(entityId);
+				dto.setEntity(entity);
+				dto.setQualityId(qualityId);
+				dto.setQuality(quality);
 				
-				charText = rs.getString(9);
-				charComments = rs.getString(10);
+				dto.setPublication(rs.getString(8));
 				
-				stateText = rs.getString(11);
-				stateComments = rs.getString(12);
+				dto.setCharText(rs.getString(9));
+				dto.setCharComments(rs.getString(10));
 				
-				curators = rs.getString(13);
+				dto.setStateText(rs.getString(11));
+				dto.setStateComments(rs.getString(12));
 				
-				Statement taxonIdStmt = new Statement(annotationNode.getId(), "hasTaxonId", taxonId);
-				Statement taxonStmt = new Statement(annotationNode.getId(), "hasTaxon", taxon);
-				Statement entityIdStmt = new Statement(annotationNode.getId(), "hasEntityId", entityId);
-				Statement entityStmt = new Statement(annotationNode.getId(), "hasEntity", entity);
-				Statement qualityIdStmt = new Statement(annotationNode.getId(), "hasQualityId", qualityId);
-				Statement qualityStmt = new Statement(annotationNode.getId(), "hasQuality", quality);
-				Statement publicationStmt = new Statement(annotationNode.getId(), "hasPublication", publication);
-				Statement curatorsStmt = new Statement(annotationNode.getId(), "hasCurators", curators);
+				dto.setCurators(rs.getString(13));
 				
-				Statement stateTextStmt = new Statement(annotationNode.getId(), "hasStateText", stateText);
-				Statement stateCommentStmt = new Statement(annotationNode.getId(), "hasStateComments", stateComments);
-				
-				Statement charTextStmt = new Statement(annotationNode.getId(), "hasCharText", charText);
-				Statement charCommentStmt = new Statement(annotationNode.getId(), "hasCharComments", charComments);
-				
-				annotationNode.addStatement(qualityIdStmt);
-				annotationNode.addStatement(qualityStmt);
-				annotationNode.addStatement(taxonIdStmt);
-				annotationNode.addStatement(taxonStmt);
-				annotationNode.addStatement(publicationStmt);
-				annotationNode.addStatement(curatorsStmt);
-				annotationNode.addStatement(entityIdStmt);
-				annotationNode.addStatement(entityStmt);
-				annotationNode.addStatement(stateTextStmt);
-				annotationNode.addStatement(stateCommentStmt);
-				annotationNode.addStatement(charTextStmt);
-				annotationNode.addStatement(charCommentStmt);
-				
-				results.add(annotationNode);
+				results.add(dto);
 			}
 		}
 		catch(SQLException sqle){
@@ -161,20 +143,21 @@ public class OBDQuery {
 	/**
 	 * @author cartik
 	 * @param queryString - the SQL query
-	 * @param searchTerm - the search parameter for the SQL query
-	 * @return
+	 * @param searchTerm - the search parameter for the SQL query. This term comes from the REST 
+	 * service
+	 * @return a collection of nodes
 	 * @throws SQLException
 	 * @PURPOSE The purpose of this method is to retrieve all the homolog information from
 	 * the database and package them into a collection of nodes. All the retrieved information
 	 * is added to these Nodes via links
 	 */
-	public Collection<Node> executeHomologyQueryAndAssembleResults(String queryString, String searchTerm) 
+	public Collection<HomologDTO> executeHomologyQueryAndAssembleResults(String searchTerm) 
 		throws SQLException{
-		Collection<Node> results = new ArrayList<Node>();
+		Collection<HomologDTO> results = new ArrayList<HomologDTO>();
 		PreparedStatement pStmt = null;
 		
 		try{
-			pStmt = conn.prepareStatement(queryString);
+			pStmt = conn.prepareStatement(queries.getHomologyQuery());
 			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
 				pStmt.setString(i, searchTerm);
 			log.trace(pStmt.toString());
@@ -183,37 +166,21 @@ public class OBDQuery {
 			long endTime = System.currentTimeMillis();
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
-				Node homologNode = new Node(rs.getString(1) + "\thasHomolog\t" + rs.getString(6));
-				Statement lhTaxonIdStmt = new Statement(homologNode.getId(), "lhTaxonId", rs.getString(2));
-				Statement lhTaxonStmt = new Statement(homologNode.getId(), "lhTaxon", rs.getString(3));
-				Statement rhTaxonIdStmt = new Statement(homologNode.getId(), "rhTaxonId", rs.getString(7));
-				Statement rhTaxonStmt = new Statement(homologNode.getId(), "rhTaxon", rs.getString(8));
-				Statement lhEntityIdStmt = new Statement(homologNode.getId(), "lhEntityId", rs.getString(4));
-				Statement lhEntityStmt = new Statement(homologNode.getId(), "lhEntity", rs.getString(5));
-				Statement rhEntityIdStmt = new Statement(homologNode.getId(), "rhEntityId", rs.getString(9));
-				Statement rhEntityStmt = new Statement(homologNode.getId(), "rhEntity", rs.getString(10));
+				HomologDTO dto = new HomologDTO(rs.getString(1) + "\t" + rs.getString(6));
+				dto.setLhEntityId(rs.getString(2));
+				dto.setLhEntity(rs.getString(3));
+				dto.setRhEntityId(rs.getString(7));
+				dto.setRhEntity(rs.getString(8));
+				dto.setLhEntityId(rs.getString(4));
+				dto.setLhEntity(rs.getString(5));
+				dto.setRhEntityId(rs.getString(9));
+				dto.setRhEntity(rs.getString(10));
 				
-				String publication = rs.getString(11);
-				String evidenceCode = rs.getString(12);
-				String evidence = rs.getString(13);
+				dto.setPublication(rs.getString(11));
+				dto.setEvidenceCode(rs.getString(12));
+				dto.setEvidence(rs.getString(13));
 				
-				Statement evidenceCodeStmt = new Statement(homologNode.getId(), "hasEvidenceCode", evidenceCode);
-				Statement evidenceStmt = new Statement(homologNode.getId(), "hasEvidence", evidence);
-				Statement sourceStmt = new Statement(homologNode.getId(), "hasPublication", publication); 
-				
-				homologNode.addStatement(lhEntityIdStmt);
-				homologNode.addStatement(lhEntityStmt);
-				homologNode.addStatement(lhTaxonIdStmt);
-				homologNode.addStatement(lhTaxonStmt);
-				homologNode.addStatement(rhEntityIdStmt);
-				homologNode.addStatement(rhEntityStmt);
-				homologNode.addStatement(rhTaxonIdStmt);
-				homologNode.addStatement(rhTaxonStmt);
-				homologNode.addStatement(sourceStmt);
-				homologNode.addStatement(evidenceCodeStmt);
-				homologNode.addStatement(evidenceStmt);
-				
-				results.add(homologNode);
+				results.add(dto);
 			}
 		}
 		catch(SQLException sqle){
@@ -239,12 +206,16 @@ public class OBDQuery {
 	 * row are packaged into a single Node object. The phenotype is the central entity in this querying procedure. 
 	 * Therefore, the IDs of the each node are set to be the retrieved phenotype. The method assembles
 	 * these nodes into a collection, which are returned
+	 * @param queryStr - this is provided by the invoking REST service. This is the SQL query to be executed
+	 * @param searchTerm - the UID (eg: TAO:0000108) to search for. Also provided by the invoking REST service
+	 * @param filterOptions - the rows retrieved by the query execution are filtered through these values which are provided
+	 * by the invoking REST service
 	 */
 
-	public Collection<Node> executeQueryAndAssembleResults(String queryStr, String searchTerm, Map<String, String> filterOptions) 
+	public Collection<PhenotypeDTO> executeQueryAndAssembleResults(String queryStr, String searchTerm, Map<String, String> filterOptions) 
 		throws SQLException{
-		Collection<Node> results = new ArrayList<Node>();
-		String entityLabel;
+		Collection<PhenotypeDTO> results = new ArrayList<PhenotypeDTO>();
+		String entityLabel, entityId;
 		PreparedStatement pstmt = null;
 		Map<String, String> filterableValues; 
 		try{
@@ -270,34 +241,26 @@ public class OBDQuery {
 				
 				if(!isFilterableRow(filterOptions, filterableValues)){
 					if(!rs.getString(2).contains("GENO")){ //sometimes, genotypes are returned and we don;t want these
-						Node phenotypeNode = new Node(rs.getString(1));
+						PhenotypeDTO dto = new PhenotypeDTO(rs.getString(1));
 						/*
 						 * We keep track of both labels and uids, so we dont have to go looking for labels for uids
 						 * at the REST resource level. The queries return everything anyways.
 						 */
-						Statement taxonOrGeneSt = new Statement(phenotypeNode.getId(), "exhibitedBy", rs.getString(3));
-						Statement taxonOrGeneIdSt = new Statement(phenotypeNode.getId(), "exhibitedById", rs.getString(2));
-						Statement stateSt = new Statement(phenotypeNode.getId(), "hasState", rs.getString(5));
-						Statement stateIdSt = new Statement(phenotypeNode.getId(), "hasStateId", rs.getString(4));
-						Statement characterSt = new Statement(phenotypeNode.getId(), "hasCharacter", rs.getString(7));
-						Statement characterIdSt = new Statement(phenotypeNode.getId(), "hasCharacterId", rs.getString(6));
+						dto.setTaxon(rs.getString(3));
+						dto.setTaxonId(rs.getString(2));
+						dto.setQuality(rs.getString(5));
+						dto.setQualityId(rs.getString(4));
+						dto.setCharacter(rs.getString(7));
+						dto.setCharacterId(rs.getString(6));
 						entityLabel = rs.getString(9);
+						entityId = rs.getString(8);
 						if(entityLabel == null){
-							entityLabel = resolveLabel(rs.getString(8));
+							entityLabel = resolveLabel(entityId);
 						}	
-						Statement entitySt = new Statement(phenotypeNode.getId(), "inheresIn", entityLabel);
-						Statement entityIdSt = new Statement(phenotypeNode.getId(), "inheresInId", rs.getString(8));
-						Statement reifIdSt =  new Statement(phenotypeNode.getId(), "hasReifId", rs.getString(10));
-						phenotypeNode.addStatement(taxonOrGeneSt);
-						phenotypeNode.addStatement(taxonOrGeneIdSt);
-						phenotypeNode.addStatement(stateSt);
-						phenotypeNode.addStatement(stateIdSt);
-						phenotypeNode.addStatement(characterSt);
-						phenotypeNode.addStatement(characterIdSt);
-						phenotypeNode.addStatement(entitySt);
-						phenotypeNode.addStatement(entityIdSt);
-						phenotypeNode.addStatement(reifIdSt);
-						results.add(phenotypeNode);
+						dto.setEntity(entityLabel);
+						dto.setEntityId(entityId);
+						dto.setReifId(rs.getString(10));
+						results.add(dto);
 					}
 				}
 			}

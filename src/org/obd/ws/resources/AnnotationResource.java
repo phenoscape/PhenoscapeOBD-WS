@@ -2,17 +2,13 @@ package org.obd.ws.resources;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.Node;
-import org.obd.model.Statement;
 import org.obd.query.Shard;
-import org.obd.ws.util.Queries;
+import org.obd.ws.util.dto.AnnotationDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -42,7 +38,6 @@ public class AnnotationResource extends Resource {
     private final String annotationId;
     
     private OBDQuery obdq;
-    private Queries queries;
     
     /**
      * Constructor extends the default constructor
@@ -56,7 +51,6 @@ public class AnnotationResource extends Resource {
         super(context, request, response);
         this.shard = (Shard)this.getContext().getAttributes().get("shard");
         obdq = new OBDQuery(shard);
-        queries = new Queries(shard);
         this.annotationId = Reference.decode((String)(request.getAttributes().get("annotation_id")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
@@ -86,7 +80,7 @@ public class AnnotationResource extends Resource {
     	JSONObject entityObj, taxonObj, qualityObj;
     	
     	try{
-    		annots = getMetadata(annotationId);
+    		annots = getMetadata(Integer.parseInt(annotationId.trim()));
     	}
     	catch(SQLException sqle){
     		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
@@ -146,49 +140,36 @@ public class AnnotationResource extends Resource {
      * calling method
      * @param annotId - the id (INTEGER type) which connects the row
      * to all its metadata such as publications, curators names, 
-     * character text, state text etc
+     * character text, state text etc. This is cast into an Integer before the 
+     * appropriate method from {@link OBDQuery} class is invoked
      * @return
      * @throws SQLException
      */
-    private List<List<String[]>> getMetadata(String annotId) throws SQLException{
-    	
-    	Map<String, String> nodeProps;
+    private List<List<String[]>> getMetadata(Integer annotId) throws SQLException{
     	
     	List<List<String[]>> results = new ArrayList<List<String[]>>();
     	List<String[]> annots = new ArrayList<String[]>();;
     	
-    	String relId, target;
-    	
-    	String nodeId, taxonId, taxon, entityId, entity, qualityId, quality, 
+    	String taxonId, taxon, entityId, entity, qualityId, quality, 
     			publication, curators, charText, charComments, stateText, stateComments; 
     	
-    	String sqlQuery = queries.getFreeTextDataQuery();
-    	log().trace(sqlQuery + "\t" + annotId);
-    	
     	try{
-    		for(Node node : obdq.executeFreeTextQueryAndAssembleResults(sqlQuery, annotId)){
+    		for(AnnotationDTO node : obdq.executeFreeTextQueryAndAssembleResults(annotId)){
    			 	//Node properties stores every attribute of the given node with its value
-    			nodeProps = new HashMap<String, String>();
-    			for(Statement stmt : node.getStatements()){
-    				relId = stmt.getRelationId();
-    				target = stmt.getTargetId();
-    				nodeProps.put(relId, target);
-    			} 
 				
-    			nodeId = node.getId();
-    			taxonId = nodeProps.get("hasTaxonId");
-    			taxon = nodeProps.get("hasTaxon");
-    			entityId = nodeProps.get("hasEntityId");
-    			entity = nodeProps.get("hasEntity");
-    			qualityId = nodeProps.get("hasQualityId");
-    			quality = nodeProps.get("hasQuality");
+    			taxonId = node.getTaxonId();
+    			taxon = node.getTaxon();
+    			entityId = node.getEntityId();
+    			entity = node.getEntity();
+    			qualityId = node.getQualityId();
+    			quality = node.getQuality();
 			
-    			publication = nodeProps.get("hasPublication");
-    			curators = nodeProps.get("hasCurators");
-    			charText = nodeProps.get("hasCharText");
-    			charComments = nodeProps.get("hasCharComments");
-    			stateText = nodeProps.get("hasStateText");
-    			stateComments = nodeProps.get("hasStateComments");
+    			publication = node.getPublication();
+    			curators = node.getCurators();
+    			charText = node.getCharText();
+    			charComments = node.getCharComments();
+    			stateText = node.getStateText();
+    			stateComments = node.getStateComments();
 			
     			annots.add(new String[]{taxonId, taxon});
     			annots.add(new String[]{entityId, entity});

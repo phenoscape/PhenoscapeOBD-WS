@@ -12,10 +12,9 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.Node;
-import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.dto.PhenotypeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -76,9 +75,12 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		queries = new Queries(obdsql);
 	}
 
-    /**
-     * FIXME Method and parameter documentation missing.
-     */
+	/**
+	 * The control method for the REST resource. 
+	 * All the checks for correct parameter values
+	 * are done here before the data processing methods
+	 * are invoked 
+	 */
 	public Representation represent(Variant variant) 
             throws ResourceException {
 
@@ -240,8 +242,6 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 			getAnnotationSummary(String subject_id, String entity_id, String char_id, String pub_id) 
 			throws SQLException{
 		
-		Map<String, String> nodeProps;
-				
 		Map<String, Map<String, List<Set<String>>>> entityCharAnnots = 
 			new HashMap<String, Map<String, List<Set<String>>>>(); 
 		Map<String, List<Set<String>>> charAnnots;
@@ -253,7 +253,7 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		 * publication  */
 		Map<String, String> filterOptions = new HashMap<String, String>();
 		
-		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null,
+		String characterId = null, taxonId = null, entityId = null, qualityId = null,
 					character = null, taxon = null, entity = null, quality = null;
 		String query, searchTerm;
 		/* 
@@ -283,22 +283,16 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 		
 		log.debug("Search Term: " + searchTerm + " Query: " + query);
 		try{
-			for(Node node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
-				nodeProps = new HashMap<String, String>();
-				for(Statement stmt : node.getStatements()){
-					relId = stmt.getRelationId();
-					target = stmt.getTargetId();
-					nodeProps.put(relId, target);
-				} 
-				nodeProps.put("id", node.getId());
-				characterId = nodeProps.get("hasCharacterId");
-				character = nodeProps.get("hasCharacter");
-				taxonId = nodeProps.get("exhibitedById");
-				taxon = nodeProps.get("exhibitedBy");
-				entityId = nodeProps.get("inheresInId");
-				entity = nodeProps.get("inheresIn");
-				qualityId = nodeProps.get("hasStateId");
-				quality = nodeProps.get("hasState");
+			for(PhenotypeDTO node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
+
+				characterId = node.getCharacterId();
+				character = node.getCharacter();
+				taxonId = node.getTaxonId();
+				taxon = node.getTaxon();
+				entityId = node.getEntityId();
+				entity = node.getEntity();
+				qualityId = node.getQualityId();
+				quality = node.getQuality();
 				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if(entityCharAnnots.keySet().contains(entityId + "\t" + entity)){

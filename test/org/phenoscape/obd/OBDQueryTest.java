@@ -1,7 +1,10 @@
 package org.phenoscape.obd;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -29,6 +32,7 @@ public class OBDQueryTest {
 	 * 
 	 * }
 	 */
+	/*
 	@Test
 	public void testQueryTerm(){
 		try {
@@ -82,6 +86,7 @@ public class OBDQueryTest {
 			e.printStackTrace();
 		}
 	}
+	*/
 	
 	/*
 	@Test

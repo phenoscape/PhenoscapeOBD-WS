@@ -2,17 +2,14 @@ package org.obd.ws.resources;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.Node;
-import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.dto.HomologDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -139,16 +136,13 @@ public class HomologyResource extends Resource {
      */
     private List<List<String[]>> getHomologyData(String termId) throws SQLException{
     	    	
-    	Map<String, String> nodeProps;
-    	
     	//This map maps the homolgy node to the left and right hand entities and taxa and publication
     	List<List<String[]>> results = new ArrayList<List<String[]>>();
     	
     	// This list stores annotations about the homology data
     	List<String[]> annots;
     	
-    	String relId, target;
-    	String nodeId, lhEntityId, lhEntity, lhTaxonId, lhTaxon, rhEntityId,
+    	String lhEntityId, lhEntity, lhTaxonId, lhTaxon, rhEntityId,
     		rhEntity, rhTaxonId, rhTaxon, publication, evidenceCode, evidence,
     		sourceEntityId, sourceEntity, targetEntityId, targetEntity, 
     		sourceTaxonId, sourceTaxon, targetTaxonId, targetTaxon;
@@ -158,26 +152,18 @@ public class HomologyResource extends Resource {
     	log().trace(sqlQuery + "\t" + termId);
     	
     	try{
-    		for(Node node: obdq.executeHomologyQueryAndAssembleResults(sqlQuery, termId)){
+    		for(HomologDTO node: obdq.executeHomologyQueryAndAssembleResults(termId)){
     			 //Node properties stores every attribute of the given node with its value
-    			nodeProps = new HashMap<String, String>();
-				for(Statement stmt : node.getStatements()){
-					relId = stmt.getRelationId();
-					target = stmt.getTargetId();
-					nodeProps.put(relId, target);
-				} 
 				//extract all the attributes of the given node
-				nodeId = node.getId();
-				lhEntityId = nodeProps.get("lhEntityId");
-				lhEntity = nodeProps.get("lhEntity");
-				lhTaxonId = nodeProps.get("lhTaxonId");
-				lhTaxon = nodeProps.get("lhTaxon");
+				lhEntityId = node.getLhEntityId();
+				lhEntity = node.getLhEntity();
+				lhTaxonId = node.getLhTaxonId();
+				lhTaxon = node.getLhTaxon();
 				
-				
-				rhEntityId = nodeProps.get("rhEntityId");
-				rhEntity = nodeProps.get("rhEntity");
-				rhTaxonId = nodeProps.get("rhTaxonId");
-				rhTaxon = nodeProps.get("rhTaxon");
+				rhEntityId = node.getRhEntityId();
+				rhEntity = node.getRhEntity();
+				rhTaxonId = node.getRhTaxonId();
+				rhTaxon = node.getRhTaxon();
 
 				if(lhEntityId.equals(termId)){
 					sourceEntityId = lhEntityId;
@@ -202,9 +188,9 @@ public class HomologyResource extends Resource {
 					targetTaxon = lhTaxon;
 				}
 				
-				publication = nodeProps.get("hasPublication");
-				evidenceCode = nodeProps.get("hasEvidenceCode");
-				evidence = nodeProps.get("hasEvidence");
+				publication = node.getPublication();
+				evidenceCode = node.getEvidenceCode();
+				evidence = node.getEvidence();
 				
 				log().trace("RH Entity: " + rhEntityId + " [" + rhEntity + "] RH Taxon: " + rhTaxonId + "[" + rhTaxon + "] LH Entity: " +
 						lhEntityId + "[" + lhEntity + "] LH Taxon: " + lhTaxonId + "[" + lhTaxon + "] PublIcation: " + publication + 

@@ -9,10 +9,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.Node;
-import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.dto.PhenotypeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -199,8 +198,6 @@ public class PhenotypeDetailsResource extends Resource {
 			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id, String type) 
 			throws SQLException{
 		
-		Map<String, String> nodeProps;
-				
 		List<List<String[]>> results = new ArrayList<List<String[]>>();
 		List<String[]> annots;
 		
@@ -209,7 +206,7 @@ public class PhenotypeDetailsResource extends Resource {
 		 * publication  */
 		Map<String, String> filterOptions = new HashMap<String, String>();
 		
-		String relId, target, characterId = null, taxonId = null, entityId = null, qualityId = null,
+		String characterId = null, taxonId = null, entityId = null, qualityId = null,
 					character = null, taxon = null, entity = null, quality = null, reifId = null;
 		String query, searchTerm;
 		/* 
@@ -239,23 +236,16 @@ public class PhenotypeDetailsResource extends Resource {
 		
 		log.trace("Search Term: " + searchTerm + " Query: " + query);
 		try{
-			for(Node node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
-				nodeProps = new HashMap<String, String>();
-				for(Statement stmt : node.getStatements()){
-					relId = stmt.getRelationId();
-					target = stmt.getTargetId();
-					nodeProps.put(relId, target);
-				} 
-				nodeProps.put("id", node.getId());
-				characterId = nodeProps.get("hasCharacterId");
-				character = nodeProps.get("hasCharacter");
-				taxonId = nodeProps.get("exhibitedById");
-				taxon = nodeProps.get("exhibitedBy");
-				entityId = nodeProps.get("inheresInId");
-				entity = nodeProps.get("inheresIn");
-				qualityId = nodeProps.get("hasStateId");
-				quality = nodeProps.get("hasState");
-				reifId = nodeProps.get("hasReifId");
+			for(PhenotypeDTO node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
+				characterId = node.getCharacterId();
+				character = node.getCharacter();
+				taxonId = node.getTaxonId();
+				taxon = node.getTaxon();
+				entityId = node.getEntityId();
+				entity = node.getEntity();
+				qualityId = node.getQualityId();
+				quality = node.getQuality();
+				reifId = node.getReifId();
 				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || //type is set, so we filter
