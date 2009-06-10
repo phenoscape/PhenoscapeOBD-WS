@@ -167,10 +167,10 @@ public class OBDQuery {
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
 				HomologDTO dto = new HomologDTO(rs.getString(1) + "\t" + rs.getString(6));
-				dto.setLhEntityId(rs.getString(2));
-				dto.setLhEntity(rs.getString(3));
-				dto.setRhEntityId(rs.getString(7));
-				dto.setRhEntity(rs.getString(8));
+				dto.setLhTaxonId(rs.getString(2));
+				dto.setLhTaxon(rs.getString(3));
+				dto.setRhTaxonId(rs.getString(7));
+				dto.setRhTaxon(rs.getString(8));
 				dto.setLhEntityId(rs.getString(4));
 				dto.setLhEntity(rs.getString(5));
 				dto.setRhEntityId(rs.getString(9));

@@ -437,7 +437,7 @@ public class Queries {
 		"taxon1_node.label AS taxon1, " +
 		"entity1_node.uid AS entity1_uid, " +
 		"entity1_node.label AS entity1, " +
-		"homolog2_node AS homolog2, " +
+		"homolog2_node.uid AS homolog2, " +
 		"taxon2_node.uid AS taxon_uid2, " +
 		"taxon2_node.label AS taxon2, " +
 		"entity2_node.uid AS entity2_uid, " +
