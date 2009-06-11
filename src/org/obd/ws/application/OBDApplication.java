@@ -1,12 +1,12 @@
 package org.obd.ws.application;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.SQLException;
-import java.util.Properties;
+import java.text.ParseException;
 
 import org.apache.log4j.Logger;
 import org.obd.query.impl.OBDSQLShard;
+import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
@@ -19,33 +19,34 @@ public class OBDApplication extends Application {
         super(context);
     }
 
-    private void connect() throws SQLException, ClassNotFoundException, IOException{
-        OBDSQLShard obdsql = new OBDSQLShard();
-        InputStream fis = this.getClass().getResourceAsStream("connectionInfo.properties");
-        Properties props = new Properties(); 
-        props.load(fis);
-        String dbHost = (String)props.get("dbHost");
-        String uid = (String)props.get("uid");
-        String pwd = (String)props.get("pwd");
-
-        //			String localDbHost = (String)props.get("localDbHost");
-        //			String localUid = (String)props.get("localUid");
-        //			String localPwd = (String)props.get("localPwd");
-
-        obdsql.connect(dbHost, uid, pwd);
-        this.getContext().getAttributes().put("shard", obdsql);
+    private void connect() throws SQLException, ClassNotFoundException, IOException, ParseException, 
+    				PhenoscapeDbConnectionException{
+    	
+    	DatabaseToggler dbToggler = new DatabaseToggler();
+    	
+        OBDSQLShard obdsql = dbToggler.chooseDatabase();
+        if(obdsql != null)
+        	this.getContext().getAttributes().put("shard", obdsql);
+        else
+        	throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
+        			"This is because neither database is ready to be queried. ");
     }
 
     public Restlet createRoot() {
         try {
-            connect();
+				connect();
         } catch (SQLException e) {
             log().fatal("Error connecting to SQL shard", e);
         } catch (ClassNotFoundException e) {
             log().fatal("Error creating SQL shard", e);
         } catch (IOException e) {
             log().fatal("Error reading connection properties file", e);
+        } catch (ParseException e) {
+        	log().fatal("Error parsing the date", e);
+        } catch (PhenoscapeDbConnectionException e) {
+        	log().fatal("Error with the database connection", e);
         }
+        
         final Router router = new Router(this.getContext());
         // URL mappings
         router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
