@@ -70,10 +70,14 @@ public class DatabaseToggler {
         ResultSet rs1 = query1.executeQuery(sqlQuery);
         ResultSet rs2 = query2.executeQuery(sqlQuery);
         
-        rs1.next();
-        String timeStamp1 = rs1.getString(1);
-        rs2.next();
-        String timeStamp2 = rs2.getString(1);
+        String timeStamp1 = null, timeStamp2 = null; 
+        
+        while(rs1.next()){
+        	timeStamp1 = rs1.getString(1);
+        }
+        while(rs2.next()){
+        	timeStamp2 = rs2.getString(1);
+        }
         
         if (timeStamp1 == null && timeStamp2 != null){
         	return obdsql2;
