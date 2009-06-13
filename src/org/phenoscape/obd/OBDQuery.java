@@ -305,14 +305,17 @@ public class OBDQuery {
      * legible label for it. Because the label field in the DB is null
      * for post composed terms
      * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
-     * TAO:0001173 with 'Dorsal fin'. Carats (^) and underscores are replaced 
+     * TAO:0001173 with 'Dorsal fin'. Carats (^) are replaced with the string 
+     * " that is " (Paula Mabee, Email Comm. 061209) and underscores are replaced 
      * with white spaces.
      * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
      * @return label - is of the form (<entity_label> <rel_label> <entity_label>
      */
 	
 	public String resolveLabel(String cd){
-		String label = cd.replaceAll("\\^", " ");
+		String label = cd.replaceAll("\\^", " that is ");
+		label = label.replaceAll("\\(", " ");
+		label = label.replaceAll("\\)", " ");
 		String oldLabel = label;
 		/* A PATTERN FOR UIDS */
 		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
@@ -325,6 +328,7 @@ public class OBDQuery {
 			label = label.replace(s2replace, replaceS);
 		}
 		label = label.replace("_", " ");
+		label = label.trim();
 		return label;
 	}
 	
