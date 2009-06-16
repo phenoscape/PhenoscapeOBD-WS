@@ -47,6 +47,7 @@ public class Queries {
 	private static final String HAS_DATUM_RELATION_ID = "cdao:has_Datum";
 	private static final String HAS_CURATORS_RELATION_ID = "PHENOSCAPE:has_curators";
 	private static final String HAS_COMMENT_RELATION_ID = "PHENOSCAPE:has_comment";
+	private static final String HAS_NUMBER_RELATION_ID = "PHENOSCAPE:has_number";
 	
 	/*
 	 * An enumeration to keep track of the patterns to look for
@@ -67,7 +68,8 @@ public class Queries {
 		HAS_STATE("___has_State", HAS_STATE_RELATION_ID),
 		HAS_DATUM("___has_Datum", HAS_DATUM_RELATION_ID),
 		HAS_CURATORS("___has_curators", HAS_CURATORS_RELATION_ID),
-		HAS_COMMENT("___has_comment", HAS_COMMENT_RELATION_ID);
+		HAS_COMMENT("___has_comment", HAS_COMMENT_RELATION_ID), 
+		HAS_NUMBER("___has_number", HAS_NUMBER_RELATION_ID);
 
 		
 		QueryPlaceholder(String name, String rId){
@@ -558,6 +560,7 @@ public class Queries {
 		"pub_node.uid AS publication, " +
 		"character_node.label AS character_text, " +
 		"char_tag.val AS char_comment, " +
+		"char_num_tag.val AS char_number, " +
 		"state_node.label AS state_text, " +
 		"state_tag.val AS state_comment, " +
 		"curator_tag.val AS curators " +
@@ -586,7 +589,9 @@ public class Queries {
 		"JOIN tagval AS char_tag ON ((char_tag.node_id = character_node.node_id)  " +
 		"	AND (char_tag.tag_id = ___has_comment)) " +
 		"JOIN tagval AS state_tag ON ((state_tag.node_id = state_node.node_id) " +
-		"	AND (state_tag.tag_id = ___has_comment)) " +
+		"	AND (state_tag.tag_id = ___has_comment)) " + 
+		"JOIN tagval AS char_num_tag ON ((char_num_tag.node_id = character_node.node_id) AND " +
+		"	(char_num_tag.tag_id = ___has_number)) " + 
 		"WHERE " +
 		"exhibits_link.reiflink_node_id = ? AND " +
 		"inheres_in_link.predicate_id = ___inheres_in AND " +
@@ -626,6 +631,7 @@ public class Queries {
 		relationNodeIds.put(HAS_DATUM_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_DATUM_RELATION_ID));
 		relationNodeIds.put(HAS_CURATORS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_CURATORS_RELATION_ID));
 		relationNodeIds.put(HAS_COMMENT_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_COMMENT_RELATION_ID));
+		relationNodeIds.put(HAS_NUMBER_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_NUMBER_RELATION_ID));
 	}
 	
 	/*

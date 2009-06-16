@@ -29,6 +29,7 @@ public class AnnotationDTO{
 	
 	private String charText;
 	private String charComments;
+	private String charNumber;
 	
 	private String stateText;
 	private String stateComments;
@@ -111,6 +112,14 @@ public class AnnotationDTO{
 		this.charComments = charComments;
 	}
 
+	public String getCharNumber(){
+		return charNumber;
+	}
+	
+	public void setCharNumber(String charNumber){
+		this.charNumber = charNumber;
+	}
+	
 	public String getStateText() {
 		return stateText;
 	}

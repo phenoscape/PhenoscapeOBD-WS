@@ -113,6 +113,7 @@ public class AnnotationResource extends Resource {
     			sourceObj.put("curated_by", annot.get(4)[0]);
     			sourceObj.put("character_text", annot.get(5)[0]);
     			sourceObj.put("character_comment", annot.get(5)[1]);
+    			sourceObj.put("character_number", annot.get(5)[2]);
     			sourceObj.put("state_text", annot.get(6)[0]);
     			sourceObj.put("state_comment", annot.get(6)[1]);
     			
@@ -151,7 +152,8 @@ public class AnnotationResource extends Resource {
     	List<String[]> annots = new ArrayList<String[]>();;
     	
     	String taxonId, taxon, entityId, entity, qualityId, quality, 
-    			publication, curators, charText, charComments, stateText, stateComments; 
+    			publication, curators, charText, charComments, stateText, stateComments,
+    			charNumber; 
     	
     	try{
     		for(AnnotationDTO node : obdq.executeFreeTextQueryAndAssembleResults(annotId)){
@@ -170,13 +172,14 @@ public class AnnotationResource extends Resource {
     			charComments = node.getCharComments();
     			stateText = node.getStateText();
     			stateComments = node.getStateComments();
+    			charNumber = node.getCharNumber();
 			
     			annots.add(new String[]{taxonId, taxon});
     			annots.add(new String[]{entityId, entity});
     			annots.add(new String[]{qualityId, quality});
     			annots.add(new String[]{publication});
     			annots.add(new String[]{curators});
-    			annots.add(new String[]{charText, charComments});
+    			annots.add(new String[]{charText, charComments, charNumber});
     			annots.add(new String[]{stateText, stateComments});
     			
     			results.add(annots);

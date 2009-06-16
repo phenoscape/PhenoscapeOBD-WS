@@ -113,11 +113,12 @@ public class OBDQuery {
 				
 				dto.setCharText(rs.getString(9));
 				dto.setCharComments(rs.getString(10));
+				dto.setCharNumber(rs.getString(11));
 				
-				dto.setStateText(rs.getString(11));
-				dto.setStateComments(rs.getString(12));
+				dto.setStateText(rs.getString(12));
+				dto.setStateComments(rs.getString(13));
 				
-				dto.setCurators(rs.getString(13));
+				dto.setCurators(rs.getString(14));
 				
 				results.add(dto);
 			}
