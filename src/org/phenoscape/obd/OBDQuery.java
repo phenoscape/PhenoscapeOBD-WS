@@ -341,6 +341,7 @@ public class OBDQuery {
      * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
      * node's properties as a compositional descripton.
      * @param node The Node for which to return or generate a label.
+     * @author jim balhoff
      */
     public String label(Node node) {
         if (node.getLabel() != null) {
@@ -364,10 +365,14 @@ public class OBDQuery {
      * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
      * node's properties as a compositional descripton.
      * @param id The identifier of a Node for which to return or generate a label.
+     * @author jim balhoff
      */
     public String label(String id) {
         final Node node = this.shard.getNode(id);
-        return label(node);
+        if(node != null)
+        	return label(node);
+        else
+        	return id;
     }
 	
 	/**
