@@ -9,16 +9,23 @@ import java.util.Set;
 
 import org.obo.datamodel.OBOClass;
 
+/**
+ * This is a tree order for a group on taxa, with a root
+ * (the MRCA of all the taxa), branches and leaves. At each node
+ * in the tree, the grouping of qualities exhibited by the taxa
+ * at and below that node are stored. So are the numbers of 
+ * assertions for the taxon at the node and the taxa below that node   
+ * @author cartik
+ *
+ */
 public class TaxonTree {
 	
-	/**
-	 * A tree consists of a root and the branching
-	 * points and the children of the branching points
-	 * and the leaves as well
-	 */
 	private OBOClass root;
 	private Map<OBOClass, Set<OBOClass>> branchingPointsAndChildren;
 	private Set<OBOClass> leaves;
+	
+	private Map<OBOClass,  Map<OBOClass, Set<OBOClass>>> nodeToEQMap;
+	private Map<OBOClass, Integer> nodeToAnnotationCountMap; 
 
 	/*
 	 * GETTERs and SETTERs
@@ -45,12 +52,32 @@ public class TaxonTree {
 	public void setLeaves(Set<OBOClass> leaves) {
 		this.leaves = leaves;
 	}
+	
+	public Map<OBOClass, Map<OBOClass, Set<OBOClass>>> getNodeToEQMap() {
+		return nodeToEQMap;
+	}
+	public void setNodeToEQMap(
+			Map<OBOClass,  Map<OBOClass, Set<OBOClass>>> nodeToQualitiesMap) {
+		this.nodeToEQMap = nodeToQualitiesMap;
+	}
+	
+	public Map<OBOClass, Integer> getNodeToAnnotationCountMap() {
+		return nodeToAnnotationCountMap;
+	}
+	public void setNodeToAnnotationCountMap(
+			Map<OBOClass, Integer> nodeToAnnotationCountMap) {
+		this.nodeToAnnotationCountMap = nodeToAnnotationCountMap;
+	}
+
 	/**
-	 * The constructor simply initializes the branches and the leaves
+	 * The constructor simply initializes the branches, the leaves, the qualities to node
+	 * map and the node to annotation count map
 	 */
 	public TaxonTree(){
 		branchingPointsAndChildren = new HashMap<OBOClass, Set<OBOClass>>(); 
 		leaves = new HashSet<OBOClass>();
+		nodeToEQMap = new HashMap<OBOClass,  Map<OBOClass, Set<OBOClass>>>();
+		nodeToAnnotationCountMap = new HashMap<OBOClass, Integer>();
 	}
 	
 	/**
@@ -74,6 +101,18 @@ public class TaxonTree {
 			if(this.getBranchingPointsAndChildren().get(node) != null ){
 				for(OBOClass child : this.getBranchingPointsAndChildren().get(node)){
 					bw.write(tabs + child.getID() + "\t" + child.getName() + "\n");
+					bw.write(tabs + "Annotation Count: " + this.getNodeToAnnotationCountMap().get(child) + "\n");
+					if(this.getNodeToEQMap().containsKey(child)){
+						Map<OBOClass, Set<OBOClass>> e2qMap = this.getNodeToEQMap().get(child);
+						for(OBOClass e : e2qMap.keySet()){
+							bw.write(tabs + "Exhibits " + e.getName() + " that are: ");
+							for(OBOClass q : e2qMap.get(e)){
+								bw.write(q.getName() + " "); 
+							}
+							bw.write("\n");
+						}
+					}
+					
 					printTaxonomy(child, tabCt + 1, bw);
 				}
 			}
