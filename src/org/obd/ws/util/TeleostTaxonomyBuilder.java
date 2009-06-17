@@ -80,26 +80,51 @@ public class TeleostTaxonomyBuilder {
 		idToClassMapper = new HashMap<String, OBOClass>();
 		
 		URL ttoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/teleost_taxonomy/teleost_taxonomy.obo");
-		BufferedReader br = new BufferedReader(new InputStreamReader(ttoURL.openStream()));
+		URL taoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/teleost_anatomy/teleost_anatomy.obo");
+		URL patoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/quality/quality.obo");
+		BufferedReader br1 = new BufferedReader(new InputStreamReader(ttoURL.openStream()));
+		BufferedReader br2 = new BufferedReader(new InputStreamReader(taoURL.openStream()));
+		BufferedReader br3 = new BufferedReader(new InputStreamReader(patoURL.openStream()));
 		
 		String line; 
 		File ttoFile = new File("teleost_taxonomy.obo");
+		File taoFile = new File("teleost_anatomy.obo");
+		File patoFile = new File("quality.obo");
 		
-		BufferedWriter pw = new BufferedWriter(new FileWriter(ttoFile));
+		BufferedWriter pw1 = new BufferedWriter(new FileWriter(ttoFile));
 		
-		while((line = br.readLine()) != null){
-			pw.write(line + "\n");
+		while((line = br1.readLine()) != null){
+			pw1.write(line + "\n");
 		}
 		
-		pw.flush();
-		pw.close();
+		pw1.flush();
+		pw1.close();
+		
+		BufferedWriter pw2 = new BufferedWriter(new FileWriter(taoFile));
+		
+		while((line = br2.readLine()) != null){
+			pw2.write(line + "\n");
+		}
+		
+		pw2.flush();
+		pw2.close();
+		
+		BufferedWriter pw3 = new BufferedWriter(new FileWriter(patoFile));
+		
+		while((line = br3.readLine()) != null){
+			pw3.write(line + "\n");
+		}
+		
+		pw3.flush();
+		pw3.close();
 		
 		setUpTaxonomy();
 	}
 	
 	/**
-	 * This method reads in the TTO and arranges the terms in 
-	 * a taxonomy. In addition, it also adds all the terms to 
+	 * This method reads in the TTO, TAO and PATO 
+	 * and arranges the terms in a taxonomy 
+	 * In addition, it also adds all the terms to 
 	 * a map from ID to the OBOClass
 	 * @throws DataAdapterException 
 	 * @throws IOException 
@@ -108,6 +133,8 @@ public class TeleostTaxonomyBuilder {
 		
 		List<String> paths = new ArrayList<String>();
 		paths.add("teleost_taxonomy.obo");
+		paths.add("teleost_anatomy.obo");
+		paths.add("quality.obo");
 		
 		//setting up the file adapter and its configuration
 		final OBOFileAdapter fileAdapter = new OBOFileAdapter();
@@ -123,7 +150,9 @@ public class TeleostTaxonomyBuilder {
 	    	    
 	    for(OBOClass oboClass : TermUtil.getTerms(session)){
 	    	if(oboClass.getNamespace() != null && !oboClass.isObsolete() &&
-	    			oboClass.getID().matches("TTO:[0-9]+")){
+	    			(oboClass.getID().matches("TTO:[0-9]+") ||
+   					 oboClass.getID().matches("PATO:[0-9]+") ||
+   					oboClass.getID().matches("TAO:[0-9]+"))){
 	    		idToClassMapper.put(oboClass.getID(), oboClass);
 	    		if(oboClass.getChildren().size() == 0){//a leaf node
 	    			leaves.add(oboClass);
@@ -324,48 +353,185 @@ public class TeleostTaxonomyBuilder {
 	
 	/**
 	 * @PURPOSE The purpose of this method is to arrange
-	 * the input list of taxa hierarchically in a tree with the
-	 * MRCA at the root. Every intermediate node is also
-	 * stored in the tree
-	 * @param taxaList - input list of taxa
+	 * the input list of <TAXON><ENTITY><QUALITY> triples 
+	 * hierarchically in a tree with the MRCA of all the taxa 
+	 * at the root. Every intermediate node is also stored in 
+	 * the tree
+	 * @param triplesList - input list of <TAXON><ENTITY><QUALITY>
+	 * triples 
 	 * @param tree - the tree of hierarchical taxa
 	 * @return the completed tree given all the taxa in the input list
 	 */
-	public TaxonTree constructTreeFromTaxaList(LinkedList<OBOClass> taxaList, 
+	public TaxonTree constructTreeFromTriplesList(List<OBOClass[]> triplesList,  
 												TaxonTree tree){
+		
+		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> taxonToEQMap = 
+				new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>();
+		
+		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> nodeToEQMap = 
+			new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>();
 		
 		//get all the branching points, we'll use these
 		Map<OBOClass, Set<OBOClass>> branches = tree.getBranchingPointsAndChildren();
-		Set<OBOClass> children;
-		OBOClass currRoot = null;
-		OBOClass parent;
+		//get the count of annotations for all nodes
+		Map<OBOClass, Integer> annotationCountsMap = tree.getNodeToAnnotationCountMap(); 
 		
-		for(OBOClass oboClass : taxaList){
-			//we call the findMRCA method only if the current root 
-			//is not the root of entire ontology
-
-			currRoot = this.findMRCA(oboClass, currRoot);
-			//find path to current MRCA
-			List<OBOClass> pathToMrca = this.tracePath(oboClass, currRoot, new ArrayList<OBOClass>());
+		OBOClass currRoot = null;
+		OBOClass taxonFromTriple, entity, quality;
+		
+		Set<OBOClass> taxaSet = new HashSet<OBOClass>();
+		/*
+		 * first we convert the triples list to a usable data structure, which maps
+		 * every Taxon to a map of Entity to Quality tuples it is associated with. This 
+		 * will be of use later
+		 */
+		
+		for(OBOClass[] triple : triplesList){
+			taxonFromTriple = triple[0];
+			entity = triple[1];
+			quality = triple[2];
 			
-			//process each node in the path
-			for(int index = 0; index < pathToMrca.size() - 1; index++){
-				OBOClass node = pathToMrca.get(index);
-				parent = pathToMrca.get(index + 1);
-				if(branches.containsKey(parent))
-					children = branches.get(parent);
-				else
-					children = new HashSet<OBOClass>();
-				children.add(node);
-				branches.put(parent, children);
+			taxaSet.add(taxonFromTriple);
+			
+			Map<OBOClass, Set<OBOClass>> e2qMapForTaxon;
+			Set<OBOClass> qualsForEntity;
+			
+			Integer annotCt = annotationCountsMap.get(taxonFromTriple);
+			if(annotCt == null)
+				annotCt = 0;
+			
+			annotationCountsMap.put(taxonFromTriple, ++annotCt);
+			
+			if(taxonToEQMap.containsKey(taxonFromTriple)){
+				e2qMapForTaxon = taxonToEQMap.get(taxonFromTriple); 
+				if(e2qMapForTaxon.containsKey(entity)){
+					qualsForEntity = e2qMapForTaxon.get(entity);
+				}
+				else{
+					qualsForEntity = new HashSet<OBOClass>();
+				}
 			}
+			else{
+				e2qMapForTaxon = new HashMap<OBOClass, Set<OBOClass>>();
+				qualsForEntity = new HashSet<OBOClass>();
+			}
+			qualsForEntity.add(quality);
+			e2qMapForTaxon.put(entity, qualsForEntity);
+			taxonToEQMap.put(taxonFromTriple, e2qMapForTaxon);
+		}
+		
+		/*
+		 * Now we start working with this data structure
+		 */
+		for(OBOClass taxon : taxaSet){	
+			Map<OBOClass, Map<OBOClass, Set<OBOClass>>> nodeToEQMap1 = 
+				new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>(), nodeToEQMap2 = null;
+			
+			OBOClass oldRoot = currRoot; 
+			//find the MRCA
+			currRoot = this.findMRCA(taxon, currRoot);
+			//find path to current MRCA from this taxon
+			List<OBOClass> pathToMrca = this.tracePath(taxon, currRoot, new ArrayList<OBOClass>());
+			//process each node in the path
+			branches = processNodesInPathToAddBranches(pathToMrca, branches);
+			nodeToEQMap1 = processNodesInPathForEQ(pathToMrca, taxonToEQMap);
+			//if old root is not null, also find path to current MRCA from old MRCA
+			if(oldRoot != null){
+				List<OBOClass> oldPathToMrca = this.tracePath(oldRoot, currRoot, new ArrayList<OBOClass>());
+				//process each node in this path
+				branches = processNodesInPathToAddBranches(oldPathToMrca, branches);
+				nodeToEQMap2 = processNodesInPathForEQ(oldPathToMrca, taxonToEQMap);
+			}
+			
+			nodeToEQMap.putAll(nodeToEQMap1);
+			if(nodeToEQMap2 != null)
+				nodeToEQMap.putAll(nodeToEQMap2);
 		}
 		//set the branches of the tree and the root
 		tree.setBranchingPointsAndChildren(branches);
 		tree.setRoot(currRoot);
+		tree.setNodeToEQMap(nodeToEQMap);
 		return tree;
 	}
 	
+	/**
+	 * @PURPOSE This is another helper method, which takes in a set of mappings
+	 * from leaf OBOClasses to EQ combinations. It consolidates these
+	 * into a set of mappings for the entire tree, given the paths
+	 * from each leaf node to the root of the tree as a second 
+	 * argument
+	 * @param path - the path comprising OBOClasses from the leaf nodes to 
+	 * the root of the tree
+	 * @param eqMap - an input set of mappings from leaf taxa to EQ combinations
+	 * @return a consolidated mapping from every taxa in the tree to EQ combinations
+	 */
+	
+	private Map<OBOClass, Map<OBOClass, Set<OBOClass>>> processNodesInPathForEQ(
+			List<OBOClass> path,
+			Map<OBOClass, Map<OBOClass, Set<OBOClass>>> eqMap) {
+
+		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> node2EQMap = 
+																eqMap;
+		
+		Map<OBOClass, Set<OBOClass>> e2qMap4Node, e2qMap4Parent;
+		Set<OBOClass> qSet4E, qSet4P = null;
+		
+		for(int index = 0; index < path.size() - 1; index++){
+			OBOClass node = path.get(index);
+			OBOClass parent = path.get(index + 1);
+			
+			e2qMap4Node = node2EQMap.get(node);
+			e2qMap4Parent = node2EQMap.get(parent);
+			
+			if(e2qMap4Node != null){
+				for(OBOClass e : e2qMap4Node.keySet()){
+					qSet4E = e2qMap4Node.get(e);
+					if(e2qMap4Parent != null){
+						qSet4P = e2qMap4Parent.get(e);
+					}
+					else{
+						e2qMap4Parent = new HashMap<OBOClass, Set<OBOClass>>();
+					}
+					if(qSet4P == null)
+						qSet4P = new HashSet<OBOClass>();
+					qSet4P.addAll(qSet4E);
+					e2qMap4Parent.put(e, qSet4P);
+				}
+			}
+			
+			node2EQMap.put(node, e2qMap4Node);
+			node2EQMap.put(parent, e2qMap4Parent);
+		}
+		return node2EQMap;
+	}
+
+	/**
+	 * @PURPOSE This is a helper method. It takes in a set of paths from 
+	 * leaf nodes of a tree to the root, and outputs the entire tree, 
+	 * including information about branching nodes and children  
+	 * @param path - the list of paths from all leaf nodes to the root of the tree
+	 * @param branches - the map of branching points and their children
+	 * @return - the updated data about branches
+	 */
+	private Map<OBOClass, Set<OBOClass>> processNodesInPathToAddBranches(
+			List<OBOClass> path, Map<OBOClass, Set<OBOClass>> branches) {
+		Set<OBOClass> children;
+		for(int index = 0; index < path.size() - 1; index++){
+			OBOClass node = path.get(index);
+			//get the parent of that node
+			OBOClass parent = path.get(index + 1);
+			//get the annotationcounts for the node
+			
+			if(branches.containsKey(parent))
+				children = branches.get(parent);
+			else
+				children = new HashSet<OBOClass>();
+			children.add(node);
+			branches.put(parent, children);
+		}
+		return branches;
+	}
+
 	/**
 	 * The main method. This will be used to test the other methods before
 	 * they are invoked directly from the other classes REST resources to
@@ -389,6 +555,42 @@ public class TeleostTaxonomyBuilder {
 		
 		LinkedList<OBOClass> ttoList = new LinkedList<OBOClass>();
 		Iterator<String> it = ttb.getIdToClassMapper().keySet().iterator();
+		
+		List<OBOClass[]> triplesList = new ArrayList<OBOClass[]>();
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1001979"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001173"),
+		                              ttb.getIdToClassMapper().get("PATO:0000462")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1002351"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001510"),
+		                              ttb.getIdToClassMapper().get("PATO:0000467")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1005577"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001188"),
+		                              ttb.getIdToClassMapper().get("PATO:0001452")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1005381"), 
+		                              ttb.getIdToClassMapper().get("TAO:0000514"),
+		                              ttb.getIdToClassMapper().get("PATO:0000052")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1067707"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001510"),
+		                              ttb.getIdToClassMapper().get("PATO:0000462")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1063327"), 
+		                              ttb.getIdToClassMapper().get("TAO:0000250"),
+		                              ttb.getIdToClassMapper().get("PATO:0000587")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1021209"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001510"),
+		                              ttb.getIdToClassMapper().get("PATO:0000462")});
+		triplesList.add(new OBOClass[]
+		                             {ttb.getIdToClassMapper().get("TTO:1006313"), 
+		                              ttb.getIdToClassMapper().get("TAO:0001510"),
+		                              ttb.getIdToClassMapper().get("PATO:0000467")});
+		
+		
 		while(it.hasNext()){
 			String tto = it.next();
 			ttoList.add(ttb.getIdToClassMapper().get(tto));
@@ -398,6 +600,8 @@ public class TeleostTaxonomyBuilder {
 //		ttoList.add(ttb.getIdToClassMapper().get("TTO:1002351"));
 //		ttoList.add(ttb.getIdToClassMapper().get("TTO:10000039"));
 //		long startTime2 = System.currentTimeMillis();
+		
+		
 		System.out.println(ttb.findMRCA(ttoList, null));
 //		long endTime2 = System.currentTimeMillis();
 //		System.out.println((endTime2 - startTime2) + " milliseconds to find MRCA");
@@ -405,12 +609,14 @@ public class TeleostTaxonomyBuilder {
 		TaxonTree tree = new TaxonTree();
 		
 		long startTime2 = System.currentTimeMillis();
-		tree = ttb.constructTreeFromTaxaList(ttoList, tree);
+		tree = ttb.constructTreeFromTriplesList(triplesList, tree);
 		long endTime2 = System.currentTimeMillis();
 		System.out.println((endTime2 - startTime2) + " milliseconds to construct subtree from taxonList");
 		
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("/home/cartik/Desktop/subtree.txt")));
 		System.out.println("root of the tree is " + tree.getRoot());
+		System.out.println("number of annotations for root " + tree.getRoot() + " is " + tree.getNodeToAnnotationCountMap().get(tree.getRoot()));
+		System.out.println("annotations for root " + tree.getRoot() + " are " + tree.getNodeToEQMap().get(tree.getRoot()));
 		tree.printTaxonomy(tree.getRoot(), 0, bw);
 		bw.flush();
 		bw.close();
