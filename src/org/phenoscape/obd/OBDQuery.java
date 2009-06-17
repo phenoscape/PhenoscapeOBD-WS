@@ -15,10 +15,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
+import org.obd.model.CompositionalDescription;
 import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
+import org.obd.ws.util.Collections;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.AnnotationDTO;
 import org.obd.ws.util.dto.HomologDTO;
@@ -93,7 +95,7 @@ public class OBDQuery {
 				
 				//Handling post compositions. TODO THis has to be streamlined
 				if(entity == null || entity.length() == 0){
-					entity = resolveLabel(entityId);
+					entity = label(entityId);
 				}
 				
 				qualityId = rs.getString(6);
@@ -101,7 +103,7 @@ public class OBDQuery {
 				
 				//TODO Streamline post compositions handling method here
 				if(quality == null || quality.length() == 0){
-					quality = resolveLabel(qualityId);
+					quality = label(qualityId);
 				}
 				
 				dto.setEntityId(entityId);
@@ -256,7 +258,7 @@ public class OBDQuery {
 						entityLabel = rs.getString(9);
 						entityId = rs.getString(8);
 						if(entityLabel == null){
-							entityLabel = resolveLabel(entityId);
+							entityLabel = label(entityId);
 						}	
 						dto.setEntity(entityLabel);
 						dto.setEntityId(entityId);
@@ -309,10 +311,12 @@ public class OBDQuery {
      * TAO:0001173 with 'Dorsal fin'. Carats (^) are replaced with the string 
      * " that is " (Paula Mabee, Email Comm. 061209) and underscores are replaced 
      * with white spaces.
+     * Note - this method uses regular expressions which make assumptions about the node identifer.
+     * Use the label() methods instead.
      * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
      * @return label - is of the form (<entity_label> <rel_label> <entity_label>
      */
-	
+	@Deprecated
 	public String resolveLabel(String cd){
 		String label = cd.replaceAll("\\^", " that is ");
 		label = label.replaceAll("\\(", " ");
@@ -332,6 +336,39 @@ public class OBDQuery {
 		label = label.trim();
 		return label;
 	}
+	
+	 /**
+     * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
+     * node's properties as a compositional descripton.
+     * @param node The Node for which to return or generate a label.
+     */
+    public String label(Node node) {
+        if (node.getLabel() != null) {
+            return node.getLabel();
+        } else {
+            final CompositionalDescription desc = this.shard.getCompositionalDescription(node.getId(), false);
+            final List<String> differentia = new ArrayList<String>();
+            for (CompositionalDescription differentium : desc.getDifferentiaArguments()) {
+                final StringBuffer buffer = new StringBuffer();
+                buffer.append(label(differentium.getRelationId()));
+                buffer.append("(");
+                buffer.append(label(differentium.getRestriction().getTargetId()));
+                buffer.append(")");
+                differentia.add(buffer.toString());
+            }
+            return label(desc.getGenus().getNodeId()) + "("+ Collections.join(differentia, ", ") + ")";
+        }
+    }
+    
+    /**
+     * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
+     * node's properties as a compositional descripton.
+     * @param id The identifier of a Node for which to return or generate a label.
+     */
+    public String label(String id) {
+        final Node node = this.shard.getNode(id);
+        return label(node);
+    }
 	
 	/**
 	 * @PURPOSE: This method looks for information pertaining to a specific term
