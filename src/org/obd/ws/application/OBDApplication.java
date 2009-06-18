@@ -5,8 +5,10 @@ import java.sql.SQLException;
 import java.text.ParseException;
 
 import org.apache.log4j.Logger;
+import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
+import org.obd.ws.util.TeleostTaxonomyBuilder;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
@@ -20,7 +22,7 @@ public class OBDApplication extends Application {
     }
 
     private void connect() throws SQLException, ClassNotFoundException, IOException, ParseException, 
-    				PhenoscapeDbConnectionException{
+    				PhenoscapeDbConnectionException, DataAdapterException{
     	
     	DatabaseToggler dbToggler = new DatabaseToggler();
     	
@@ -30,6 +32,9 @@ public class OBDApplication extends Application {
         else
         	throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
         			"This is because neither database is ready to be queried. ");
+        
+        TeleostTaxonomyBuilder ttb = new TeleostTaxonomyBuilder();
+        this.getContext().getAttributes().put("ttb", ttb);
     }
 
     public Restlet createRoot() {
@@ -45,7 +50,9 @@ public class OBDApplication extends Application {
         	log().fatal("Error parsing the date", e);
         } catch (PhenoscapeDbConnectionException e) {
         	log().fatal("Error with the database connection", e);
-        }
+        } catch (DataAdapterException e) {
+        	log().fatal("Error reading in the OBO files", e);
+		}
         
         final Router router = new Router(this.getContext());
         // URL mappings
