@@ -95,7 +95,7 @@ public class OBDQuery {
 				
 				//Handling post compositions. TODO THis has to be streamlined
 				if(entity == null || entity.length() == 0){
-					entity = label(entityId);
+					entity = simpleLabel(entityId);
 				}
 				
 				qualityId = rs.getString(6);
@@ -103,7 +103,7 @@ public class OBDQuery {
 				
 				//TODO Streamline post compositions handling method here
 				if(quality == null || quality.length() == 0){
-					quality = label(qualityId);
+					quality = semanticLabel(qualityId);
 				}
 				
 				dto.setEntityId(entityId);
@@ -258,7 +258,7 @@ public class OBDQuery {
 						entityLabel = rs.getString(9);
 						entityId = rs.getString(8);
 						if(entityLabel == null){
-							entityLabel = label(entityId);
+							entityLabel = simpleLabel(entityId);
 						}	
 						dto.setEntity(entityLabel);
 						dto.setEntityId(entityId);
@@ -343,21 +343,26 @@ public class OBDQuery {
      * @param node The Node for which to return or generate a label.
      * @author jim balhoff
      */
-    public String label(Node node) {
+    public String semanticLabel(Node node) {
         if (node.getLabel() != null) {
             return node.getLabel();
         } else {
             final CompositionalDescription desc = this.shard.getCompositionalDescription(node.getId(), false);
             final List<String> differentia = new ArrayList<String>();
-            for (CompositionalDescription differentium : desc.getDifferentiaArguments()) {
+            final Collection<CompositionalDescription> differentiaArguments = desc.getDifferentiaArguments();
+            if (differentiaArguments == null) {
+                log.error("No differentia arguments for: " + node.getId());
+                return node.getId();
+            }
+            for (CompositionalDescription differentium : differentiaArguments) {
                 final StringBuffer buffer = new StringBuffer();
-                buffer.append(label(differentium.getRelationId()));
+                buffer.append(semanticLabel(differentium.getRelationId()));
                 buffer.append("(");
-                buffer.append(label(differentium.getRestriction().getTargetId()));
+                buffer.append(semanticLabel(differentium.getRestriction().getTargetId()));
                 buffer.append(")");
                 differentia.add(buffer.toString());
             }
-            return label(desc.getGenus().getNodeId()) + "("+ Collections.join(differentia, ", ") + ")";
+            return semanticLabel(desc.getGenus().getNodeId()) + "("+ Collections.join(differentia, ", ") + ")";
         }
     }
     
@@ -367,12 +372,40 @@ public class OBDQuery {
      * @param id The identifier of a Node for which to return or generate a label.
      * @author jim balhoff
      */
-    public String label(String id) {
+    public String semanticLabel(String id) {
         final Node node = this.shard.getNode(id);
-        if(node != null)
-        	return label(node);
-        else
-        	return id;
+        if (node != null) {
+            return semanticLabel(node);
+        }
+        else {
+            return id;
+        }
+    }
+    
+    public String simpleLabel(Node node) {
+        if (node.getLabel() != null) {
+            return node.getLabel();
+        } else {
+            final CompositionalDescription desc = this.shard.getCompositionalDescription(node.getId(), false);
+            final List<String> differentia = new ArrayList<String>();
+            final Collection<CompositionalDescription> differentiaArguments = desc.getDifferentiaArguments();
+            if (differentiaArguments == null) {
+                log.error("No differentia arguments for: " + node.getId());
+                return node.getId();
+            }
+            for (CompositionalDescription differentium : differentiaArguments) {
+                final StringBuffer buffer = new StringBuffer();
+                buffer.append(" of ");
+                buffer.append(simpleLabel(differentium.getRestriction().getTargetId()));
+                differentia.add(buffer.toString());
+            }
+            return simpleLabel(desc.getGenus().getNodeId()) + Collections.join(differentia, ", ");
+        }
+    }
+    
+    public String simpleLabel(String id) {
+        final Node node = this.shard.getNode(id);
+        return simpleLabel(node);
     }
 	
 	/**
