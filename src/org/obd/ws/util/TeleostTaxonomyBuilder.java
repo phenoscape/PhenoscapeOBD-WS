@@ -450,7 +450,33 @@ public class TeleostTaxonomyBuilder {
 		//set the branches of the tree and the root
 		tree.setBranchingPointsAndChildren(branches);
 		tree.setRoot(currRoot);
+		//set the EQ details for every node in the tree
 		tree.setNodeToEQMap(nodeToEQMap);
+		
+//		tree.getNodeToAnnotationCountMap().put(currRoot, triplesList.size());
+		
+		//here we update the annotation counts for every node of the tree except the leaf nodes
+		for(OBOClass leaf : taxaSet){
+			Integer ct = 0;
+			//get the number of annotations for this leaf
+			Map<OBOClass, Set<OBOClass>> e2qMap4Leaf = tree.getNodeToEQMap().get(leaf);
+			for(OBOClass e : e2qMap4Leaf.keySet()){
+				ct += e2qMap4Leaf.get(e).size();
+			}
+			//get the path from the leaf to the root
+			List<OBOClass> pathToRoot = this.tracePath(leaf, currRoot, new ArrayList<OBOClass>());
+			//update counts for each node in this path
+			for(OBOClass node : pathToRoot){
+				//except the leaf
+				if(!node.equals(leaf)){
+					Integer ct4Node = tree.getNodeToAnnotationCountMap().get(node);
+					if(ct4Node == null)
+						ct4Node = 0;
+					ct4Node += ct;
+					tree.getNodeToAnnotationCountMap().put(node, ct4Node);
+				}
+			}
+		}
 		return tree;
 	}
 	
