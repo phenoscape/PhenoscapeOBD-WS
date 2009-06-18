@@ -79,9 +79,9 @@ public class TeleostTaxonomyBuilder {
 		leaves = new HashSet<OBOClass>();
 		idToClassMapper = new HashMap<String, OBOClass>();
 		
-		URL ttoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/teleost_taxonomy/teleost_taxonomy.obo");
-		URL taoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/teleost_anatomy/teleost_anatomy.obo");
-		URL patoURL = new URL("http://www.berkeleybop.org/ontologies/obo-all/quality/quality.obo");
+		URL ttoURL = new URL("http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo");
+		URL taoURL = new URL("http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/anatomy/gross_anatomy/animal_gross_anatomy/fish/teleost_anatomy.obo");
+		URL patoURL = new URL("http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/phenotype/quality.obo");
 		BufferedReader br1 = new BufferedReader(new InputStreamReader(ttoURL.openStream()));
 		BufferedReader br2 = new BufferedReader(new InputStreamReader(taoURL.openStream()));
 		BufferedReader br3 = new BufferedReader(new InputStreamReader(patoURL.openStream()));
