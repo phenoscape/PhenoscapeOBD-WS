@@ -26,6 +26,8 @@ public class TaxonTree {
 	
 	private Map<OBOClass,  Map<OBOClass, Set<OBOClass>>> nodeToEQMap;
 	private Map<OBOClass, Integer> nodeToAnnotationCountMap; 
+	/** This has been added tp keep track of reif link ids - Cartik 061909*/
+	private Map<OBOClass, String[]> nodeToAnnotationMap;
 
 	/*
 	 * GETTERs and SETTERs
@@ -69,6 +71,12 @@ public class TaxonTree {
 		this.nodeToAnnotationCountMap = nodeToAnnotationCountMap;
 	}
 
+	public Map<OBOClass, String[]> getNodeToAnnotationMap() {
+		return nodeToAnnotationMap;
+	}
+	public void setNodeToAnnotationMap(Map<OBOClass, String[]> nodeToAnnotationMap) {
+		this.nodeToAnnotationMap = nodeToAnnotationMap;
+	}
 	/**
 	 * The constructor simply initializes the branches, the leaves, the qualities to node
 	 * map and the node to annotation count map
