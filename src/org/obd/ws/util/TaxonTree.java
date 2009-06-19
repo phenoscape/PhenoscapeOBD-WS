@@ -7,7 +7,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.obo.datamodel.OBOClass;
+import org.obd.ws.util.dto.NodeDTO;
 
 /**
  * This is a tree order for a group on taxa, with a root
@@ -20,61 +20,61 @@ import org.obo.datamodel.OBOClass;
  */
 public class TaxonTree {
 	
-	private OBOClass root;
-	private Map<OBOClass, Set<OBOClass>> branchingPointsAndChildren;
-	private Set<OBOClass> leaves;
+	private NodeDTO root;
+	private Map<NodeDTO, Set<NodeDTO>> branchingPointsAndChildren;
+	private Set<NodeDTO> leaves;
 	
-	private Map<OBOClass,  Map<OBOClass, Set<OBOClass>>> nodeToEQMap;
-	private Map<OBOClass, Integer> nodeToAnnotationCountMap; 
+	private Map<NodeDTO,  Map<NodeDTO, Set<NodeDTO>>> nodeToEQMap;
+	private Map<NodeDTO, Integer> nodeToAnnotationCountMap; 
 	/** This has been added tp keep track of reif link ids - Cartik 061909*/
-	private Map<OBOClass, String[]> nodeToAnnotationMap;
+	private Map<NodeDTO, String[]> nodeToAnnotationMap;
 
 	/*
 	 * GETTERs and SETTERs
 	 * 
 	 */
-	public OBOClass getRoot() {
+	public NodeDTO getRoot() {
 		return root;
 	}
-	public void setRoot(OBOClass root) {
+	public void setRoot(NodeDTO root) {
 		this.root = root;
 	}
 	
-	public Map<OBOClass, Set<OBOClass>> getBranchingPointsAndChildren() {
+	public Map<NodeDTO, Set<NodeDTO>> getBranchingPointsAndChildren() {
 		return branchingPointsAndChildren;
 	}
 	public void setBranchingPointsAndChildren(
-			Map<OBOClass, Set<OBOClass>> branchingPointsAndChidren) {
+			Map<NodeDTO, Set<NodeDTO>> branchingPointsAndChidren) {
 		this.branchingPointsAndChildren = branchingPointsAndChidren;
 	}
 
-	public Set<OBOClass> getLeaves() {
+	public Set<NodeDTO> getLeaves() {
 		return leaves;
 	}
-	public void setLeaves(Set<OBOClass> leaves) {
+	public void setLeaves(Set<NodeDTO> leaves) {
 		this.leaves = leaves;
 	}
 	
-	public Map<OBOClass, Map<OBOClass, Set<OBOClass>>> getNodeToEQMap() {
+	public Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> getNodeToEQMap() {
 		return nodeToEQMap;
 	}
 	public void setNodeToEQMap(
-			Map<OBOClass,  Map<OBOClass, Set<OBOClass>>> nodeToQualitiesMap) {
+			Map<NodeDTO,  Map<NodeDTO, Set<NodeDTO>>> nodeToQualitiesMap) {
 		this.nodeToEQMap = nodeToQualitiesMap;
 	}
 	
-	public Map<OBOClass, Integer> getNodeToAnnotationCountMap() {
+	public Map<NodeDTO, Integer> getNodeToAnnotationCountMap() {
 		return nodeToAnnotationCountMap;
 	}
 	public void setNodeToAnnotationCountMap(
-			Map<OBOClass, Integer> nodeToAnnotationCountMap) {
+			Map<NodeDTO, Integer> nodeToAnnotationCountMap) {
 		this.nodeToAnnotationCountMap = nodeToAnnotationCountMap;
 	}
 
-	public Map<OBOClass, String[]> getNodeToAnnotationMap() {
+	public Map<NodeDTO, String[]> getNodeToAnnotationMap() {
 		return nodeToAnnotationMap;
 	}
-	public void setNodeToAnnotationMap(Map<OBOClass, String[]> nodeToAnnotationMap) {
+	public void setNodeToAnnotationMap(Map<NodeDTO, String[]> nodeToAnnotationMap) {
 		this.nodeToAnnotationMap = nodeToAnnotationMap;
 	}
 	/**
@@ -82,10 +82,10 @@ public class TaxonTree {
 	 * map and the node to annotation count map
 	 */
 	public TaxonTree(){
-		branchingPointsAndChildren = new HashMap<OBOClass, Set<OBOClass>>(); 
-		leaves = new HashSet<OBOClass>();
-		nodeToEQMap = new HashMap<OBOClass,  Map<OBOClass, Set<OBOClass>>>();
-		nodeToAnnotationCountMap = new HashMap<OBOClass, Integer>();
+		branchingPointsAndChildren = new HashMap<NodeDTO, Set<NodeDTO>>(); 
+		leaves = new HashSet<NodeDTO>();
+		nodeToEQMap = new HashMap<NodeDTO,  Map<NodeDTO, Set<NodeDTO>>>();
+		nodeToAnnotationCountMap = new HashMap<NodeDTO, Integer>();
 	}
 	
 	/**
@@ -98,7 +98,7 @@ public class TaxonTree {
 	 * @param bw - buffered reader which contains a pointer to a text file
 	 * @throws IOException
 	 */
-	public void printTaxonomy(OBOClass node, int tabCt, BufferedWriter bw) 
+	public void printTaxonomy(NodeDTO node, int tabCt, BufferedWriter bw) 
 		throws IOException{
 		String tabs = "";
 
@@ -107,14 +107,14 @@ public class TaxonTree {
 		}
 		if(!this.getLeaves().contains(node)){//this is not a leaf node
 			if(this.getBranchingPointsAndChildren().get(node) != null ){
-				for(OBOClass child : this.getBranchingPointsAndChildren().get(node)){
-					bw.write(tabs + child.getID() + "\t" + child.getName() + "\n");
+				for(NodeDTO child : this.getBranchingPointsAndChildren().get(node)){
+					bw.write(tabs + child.getId() + "\t" + child.getName() + "\n");
 					bw.write(tabs + "Annotation Count: " + this.getNodeToAnnotationCountMap().get(child) + "\n");
 					if(this.getNodeToEQMap().containsKey(child)){
-						Map<OBOClass, Set<OBOClass>> e2qMap = this.getNodeToEQMap().get(child);
-						for(OBOClass e : e2qMap.keySet()){
+						Map<NodeDTO, Set<NodeDTO>> e2qMap = this.getNodeToEQMap().get(child);
+						for(NodeDTO e : e2qMap.keySet()){
 							bw.write(tabs + "Exhibits " + e.getName() + " that are: ");
-							for(OBOClass q : e2qMap.get(e)){
+							for(NodeDTO q : e2qMap.get(e)){
 								bw.write(q.getName() + " "); 
 							}
 							bw.write("\n");
