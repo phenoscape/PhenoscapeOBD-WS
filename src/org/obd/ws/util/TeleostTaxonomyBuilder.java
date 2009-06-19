@@ -18,6 +18,7 @@ import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
+import org.obd.ws.util.dto.NodeDTO;
 import org.obo.dataadapter.OBOAdapter;
 import org.obo.dataadapter.OBOFileAdapter;
 import org.obo.datamodel.Link;
@@ -34,34 +35,34 @@ import org.obo.util.TermUtil;
 
 public class TeleostTaxonomyBuilder {
 	
-	private Map<OBOClass, Set<OBOClass>> parentToChildrenMap;
-	private Map<OBOClass, OBOClass> childToParentMap;
+	private Map<NodeDTO, Set<NodeDTO>> parentToChildrenMap;
+	private Map<NodeDTO, NodeDTO> childToParentMap;
 
-	private Set<OBOClass> roots;
-	private Set<OBOClass> leaves;
+	private Set<NodeDTO> roots;
+	private Set<NodeDTO> leaves;
 	
-	private Map<String, OBOClass> idToClassMapper; 
+	private Map<String, NodeDTO> idToClassMapper; 
 
 	/*
 	 * GETTER methods for instance variables
 	 */
-	public Set<OBOClass> getRoots() {
+	public Set<NodeDTO> getRoots() {
 		return roots;
 	}
 
-	public Set<OBOClass> getLeaves() {
+	public Set<NodeDTO> getLeaves() {
 		return leaves;
 	}
 	
-	public Map<OBOClass, Set<OBOClass>> getParentToChildrenMap() {
+	public Map<NodeDTO, Set<NodeDTO>> getParentToChildrenMap() {
 		return parentToChildrenMap;
 	}
 	
-	public Map<OBOClass, OBOClass> getChildToParentMap(){
+	public Map<NodeDTO, NodeDTO> getChildToParentMap(){
 		return childToParentMap;
 	}
 	
-	public Map<String, OBOClass> getIdToClassMapper(){
+	public Map<String, NodeDTO> getIdToClassMapper(){
 		return idToClassMapper;
 	}
 	
@@ -73,11 +74,11 @@ public class TeleostTaxonomyBuilder {
 	 * @throws DataAdapterException 
 	 */
 	public TeleostTaxonomyBuilder() throws IOException, DataAdapterException{
-		parentToChildrenMap = new HashMap<OBOClass, Set<OBOClass>>();
-		childToParentMap = new HashMap<OBOClass, OBOClass>();
-		roots = new HashSet<OBOClass>();
-		leaves = new HashSet<OBOClass>();
-		idToClassMapper = new HashMap<String, OBOClass>();
+		parentToChildrenMap = new HashMap<NodeDTO, Set<NodeDTO>>();
+		childToParentMap = new HashMap<NodeDTO, NodeDTO>();
+		roots = new HashSet<NodeDTO>();
+		leaves = new HashSet<NodeDTO>();
+		idToClassMapper = new HashMap<String, NodeDTO>();
 		
 		URL ttoURL = new URL("http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo");
 		URL taoURL = new URL("http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/anatomy/gross_anatomy/animal_gross_anatomy/fish/teleost_anatomy.obo");
@@ -153,15 +154,24 @@ public class TeleostTaxonomyBuilder {
 	    			(oboClass.getID().matches("TTO:[0-9]+") ||
    					 oboClass.getID().matches("PATO:[0-9]+") ||
    					oboClass.getID().matches("TAO:[0-9]+"))){
-	    		idToClassMapper.put(oboClass.getID(), oboClass);
+	    		String id = oboClass.getID();
+	    		String name = oboClass.getName();
+	    		
+	    		NodeDTO oboNode = new NodeDTO(id);
+	    		oboNode.setName(name);
+	    		idToClassMapper.put(oboClass.getID(), oboNode);
+	    		
 	    		if(oboClass.getChildren().size() == 0){//a leaf node
-	    			leaves.add(oboClass);
+	    			leaves.add(oboNode);
 	    			addNodeToParent(oboClass);
 	    		}
 	    		else if(oboClass.getParents().size() == 0){//a root node
-	    			roots.add(oboClass);
+	    			roots.add(oboNode);
 	    			for(Link child : oboClass.getChildren()){
-	    				roots.add((OBOClass)child.getChild());
+	    				OBOClass childclass = (OBOClass)child.getChild();
+	    				NodeDTO childDTO = new NodeDTO(childclass.getID());
+	    				childDTO.setName(childclass.getName());
+	    				roots.add(childDTO);
 	    			}
 	    			addChildrenToNode(oboClass);
 	    		}
@@ -179,19 +189,26 @@ public class TeleostTaxonomyBuilder {
 	 * @param node - the node to be stored
 	 */
 	public void addNodeToParent(OBOClass node){
-		Set<OBOClass> children;
+		Set<NodeDTO> children;
 		//we assume a tree. 
 		Link pLink = (Link)node.getParents().toArray()[0];
 		OBOClass parent = (OBOClass)pLink.getParent();
-		if(parentToChildrenMap.containsKey(parent)){
-			children = parentToChildrenMap.get(parent);
+		
+		NodeDTO parentDTO = new NodeDTO(parent.getID());
+		parentDTO.setName(parent.getName());
+		
+		NodeDTO nodeDTO = new NodeDTO(node.getID());
+		nodeDTO.setName(node.getName());
+		
+		if(parentToChildrenMap.containsKey(parentDTO)){
+			children = parentToChildrenMap.get(parentDTO);
 		}
 		else{
-			children = new HashSet<OBOClass>();
+			children = new HashSet<NodeDTO>();
 		}
-		children.add(node);
-		parentToChildrenMap.put(parent, children);
-		childToParentMap.put(node, parent);
+		children.add(nodeDTO);
+		parentToChildrenMap.put(parentDTO, children);
+		childToParentMap.put(nodeDTO, parentDTO);
 	}
 	
 	/**
@@ -199,14 +216,19 @@ public class TeleostTaxonomyBuilder {
 	 * @param node - the node whose children are to be added
 	 */
 	public void addChildrenToNode(OBOClass node){
-		Set<OBOClass> children = new HashSet<OBOClass>();
+		Set<NodeDTO> children = new HashSet<NodeDTO>();
+		
+		NodeDTO nodeDTO = new NodeDTO(node.getID());
+		nodeDTO.setName(node.getName());
 		
 		for(Link cLink : node.getChildren()){
 			OBOClass child = (OBOClass)cLink.getChild();
-			children.add(child);
-			childToParentMap.put(child, node);
+			NodeDTO childDTO = new NodeDTO(child.getID());
+			childDTO.setName(child.getName());
+			children.add(childDTO);
+			childToParentMap.put(childDTO, nodeDTO);
 		}
-		parentToChildrenMap.put(node, children);
+		parentToChildrenMap.put(nodeDTO, children);
 	}
 	
 	/**
@@ -219,7 +241,7 @@ public class TeleostTaxonomyBuilder {
 	 * @param bw - buffered reader which contains a pointer to a text file
 	 * @throws IOException
 	 */
-	public void printTaxonomy(OBOClass node, int tabCt, BufferedWriter bw) 
+	public void printTaxonomy(NodeDTO node, int tabCt, BufferedWriter bw) 
 		throws IOException{
 		String tabs = "";
 
@@ -227,14 +249,34 @@ public class TeleostTaxonomyBuilder {
 			tabs += "  ";
 		}
 		if(!getLeaves().contains(node)){//this is not a leaf node
-			for(OBOClass child : getParentToChildrenMap().get(node)){
-				bw.write(tabs + child.getID() + "\t" + child.getName() + "\n");
+			for(NodeDTO child : getParentToChildrenMap().get(node)){
+				bw.write(tabs + child.getId() + "\t" + child.getName() + "\n");
 				printTaxonomy(child, tabCt + 1, bw);
 			}
 		}
 		else{
 			return;
 		}
+	}
+	
+	/**
+	 * @PURPOSE The purpose of this method is to find all the leaf nodes under a given node in the
+	 * tree
+	 * @param nodeId - the id of the node we are interested in 
+	 * @param tree - the tree of taxa
+	 * @return the list of all the leaf nodes under the input node
+	 */
+	public List<NodeDTO> getLeavesUnderNode(String nodeId, TaxonTree tree){
+		NodeDTO node = idToClassMapper.get(nodeId);
+		List<NodeDTO> leavesUnderNode = new ArrayList<NodeDTO>();
+	
+		for(NodeDTO leaf : tree.getLeaves()){
+			List<NodeDTO> path = this.tracePathToRoot(leaf.getId(), new ArrayList<NodeDTO>());
+			if(path.contains(node))
+				leavesUnderNode.add(node);
+		}
+		
+		return leavesUnderNode;
 	}
 	
 	/**
@@ -246,20 +288,20 @@ public class TeleostTaxonomyBuilder {
 	 * @param path - the path from the node to the root of the TTO
 	 * @return the path from the given node to the root
 	 */
-	public List<OBOClass> tracePathToRoot(String nodeId, List<OBOClass> path){
+	public List<NodeDTO> tracePathToRoot(String nodeId, List<NodeDTO> path){
 		//we check if this is a root node. Exit condition for 
 		//recursion 
-		for(OBOClass root : roots){
-			if(root.getID().equals(nodeId)){
+		for(NodeDTO root : roots){
+			if(root.getId().equals(nodeId)){
 				path.add(root);
 				return path;
 			}
 		}
 		//otherwise, we recurse through the collection of nodes
 		//and children
-		OBOClass parent = getChildToParentMap().get(getIdToClassMapper().get(nodeId));
+		NodeDTO parent = getChildToParentMap().get(idToClassMapper.get(nodeId));
 		path.add(getIdToClassMapper().get(nodeId));
-		return tracePathToRoot(parent.getID(), path);
+		return tracePathToRoot(parent.getId(), path);
 	}
 	
 	/**
@@ -272,15 +314,15 @@ public class TeleostTaxonomyBuilder {
 	 * @param path - the path from current node to end
 	 * @return the complete path from source to end
 	 */
-	public List<OBOClass> tracePath(OBOClass startNode, OBOClass endNode, List<OBOClass> path){
+	public List<NodeDTO> tracePath(NodeDTO startNode, NodeDTO endNode, List<NodeDTO> path){
 		
-		if(startNode.getID().equals(endNode.getID()) ||
-				!this.tracePathToRoot(startNode.getID(), new ArrayList<OBOClass>()).contains(endNode)){
+		if(startNode.getId().equals(endNode.getId()) ||
+				!this.tracePathToRoot(startNode.getId(), new ArrayList<NodeDTO>()).contains(endNode)){
 			path.add(endNode);
 			return path;
 		}
 		
-		OBOClass parent = childToParentMap.get(startNode);
+		NodeDTO parent = childToParentMap.get(startNode);
 		path.add(startNode);
 		return tracePath(parent, endNode, path);
 	}
@@ -291,17 +333,23 @@ public class TeleostTaxonomyBuilder {
 	 * @param mrca - the current MRCA
 	 * @return the MRCA of the entire list of taxa
 	 */
-	public OBOClass findMRCA(LinkedList<OBOClass> taxa, OBOClass mrca){
+	public NodeDTO findMRCA(LinkedList<NodeDTO> taxa, NodeDTO mrca){
 		//if we have reached the end of the list,
 		//or if we have already reached the root, return 
+		if (mrca != null)
+			System.out.println("mrca is " + mrca.getId());
+		else
+			System.out.println("mrca is NULL");
+		
 		if(taxa.size() == 0 || getRoots().contains(mrca))
 			return mrca;
 		//get the first element in the list
-		OBOClass first = taxa.remove(0);
+		NodeDTO first = taxa.remove(0);
 		//find the mrca of the first element and the input mrca
-		OBOClass result = findMRCA(first, mrca); 
+		NodeDTO result = findMRCA(first, mrca); 
 		//recursively call the same method, with the shortened list
 		//and the new MRCA as arguments
+		System.out.println("new MRCA is " + result.getId());
 		return findMRCA(taxa, result);
 	}
 	
@@ -312,24 +360,24 @@ public class TeleostTaxonomyBuilder {
 	 * @param mrca - the other taxon
 	 * @return - the mrca of the two taxa
 	 */
-	public OBOClass findMRCA(OBOClass oClass, OBOClass mrca){
+	public NodeDTO findMRCA(NodeDTO oClass, NodeDTO mrca){
 		//if the MRCA is null, we are just getting started trivially
 		//return the oClass as the MRCA
 		if(mrca == null)
 			return oClass;
 		//if the MRCA lies in the path from the oClass to the Root,
 		//the MRCA stays the MRCA
-		else if(this.tracePathToRoot(oClass.getID(), new ArrayList<OBOClass>()).contains(mrca))
+		else if(this.tracePathToRoot(oClass.getId(), new ArrayList<NodeDTO>()).contains(mrca))
 			return mrca;
 		//otherwise, if the oClass lies in the path from the MRCA to its root,
 		//the oClass becomes the new MRCA
-		else if(this.tracePathToRoot(mrca.getID(), new ArrayList<OBOClass>()).contains(oClass))
+		else if(this.tracePathToRoot(mrca.getId(), new ArrayList<NodeDTO>()).contains(oClass))
 			return oClass;
 		else{
 			//get the path from oClass to Root
-			List<OBOClass> pathFromOclass = this.tracePathToRoot(oClass.getID(), new ArrayList<OBOClass>());
+			List<NodeDTO> pathFromOclass = this.tracePathToRoot(oClass.getId(), new ArrayList<NodeDTO>());
 			//get the path from mrca to Root
-			List<OBOClass> pathFromMrca = this.tracePathToRoot(mrca.getID(), new ArrayList<OBOClass>());
+			List<NodeDTO> pathFromMrca = this.tracePathToRoot(mrca.getId(), new ArrayList<NodeDTO>());
 			//find where they intersect, this intersection point is the new MRCA
 			return findBranchingPointInPaths(pathFromOclass, pathFromMrca);
 		}
@@ -341,9 +389,9 @@ public class TeleostTaxonomyBuilder {
 	 * @param pathFromMrca - path from the other txon to the root
 	 * @return - the intersection of the two paths
 	 */
-	private OBOClass findBranchingPointInPaths(List<OBOClass> pathFromOclass,
-			List<OBOClass> pathFromMrca) {
-		for(OBOClass taxon : pathFromMrca){
+	private NodeDTO findBranchingPointInPaths(List<NodeDTO> pathFromOclass,
+			List<NodeDTO> pathFromMrca) {
+		for(NodeDTO taxon : pathFromMrca){
 			if(pathFromOclass.contains(taxon)){
 				return taxon;
 			}
@@ -362,39 +410,41 @@ public class TeleostTaxonomyBuilder {
 	 * @param tree - the tree of hierarchical taxa
 	 * @return the completed tree given all the taxa in the input list
 	 */
-	public TaxonTree constructTreeFromTriplesList(List<OBOClass[]> triplesList,  
+	public TaxonTree constructTreeFromTriplesList(List<String[]> triplesList,  
 												TaxonTree tree){
 		
-		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> taxonToEQMap = 
-				new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>();
+		Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> taxonToEQMap = 
+				new HashMap<NodeDTO, Map<NodeDTO, Set<NodeDTO>>>();
 		
-		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> nodeToEQMap = 
-			new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>();
+		Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> nodeToEQMap = 
+			new HashMap<NodeDTO, Map<NodeDTO, Set<NodeDTO>>>();
 		
 		//get all the branching points, we'll use these
-		Map<OBOClass, Set<OBOClass>> branches = tree.getBranchingPointsAndChildren();
+		Map<NodeDTO, Set<NodeDTO>> branches = tree.getBranchingPointsAndChildren();
 		//get the count of annotations for all nodes
-		Map<OBOClass, Integer> annotationCountsMap = tree.getNodeToAnnotationCountMap(); 
+		Map<NodeDTO, Integer> annotationCountsMap = tree.getNodeToAnnotationCountMap(); 
+		Map<NodeDTO, String[]> taxonToAnnotationMap = tree.getNodeToAnnotationMap();
 		
-		OBOClass currRoot = null;
-		OBOClass taxonFromTriple, entity, quality;
+		NodeDTO currRoot = null;
+		NodeDTO taxonFromTriple, entity, quality;
 		
-		Set<OBOClass> taxaSet = new HashSet<OBOClass>();
+		Set<NodeDTO> taxaSet = new HashSet<NodeDTO>();
 		/*
 		 * first we convert the triples list to a usable data structure, which maps
 		 * every Taxon to a map of Entity to Quality tuples it is associated with. This 
 		 * will be of use later
 		 */
 		
-		for(OBOClass[] triple : triplesList){
-			taxonFromTriple = triple[0];
-			entity = triple[1];
-			quality = triple[2];
+		for(String[] triple : triplesList){
+			taxonFromTriple = idToClassMapper.get(triple[0]);
+			entity = idToClassMapper.get(triple[1]);
+			quality = idToClassMapper.get(triple[2]);
 			
 			taxaSet.add(taxonFromTriple);
+			taxonToAnnotationMap.put(taxonFromTriple, new String[]{triple[1], triple[2], triple[3]});
 			
-			Map<OBOClass, Set<OBOClass>> e2qMapForTaxon;
-			Set<OBOClass> qualsForEntity;
+			Map<NodeDTO, Set<NodeDTO>> e2qMapForTaxon;
+			Set<NodeDTO> qualsForEntity;
 			
 			Integer annotCt = annotationCountsMap.get(taxonFromTriple);
 			if(annotCt == null)
@@ -408,12 +458,12 @@ public class TeleostTaxonomyBuilder {
 					qualsForEntity = e2qMapForTaxon.get(entity);
 				}
 				else{
-					qualsForEntity = new HashSet<OBOClass>();
+					qualsForEntity = new HashSet<NodeDTO>();
 				}
 			}
 			else{
-				e2qMapForTaxon = new HashMap<OBOClass, Set<OBOClass>>();
-				qualsForEntity = new HashSet<OBOClass>();
+				e2qMapForTaxon = new HashMap<NodeDTO, Set<NodeDTO>>();
+				qualsForEntity = new HashSet<NodeDTO>();
 			}
 			qualsForEntity.add(quality);
 			e2qMapForTaxon.put(entity, qualsForEntity);
@@ -423,21 +473,21 @@ public class TeleostTaxonomyBuilder {
 		/*
 		 * Now we start working with this data structure
 		 */
-		for(OBOClass taxon : taxaSet){	
-			Map<OBOClass, Map<OBOClass, Set<OBOClass>>> nodeToEQMap1 = 
-				new HashMap<OBOClass, Map<OBOClass, Set<OBOClass>>>(), nodeToEQMap2 = null;
+		for(NodeDTO taxon : taxaSet){	
+			Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> nodeToEQMap1 = 
+				new HashMap<NodeDTO, Map<NodeDTO, Set<NodeDTO>>>(), nodeToEQMap2 = null;
 			
-			OBOClass oldRoot = currRoot; 
+			NodeDTO oldRoot = currRoot; 
 			//find the MRCA
 			currRoot = this.findMRCA(taxon, currRoot);
 			//find path to current MRCA from this taxon
-			List<OBOClass> pathToMrca = this.tracePath(taxon, currRoot, new ArrayList<OBOClass>());
+			List<NodeDTO> pathToMrca = this.tracePath(taxon, currRoot, new ArrayList<NodeDTO>());
 			//process each node in the path
 			branches = processNodesInPathToAddBranches(pathToMrca, branches);
 			nodeToEQMap1 = processNodesInPathForEQ(pathToMrca, taxonToEQMap);
 			//if old root is not null, also find path to current MRCA from old MRCA
 			if(oldRoot != null){
-				List<OBOClass> oldPathToMrca = this.tracePath(oldRoot, currRoot, new ArrayList<OBOClass>());
+				List<NodeDTO> oldPathToMrca = this.tracePath(oldRoot, currRoot, new ArrayList<NodeDTO>());
 				//process each node in this path
 				branches = processNodesInPathToAddBranches(oldPathToMrca, branches);
 				nodeToEQMap2 = processNodesInPathForEQ(oldPathToMrca, taxonToEQMap);
@@ -456,17 +506,17 @@ public class TeleostTaxonomyBuilder {
 //		tree.getNodeToAnnotationCountMap().put(currRoot, triplesList.size());
 		
 		//here we update the annotation counts for every node of the tree except the leaf nodes
-		for(OBOClass leaf : taxaSet){
+		for(NodeDTO leaf : taxaSet){
 			Integer ct = 0;
 			//get the number of annotations for this leaf
-			Map<OBOClass, Set<OBOClass>> e2qMap4Leaf = tree.getNodeToEQMap().get(leaf);
-			for(OBOClass e : e2qMap4Leaf.keySet()){
+			Map<NodeDTO, Set<NodeDTO>> e2qMap4Leaf = tree.getNodeToEQMap().get(leaf);
+			for(NodeDTO e : e2qMap4Leaf.keySet()){
 				ct += e2qMap4Leaf.get(e).size();
 			}
 			//get the path from the leaf to the root
-			List<OBOClass> pathToRoot = this.tracePath(leaf, currRoot, new ArrayList<OBOClass>());
+			List<NodeDTO> pathToRoot = this.tracePath(leaf, currRoot, new ArrayList<NodeDTO>());
 			//update counts for each node in this path
-			for(OBOClass node : pathToRoot){
+			for(NodeDTO node : pathToRoot){
 				//except the leaf
 				if(!node.equals(leaf)){
 					Integer ct4Node = tree.getNodeToAnnotationCountMap().get(node);
@@ -492,34 +542,33 @@ public class TeleostTaxonomyBuilder {
 	 * @return a consolidated mapping from every taxa in the tree to EQ combinations
 	 */
 	
-	private Map<OBOClass, Map<OBOClass, Set<OBOClass>>> processNodesInPathForEQ(
-			List<OBOClass> path,
-			Map<OBOClass, Map<OBOClass, Set<OBOClass>>> eqMap) {
+	private Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> processNodesInPathForEQ(
+			List<NodeDTO> path,
+			Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> eqMap) {
 
-		Map<OBOClass, Map<OBOClass, Set<OBOClass>>> node2EQMap = 
-																eqMap;
+		Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> node2EQMap = eqMap;
 		
-		Map<OBOClass, Set<OBOClass>> e2qMap4Node, e2qMap4Parent;
-		Set<OBOClass> qSet4E, qSet4P = null;
+		Map<NodeDTO, Set<NodeDTO>> e2qMap4Node, e2qMap4Parent;
+		Set<NodeDTO> qSet4E, qSet4P = null;
 		
 		for(int index = 0; index < path.size() - 1; index++){
-			OBOClass node = path.get(index);
-			OBOClass parent = path.get(index + 1);
+			NodeDTO node = path.get(index);
+			NodeDTO parent = path.get(index + 1);
 			
 			e2qMap4Node = node2EQMap.get(node);
 			e2qMap4Parent = node2EQMap.get(parent);
 			
 			if(e2qMap4Node != null){
-				for(OBOClass e : e2qMap4Node.keySet()){
+				for(NodeDTO e : e2qMap4Node.keySet()){
 					qSet4E = e2qMap4Node.get(e);
 					if(e2qMap4Parent != null){
 						qSet4P = e2qMap4Parent.get(e);
 					}
 					else{
-						e2qMap4Parent = new HashMap<OBOClass, Set<OBOClass>>();
+						e2qMap4Parent = new HashMap<NodeDTO, Set<NodeDTO>>();
 					}
 					if(qSet4P == null)
-						qSet4P = new HashSet<OBOClass>();
+						qSet4P = new HashSet<NodeDTO>();
 					qSet4P.addAll(qSet4E);
 					e2qMap4Parent.put(e, qSet4P);
 				}
@@ -539,19 +588,19 @@ public class TeleostTaxonomyBuilder {
 	 * @param branches - the map of branching points and their children
 	 * @return - the updated data about branches
 	 */
-	private Map<OBOClass, Set<OBOClass>> processNodesInPathToAddBranches(
-			List<OBOClass> path, Map<OBOClass, Set<OBOClass>> branches) {
-		Set<OBOClass> children;
+	private Map<NodeDTO, Set<NodeDTO>> processNodesInPathToAddBranches(
+			List<NodeDTO> path, Map<NodeDTO, Set<NodeDTO>> branches) {
+		Set<NodeDTO> children;
 		for(int index = 0; index < path.size() - 1; index++){
-			OBOClass node = path.get(index);
+			NodeDTO node = path.get(index);
 			//get the parent of that node
-			OBOClass parent = path.get(index + 1);
+			NodeDTO parent = path.get(index + 1);
 			//get the annotationcounts for the node
 			
 			if(branches.containsKey(parent))
 				children = branches.get(parent);
 			else
-				children = new HashSet<OBOClass>();
+				children = new HashSet<NodeDTO>();
 			children.add(node);
 			branches.put(parent, children);
 		}
@@ -579,43 +628,18 @@ public class TeleostTaxonomyBuilder {
 //		System.out.println(ttb.tracePath("TTO:10000039", new ArrayList<OBOClass>()));
 
 		
-		LinkedList<OBOClass> ttoList = new LinkedList<OBOClass>();
+		LinkedList<NodeDTO> ttoList = new LinkedList<NodeDTO>();
 		Iterator<String> it = ttb.getIdToClassMapper().keySet().iterator();
 		
-		List<OBOClass[]> triplesList = new ArrayList<OBOClass[]>();
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1001979"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001173"),
-		                              ttb.getIdToClassMapper().get("PATO:0000462")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1002351"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001510"),
-		                              ttb.getIdToClassMapper().get("PATO:0000467")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1005577"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001188"),
-		                              ttb.getIdToClassMapper().get("PATO:0001452")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1005381"), 
-		                              ttb.getIdToClassMapper().get("TAO:0000514"),
-		                              ttb.getIdToClassMapper().get("PATO:0000052")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1067707"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001510"),
-		                              ttb.getIdToClassMapper().get("PATO:0000462")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1063327"), 
-		                              ttb.getIdToClassMapper().get("TAO:0000250"),
-		                              ttb.getIdToClassMapper().get("PATO:0000587")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1021209"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001510"),
-		                              ttb.getIdToClassMapper().get("PATO:0000462")});
-		triplesList.add(new OBOClass[]
-		                             {ttb.getIdToClassMapper().get("TTO:1006313"), 
-		                              ttb.getIdToClassMapper().get("TAO:0001510"),
-		                              ttb.getIdToClassMapper().get("PATO:0000467")});
-		
+		List<String[]> triplesList = new ArrayList<String[]>();
+		triplesList.add(new String[]{"TTO:1001979", "TAO:0001173", "PATO:0000462", "123456"});
+		triplesList.add(new String[]{"TTO:1002351", "TAO:0001510", "PATO:0000467", "234567"});
+		triplesList.add(new String[]{"TTO:1005577", "TAO:0001188", "PATO:0001452", "345678"});
+		triplesList.add(new String[]{"TTO:1005381", "TAO:0000514", "PATO:0000052", "456789"});
+		triplesList.add(new String[]{"TTO:1067707", "TAO:0001510", "PATO:0000462", "567890"});
+		triplesList.add(new String[]{"TTO:1063327", "TAO:0000250", "PATO:0000587", "111111"});
+		triplesList.add(new String[]{"TTO:1021209", "TAO:0001510", "PATO:0000462", "222222"});
+		triplesList.add(new String[]{"TTO:1006313", "TAO:0001510", "PATO:0000467", "333333"});
 		
 		while(it.hasNext()){
 			String tto = it.next();
