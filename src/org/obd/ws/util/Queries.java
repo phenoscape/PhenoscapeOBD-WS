@@ -100,43 +100,24 @@ public class Queries {
 	 */
 	
 	private String anatomyQuery = 
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"CASE WHEN gene_node.uid IS NULL THEN taxon_node.uid ELSE gene_node.uid END AS taxonIdOrgeneId, " +
-		"CASE WHEN gene_node.uid IS NULL THEN taxon_node.label ELSE gene_node.label END AS taxonOrgene, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity," +
-		"exhibits_link.reiflink_node_id AS reif_id " +
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, " +
+		"p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, " +
+		"p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, " +
+		"p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, " +
+		"p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id " +
 		"FROM " +
-		"link AS search_link " +
-		"JOIN node AS phenotype_node ON (search_link.node_id = phenotype_node.node_id) " +
-		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS anatomy_node ON (inheres_in_link.object_id = anatomy_node.node_id) " +
-		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
-		"JOIN link AS exhibits_link ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN node AS taxon_node ON (exhibits_link.node_id = taxon_node.node_id) " +
-		"LEFT OUTER JOIN (link AS has_allele_link " +
-		"JOIN node AS gene_node " +
-		"ON (gene_node.node_id = has_allele_link.node_id AND " +
-		"has_allele_link.predicate_id = ___has_allele)) " +
-		"ON (has_allele_link.object_id = exhibits_link.node_id) " +
-		"JOIN link AS value_for_link ON (value_for_link.node_id = quality_node.node_id) " +
-		"JOIN node AS character_node ON  (value_for_link.object_id = character_node.node_id) " +
+		"node AS search_node " +
+		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
+		"	subtaxon_link.predicate_id = ___is_a) " +
+		"JOIN phenotype_by_entity_character AS p1 ON (p1.entity_nid = subtaxon_link.node_id) " +
 		"WHERE " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___inheres_in AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"search_link.object_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f'";
+		"search_node.uid = ?";
 	
 	/**
 	 * @INPUT: A gene (G)
@@ -148,76 +129,30 @@ public class Queries {
 	 */
 	
 	private String geneSummaryQuery = 
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"CASE WHEN gene_node.uid IS NULL THEN taxon_node.uid ELSE gene_node.uid END AS taxonIdOrgeneId, " +
-		"CASE WHEN gene_node.uid IS NULL THEN taxon_node.label ELSE gene_node.label END AS taxonOrgene, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity, " +
-		"NULL AS reif_id " +
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, " +
+		"p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, " +
+		"p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, " +
+		"p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, " +
+		"p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id " +
 		"FROM " +
-		"link AS search_link " +
-		"JOIN node AS phenotype_node ON (search_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS inheres_in_link " +
-		"JOIN node AS anatomy_node " +
-		"ON (inheres_in_link.object_id = anatomy_node.node_id)) " +
-		"ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS is_a_link " +
-		"JOIN (node AS quality_node " +
-		"JOIN (link AS value_for_link " +
-		"JOIN node AS character_node " +
-		"ON (value_for_link.object_id = character_node.node_id)) " +
-		"ON (value_for_link.node_id = quality_node.node_id)) " +
-		"ON (is_a_link.object_id = quality_node.node_id)) " +
-		"ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS exhibits_link " +
-		"JOIN (node AS taxon_node " +
-		"LEFT OUTER JOIN (link AS gene_link " +
-		"JOIN node AS gene_node " +
-		"ON (gene_node.node_id = gene_link.node_id " +
-		"AND gene_link.predicate_id = ___has_allele)) " +
-		"ON (gene_link.object_id = taxon_node.node_id)) " +
-		"ON (exhibits_link.node_id = taxon_node.node_id)) " +
-		"ON (exhibits_link.object_id = phenotype_node.node_id) " +
+		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___inheres_in AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f' AND " +
-		"(search_link.object_id, value_for_link.object_id) IN " +
-		"(SELECT DISTINCT " +
-		"entity_node.node_id, character_node.node_id " +
-		"FROM " +
-		"link AS start_link " +
-		"JOIN link AS exhibits_link ON (start_link.object_id = exhibits_link.node_id) " +
-		"JOIN (link AS is_a_link " +
-		"JOIN (link AS value_for_link " +
-		"JOIN node AS character_node " +
-		"ON (value_for_link.object_id = character_node.node_id)) " +
-		"ON (is_a_link.object_id = value_for_link.node_id)) " +
-		"ON (exhibits_link.object_id = is_a_link.node_id) " +
-		"JOIN (link AS inheres_in_link " +
-		"JOIN node AS entity_node " +
-		"ON (inheres_in_link.object_id = entity_node.node_id)) " +
-		"ON (inheres_in_link.node_id = exhibits_link.object_id) " +
-		"WHERE " +
-		"start_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"start_link.predicate_id = ___has_allele AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f')";
+		"(p1.entity_nid, p1.character_nid) " +
+		"IN (" +
+		" SELECT DISTINCT " +
+		" p1.entity_nid, " +
+		" p1.character_nid " +
+		" FROM " +
+		" phenotype_by_entity_character AS p1 " +
+		" WHERE " +
+		" p1.subject_uid = ? " +
+		")";
 	
 	/**
 	 * @INPUT: A taxon (T)
@@ -227,72 +162,24 @@ public class Queries {
 	
 	
 	private String taxonQuery = 
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"taxon_node.uid AS taxonId, " +
-		"taxon_node.label AS taxon, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entity_uid, " +
-		"anatomy_node.label AS entity_label, " +
-		"exhibits_link.reiflink_node_id AS reif_id " +
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, " +
+		"p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, " +
+		"p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, " +
+		"p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, " +
+		"p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id " +
 		"FROM " +
-		"link AS search_link " +
-		"JOIN node AS phenotype_node ON (search_link.object_id = phenotype_node.node_id) " +
-		"JOIN link AS exhibits_link ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN node AS taxon_node ON (exhibits_link.node_id = taxon_node.node_id) " +
-		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS anatomy_node ON (inheres_in_link.object_id = anatomy_node.node_id) " +
-		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
-		"JOIN link AS value_for_link ON (value_for_link.node_id = quality_node.node_id) " +
-		"JOIN node AS character_node ON (value_for_link.object_id = character_node.node_id) " +
-		"JOIN link AS subtaxon_link ON ((subtaxon_link.object_id = search_link.node_id) " +
-		"	AND (subtaxon_link.node_id = exhibits_link.node_id)) " +
+		"node AS search_node " +
+		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
+		"	subtaxon_link.predicate_id = ___is_a) " +
+		"JOIN phenotype_by_entity_character AS p1 ON (p1.subject_nid = subtaxon_link.node_id) " +
 		"WHERE " +
-		"subtaxon_link.predicate_id = ___is_a AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___exhibits AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"search_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f' " +
-		"UNION " +
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"taxon_node.uid AS taxonId, " +
-		"taxon_node.label AS taxon, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entity_uid, " +
-		"anatomy_node.label AS entity_label, " +
-		"exhibits_link.reiflink_node_id AS reif_id " +
-		"FROM " +
-		"link AS exhibits_link " +
-		"JOIN node AS phenotype_node ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN node AS taxon_node ON (exhibits_link.node_id = taxon_node.node_id) " +
-		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS anatomy_node ON (inheres_in_link.object_id = anatomy_node.node_id) " +
-		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
-		"JOIN link AS value_for_link ON (value_for_link.node_id = quality_node.node_id) " +
-		"JOIN node AS character_node ON (value_for_link.object_id = character_node.node_id) " +
-		"WHERE " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"exhibits_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f'";
+		"search_node.uid = ?";
 	
 	/**
 	 * @INPUT: A gene (G)
@@ -301,37 +188,20 @@ public class Queries {
 	 */
 	
 	private String geneQuery = 
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"gene_node.uid AS taxonId, " +
-		"gene_node.label AS taxon, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity, " +
-		"exhibits_link.reiflink_node_id AS reif_id " +
+		"SELECT " +
+		"p1.subject_uid, " +
+		"p1.subject_label, " +
+		"p1.entity_uid, " +
+		"p1.entity_label, " +
+		"p1.quality_uid, " +
+		"p1.quality_label, " +
+		"p1.character_uid, " +
+		"p1.character_label, " +
+		"p1.reif_id AS reif_id " +
 		"FROM " +
-		"link AS search_link JOIN node AS genotype_node ON (search_link.object_id = genotype_node.node_id) " +
-		"JOIN node AS gene_node ON (search_link.node_id = gene_node.node_id) " +
-		"JOIN link AS exhibits_link ON (exhibits_link.node_id = genotype_node.node_id) " +
-		"JOIN node AS phenotype_node ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
-		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN node AS anatomy_node ON (inheres_in_link.object_id = anatomy_node.node_id) " +
-		"JOIN link AS value_for_link ON (value_for_link.node_id = quality_node.node_id) " +
-		"JOIN node AS character_node ON  (value_for_link.object_id = character_node.node_id) " +
+		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___has_allele AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"search_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f'";
+		"p1.subject_uid = ?";
 	
 	/**
 	 * @INPUT: A taxon (T)
@@ -342,155 +212,54 @@ public class Queries {
 	 */
 	
 	private String taxonSummaryQuery =  
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"gene_node.uid AS taxonIdOrgeneId, " +
-		"gene_node.label AS taxonOrgene, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity, " +
-		"NULL AS reif_id " +
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, " +
+		"p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, " +
+		"p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, " +
+		"p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, " +
+		"p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id " +
 		"FROM " +
-		"node AS gene_node " +
-		"JOIN (link AS search_link " +
-		"JOIN (link AS exhibits_link " +
-		"JOIN node AS phenotype_node " +
-		"ON (exhibits_link.object_id = phenotype_node.node_id)) " +
-		"ON (search_link.object_id = exhibits_link.node_id)) " +
-		"ON (search_link.node_id = gene_node.node_id) " +
-		"JOIN (link AS inheres_in_link " +
-		"JOIN node AS anatomy_node " +
-		"ON (inheres_in_link.object_id = anatomy_node.node_id)) " +
-		"ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS is_a_link " +
-		"JOIN (node AS quality_node " +
-		"JOIN (link AS value_for_link " +
-		"JOIN node AS character_node " +
-		"ON (value_for_link.object_id = character_node.node_id)) " +
-		"ON (value_for_link.node_id = quality_node.node_id)) " +
-		"ON (is_a_link.object_id = quality_node.node_id)) " +
-		"ON (is_a_link.node_id = phenotype_node.node_id) " +
+		"phenotype_by_entity_character AS p1 " +
+		"JOIN link AS subtaxon_link ON (p1.subject_nid = subtaxon_link.node_id AND " +
+		"	subtaxon_link.predicate_id = ___is_a) " +
+		"JOIN node AS search_node ON (search_node.node_id = subtaxon_link.object_id) " +
 		"WHERE " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___has_allele AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"(inheres_in_link.object_id, value_for_link.object_id) " +
+		"search_node.uid = ? " +
+		"UNION " +
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, " +
+		"p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, " +
+		"p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, " +
+		"p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, " +
+		"p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id " +
+		"FROM " +
+		"phenotype_by_entity_character AS p1 " +
+		"WHERE " +
+		"p1.gene_or_taxon = 'G' AND " +
+		"(p1.entity_nid, p1.character_nid) " +
 		"IN " +
 		"(" +
 		" SELECT DISTINCT " +
-		" anatomy_node.node_id, " +
-		" character_node.node_id " +
+		" p1.entity_nid, " +
+		" p1.character_nid " +
 		" FROM " +
-		" link AS search_link " +
-		" JOIN (link AS inheres_in_link " +
-		" JOIN node AS anatomy_node " +
-		" ON (inheres_in_link.object_id = anatomy_node.node_id)) " +
-		" ON (inheres_in_link.node_id = search_link.object_id) " +
-		" JOIN (link AS is_a_link " +
-		" JOIN (link AS value_for_link " +
-		" JOIN node AS character_node " +
-		" ON (value_for_link.object_id = character_node.node_id)) " +
-		" ON (value_for_link.node_id = is_a_link.object_id)) " +
-		" ON (is_a_link.node_id = search_link.object_id) " +
-		" WHERE " +
-		" is_a_link.predicate_id = ___is_a AND " +
-		" search_link.predicate_id = ___exhibits AND " +
-		" inheres_in_link.predicate_id = ___inheres_in AND " +
-		" value_for_link.predicate_id = ___value_for AND " +
-		" search_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		" inheres_in_link.is_inferred = 'f' AND " +
-		" is_a_link.is_inferred = 'f' " +
-		") " +
-		"UNION " +
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"taxon_node.uid AS taxonIdOrgeneId, " +
-		"taxon_node.label AS taxonOrgene, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity, " +
-		"NULL AS reif_id " +
-		"FROM " +
-		"link AS search_link " +
-		"JOIN node AS phenotype_node ON (search_link.object_id = phenotype_node.node_id) " +
-		"JOIN (link AS exhibits_link " +
-		"JOIN node AS taxon_node " +
-		"ON (exhibits_link.node_id = taxon_node.node_id)) " +
-		"ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN link AS subtaxon_link ON (taxon_node.node_id = subtaxon_link.node_id AND " +
-		"	subtaxon_link.object_id = search_link.node_id AND " +
+		" phenotype_by_entity_character AS p1 " +
+		" JOIN link AS subtaxon_link ON (subtaxon_link.node_id = p1.subject_nid AND " +
 		"	subtaxon_link.predicate_id = ___is_a) " +
-		"JOIN (link AS inheres_in_link " +
-		"JOIN node AS anatomy_node " +
-		"ON (inheres_in_link.object_id = anatomy_node.node_id)) " +
-		"ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS is_a_link " +
-		"JOIN (node AS quality_node " +
-		"JOIN (link AS value_for_link " +
-		"JOIN node AS character_node " +
-		"ON (value_for_link.object_id = character_node.node_id)) " +
-		"ON (value_for_link.node_id = quality_node.node_id)) " +
-		"ON (is_a_link.object_id = quality_node.node_id)) " +
-		"ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"WHERE " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"search_link.predicate_id = ___exhibits AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"search_link.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f' " +
-		"UNION " +
-		"SELECT DISTINCT " +
-		"phenotype_node.uid AS phenotype, " +
-		"taxon_node.uid AS taxonIdOrgeneId, " +
-		"taxon_node.label AS taxonOrgene, " +
-		"quality_node.uid AS StateUid, " +
-		"quality_node.label AS State, " +
-		"character_node.uid AS CharacterUid, " +
-		"character_node.label AS Character, " +
-		"anatomy_node.uid AS entityUid, " +
-		"anatomy_node.label AS entity, " +
-		"NULL AS reif_id " +
-		"FROM " +
-		"node AS taxon_node " +
-		"JOIN (link AS exhibits_link " +
-		"JOIN node AS phenotype_node " +
-		"ON (exhibits_link.object_id = phenotype_node.node_id)) " +
-		"ON (exhibits_link.node_id = taxon_node.node_id) " +
-		"JOIN (link AS inheres_in_link " +
-		"JOIN node AS anatomy_node " +
-		"ON (inheres_in_link.object_id = anatomy_node.node_id)) " +
-		"ON (inheres_in_link.node_id = phenotype_node.node_id) " +
-		"JOIN (link AS is_a_link " +
-		"JOIN (node AS quality_node " +
-		"JOIN (link AS value_for_link " +
-		"JOIN node AS character_node " +
-		"ON (value_for_link.object_id = character_node.node_id)) " +
-		"ON (value_for_link.node_id = quality_node.node_id)) " +
-		"ON (is_a_link.object_id = quality_node.node_id)) " +
-		"ON (is_a_link.node_id = phenotype_node.node_id) " +
-		"WHERE " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"exhibits_link.predicate_id = ___exhibits AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"value_for_link.predicate_id = ___value_for AND " +
-		"taxon_node.node_id = (SELECT node_id FROM node WHERE uid = ?) AND " +
-		"inheres_in_link.is_inferred = 'f' AND " +
-		"is_a_link.is_inferred = 'f' AND " +
-		"exhibits_link.is_inferred = 'f'";
+		" JOIN node AS search_node  ON (search_node.node_id = subtaxon_link.object_id) " +
+		" WHERE " +
+		" search_node.uid = ?" +
+		")";
 	
 	/**
 	 * @INPUT - An anatomical entity (E)
