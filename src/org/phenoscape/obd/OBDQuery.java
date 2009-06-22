@@ -382,6 +382,11 @@ public class OBDQuery {
         }
     }
     
+    /**
+     * @author jim balhoff
+     * @param node
+     * @return
+     */
     public String simpleLabel(Node node) {
         if (node.getLabel() != null) {
             return node.getLabel();
