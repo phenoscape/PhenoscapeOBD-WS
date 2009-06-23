@@ -319,58 +319,25 @@ public class Queries {
 	 */
 	private String freeTextDataQuery = 
 		"SELECT " +
-		"phenotype_node.uid AS phenotype, " +
-		"taxon_node.uid AS taxon_id, " +
-		"taxon_node.label AS taxon, " +
-		"entity_node.uid AS entity_id, " +
-		"entity_node.label AS entity, " +
-		"quality_node.uid AS quality_id, " +
-		"quality_node.label AS quality, " +
-		"pub_node.uid AS publication, " +
-		"character_node.label AS character_text, " +
-		"char_tag.val AS char_comment, " +
-		"char_num_tag.val AS char_number, " +
-		"state_node.label AS state_text, " +
-		"state_tag.val AS state_comment, " +
-		"curator_tag.val AS curators " +
+		"reif_id, " +
+		"phenotype_uid, " +
+		"taxon_uid, " +
+		"taxon_label, " +
+		"entity_uid, " +
+		"entity_label, " +
+		"quality_uid, " +
+		"quality_label, " +
+		"publication, " +
+		"character_text, " +
+		"character_comment, " +
+		"character_number, " +
+		"state_text, " +
+		"state_comment, " +
+		"curators " +
 		"FROM " +
-		"link AS exhibits_link " +
-		"JOIN link AS posited_by_link ON (posited_by_link.node_id = exhibits_link.reiflink_node_id) " +
-		"JOIN (link AS has_pub_link " +
-		"JOIN node AS pub_node " +
-		"ON (has_pub_link.object_id = pub_node.node_id)) " +
-		"ON (posited_by_link.object_id = has_pub_link.node_id) " +
-		"JOIN link AS has_state_link ON (has_state_link.node_id =  exhibits_link.reiflink_node_id) " +
-		"JOIN link AS has_state_link2 ON (has_state_link2.node_id = has_state_link.object_id) " +
-		"JOIN node AS state_node ON (has_state_link2.object_id = state_node.node_id) " +
-		"JOIN link AS has_character_link ON (has_character_link.object_id = state_node.node_id) " +
-		"JOIN node AS character_node ON (has_character_link.node_id = character_node.node_id) " +
-		"JOIN node AS phenotype_node ON (exhibits_link.object_id = phenotype_node.node_id) " +
-		"JOIN node AS taxon_node ON (exhibits_link.node_id = taxon_node.node_id) " +
-		"JOIN link AS inheres_in_link ON (inheres_in_link.node_id = phenotype_node.node_id AND " +
-		"	inheres_in_link.is_inferred = 'f') " +
-		"JOIN node AS entity_node ON (inheres_in_link.object_id = entity_node.node_id) " +
-		"JOIN link AS is_a_link ON (is_a_link.node_id = phenotype_node.node_id AND " +
-		"	is_a_link.is_inferred = 'f') " +
-		"JOIN node AS quality_node ON (is_a_link.object_id = quality_node.node_id) " +
-		"JOIN tagval AS curator_tag ON ((curator_tag.node_id = posited_by_link.object_id) " +
-		"	AND (curator_tag.tag_id = ___has_curators)) " +
-		"JOIN tagval AS char_tag ON ((char_tag.node_id = character_node.node_id)  " +
-		"	AND (char_tag.tag_id = ___has_comment)) " +
-		"JOIN tagval AS state_tag ON ((state_tag.node_id = state_node.node_id) " +
-		"	AND (state_tag.tag_id = ___has_comment)) " + 
-		"JOIN tagval AS char_num_tag ON ((char_num_tag.node_id = character_node.node_id) AND " +
-		"	(char_num_tag.tag_id = ___has_number)) " + 
+		"taxon_phenotype_metadata " +
 		"WHERE " +
-		"exhibits_link.reiflink_node_id = ? AND " +
-		"inheres_in_link.predicate_id = ___inheres_in AND " +
-		"is_a_link.predicate_id = ___is_a AND " +
-		"posited_by_link.predicate_id = ___posited_by AND " +
-		"has_state_link.predicate_id = ___has_State AND " +
-		"has_state_link2.predicate_id = ___has_State AND " +
-		"has_character_link.predicate_id = ___has_Datum AND " +
-		"has_pub_link.predicate_id = ___has_publication AND " +
-		"exhibits_link.is_inferred = 'f' ";
+		"reif_id = ?";
 
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
