@@ -146,7 +146,7 @@ public class PhenotypeDetailsResource extends Resource {
 			return null;
 		}
 		List<String[]> comp;
-		Set<String> reifSet = new HashSet<String>();
+		Set<String> reifSet;
 		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj; 
 		List<JSONObject> phenotypeObjs = new ArrayList<JSONObject>();
 		
@@ -154,6 +154,7 @@ public class PhenotypeDetailsResource extends Resource {
 			for(int i = 0; i < annots.size(); i++){
 				//TODO add measurements and units info
 				comp = annots.get(i);
+				reifSet = new HashSet<String>();
 				phenotypeObj = new JSONObject();
 				subjectObj = new JSONObject();
 				entityObj = new JSONObject();
