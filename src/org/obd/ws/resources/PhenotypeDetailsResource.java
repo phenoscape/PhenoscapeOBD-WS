@@ -3,8 +3,10 @@ package org.obd.ws.resources;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
@@ -144,8 +146,8 @@ public class PhenotypeDetailsResource extends Resource {
 			return null;
 		}
 		List<String[]> comp;
-		
-		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj, numericalCountObj; 
+		Set<String> reifSet = new HashSet<String>();
+		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj; 
 		List<JSONObject> phenotypeObjs = new ArrayList<JSONObject>();
 		
 		try{
@@ -157,7 +159,10 @@ public class PhenotypeDetailsResource extends Resource {
 				entityObj = new JSONObject();
 				qualityObj = new JSONObject();
 				reifObj = new JSONObject();
-				numericalCountObj = new JSONObject();
+				String reifs = comp.get(3)[0];
+				for(String reif : reifs.split(",")){
+					reifSet.add(reif);
+				}
 				subjectObj.put("id", comp.get(0)[0]);
 				subjectObj.put("name", comp.get(0)[1]);
 				entityObj.put("id", comp.get(1)[0]);
@@ -165,12 +170,11 @@ public class PhenotypeDetailsResource extends Resource {
 				qualityObj.put("id", comp.get(2)[0]);
 				qualityObj.put("name", comp.get(2)[1]);
 				reifObj.put("reif_id", comp.get(3)[0]);
-				numericalCountObj.put("count", comp.get(4)[0]);
 				phenotypeObj.put("subject", subjectObj);
 				phenotypeObj.put("entity", entityObj);
 				phenotypeObj.put("quality", qualityObj);
-				phenotypeObj.put("reified_link", reifObj);	
-				phenotypeObj.put("count", numericalCountObj);
+				phenotypeObj.put("reified_link", reifSet);	
+				phenotypeObj.put("count", comp.get(4)[0]);
 				phenotypeObjs.add(phenotypeObj);
 			}
 			log.trace(annots.size() + " annotations returned");

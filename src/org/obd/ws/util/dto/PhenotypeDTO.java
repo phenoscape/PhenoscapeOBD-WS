@@ -142,4 +142,34 @@ public class PhenotypeDTO {
 	public PhenotypeDTO(String phenotypeId){
 		this.phenotypeId = phenotypeId;
 	}
+	
+	/**
+	 * A comparison method for this class. Two PhenotypeDTOs are
+	 * equal only if the Taxon and the Phenotype are the same
+	 * @param dto
+	 * @return a boolean to indicate if the argument object is the same
+	 * as this calling object (*this from C++)
+	 */
+	@Override
+	public boolean equals(Object dto){
+		if(this == dto) return true;
+		if(!(dto instanceof PhenotypeDTO)) return false;
+		PhenotypeDTO pdto = (PhenotypeDTO)dto;
+		if(pdto.getTaxonId().equals(this.getTaxonId()) && 
+				pdto.getPhenotypeId().equals(this.getPhenotypeId())){
+			return true;
+		}
+		return false; 
+	}
+	
+	/**
+	 * Overriden hashcode method
+	 * @return generated hashcode for the object
+	 */
+	@Override
+	public int hashCode(){
+		int hash = 7;
+		hash = hash*(this.getTaxonId().hashCode() + this.getPhenotypeId().hashCode());
+		return hash;
+	}
 }

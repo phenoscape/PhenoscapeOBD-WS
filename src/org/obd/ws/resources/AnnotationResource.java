@@ -80,7 +80,7 @@ public class AnnotationResource extends Resource {
     	JSONObject entityObj, taxonObj, qualityObj;
     	
     	try{
-    		annots = getMetadata(Integer.parseInt(annotationId.trim()));
+    		annots = getMetadata(annotationId);
     	}
     	catch(SQLException sqle){
     		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
@@ -90,35 +90,35 @@ public class AnnotationResource extends Resource {
     	
     	try{
     		if(annots != null && annots.size() > 0){
-    			List<String[]> annot = annots.get(0);
-    			entityObj = new JSONObject();
-    			taxonObj = new JSONObject();
-    			qualityObj = new JSONObject();
-    			
     			phenotypeObj = new JSONObject();
-    			sourceObj = new JSONObject();
+    			for(List<String[]> annot : annots){
+    				entityObj = new JSONObject();
+    				taxonObj = new JSONObject();
+    				qualityObj = new JSONObject();
     			
-    			taxonObj.put("id", annot.get(0)[0]);
-    			taxonObj.put("name", annot.get(0)[1]);
-    			entityObj.put("id", annot.get(1)[0]);
-    			entityObj.put("name", annot.get(1)[1]);
-    			qualityObj.put("id", annot.get(2)[0]);
-    			qualityObj.put("name", annot.get(2)[1]);
+    				sourceObj = new JSONObject();
     			
-    			phenotypeObj.put("subject", taxonObj);
-    			phenotypeObj.put("entity", entityObj);
-    			phenotypeObj.put("quality", qualityObj);
-
-    			sourceObj.put("publication", annot.get(3)[0]);
-    			sourceObj.put("curated_by", annot.get(4)[0]);
-    			sourceObj.put("character_text", annot.get(5)[0]);
-    			sourceObj.put("character_comment", annot.get(5)[1]);
-    			sourceObj.put("character_number", annot.get(5)[2]);
-    			sourceObj.put("state_text", annot.get(6)[0]);
-    			sourceObj.put("state_comment", annot.get(6)[1]);
+    				taxonObj.put("id", annot.get(0)[0]);
+    				taxonObj.put("name", annot.get(0)[1]);
+    				entityObj.put("id", annot.get(1)[0]);
+    				entityObj.put("name", annot.get(1)[1]);
+    				qualityObj.put("id", annot.get(2)[0]);
+    				qualityObj.put("name", annot.get(2)[1]);
     			
-    			sourceObjs.add(sourceObj);
+    				phenotypeObj.put("subject", taxonObj);
+    				phenotypeObj.put("entity", entityObj);
+    				phenotypeObj.put("quality", qualityObj);
     			
+    				sourceObj.put("publication", annot.get(3)[0]);
+    				sourceObj.put("curated_by", annot.get(4)[0]);
+    				sourceObj.put("character_text", annot.get(5)[0]);
+    				sourceObj.put("character_comment", annot.get(5)[1]);
+    				sourceObj.put("character_number", annot.get(5)[2]);
+    				sourceObj.put("state_text", annot.get(6)[0]);
+    				sourceObj.put("state_comment", annot.get(6)[1]);
+    			
+    				sourceObjs.add(sourceObj);
+    			}
     			jObjs.put("phenotype", phenotypeObj);
     			jObjs.put("sources", sourceObjs);
     		}
@@ -146,43 +146,47 @@ public class AnnotationResource extends Resource {
      * @return
      * @throws SQLException
      */
-    private List<List<String[]>> getMetadata(Integer annotId) throws SQLException{
+    private List<List<String[]>> getMetadata(String annotId) throws SQLException{
     	
     	List<List<String[]>> results = new ArrayList<List<String[]>>();
-    	List<String[]> annots = new ArrayList<String[]>();;
+    	List<String[]> annots;
     	
     	String taxonId, taxon, entityId, entity, qualityId, quality, 
     			publication, curators, charText, charComments, stateText, stateComments,
     			charNumber; 
     	
+    	String[] annotIds = annotId.split(",");
+    	
     	try{
-    		for(AnnotationDTO node : obdq.executeFreeTextQueryAndAssembleResults(annotId)){
-   			 	//Node properties stores every attribute of the given node with its value
+    		for(String id : annotIds){
+    			for(AnnotationDTO node : obdq.executeFreeTextQueryAndAssembleResults(Integer.parseInt(id))){
+   			 		//Node properties stores every attribute of the given node with its value
 				
-    			taxonId = node.getTaxonId();
-    			taxon = node.getTaxon();
-    			entityId = node.getEntityId();
-    			entity = node.getEntity();
-    			qualityId = node.getQualityId();
-    			quality = node.getQuality();
+    				taxonId = node.getTaxonId();
+    				taxon = node.getTaxon();
+    				entityId = node.getEntityId();
+    				entity = node.getEntity();
+    				qualityId = node.getQualityId();
+    				quality = node.getQuality();
 			
-    			publication = node.getPublication();
-    			curators = node.getCurators();
-    			charText = node.getCharText();
-    			charComments = node.getCharComments();
-    			stateText = node.getStateText();
-    			stateComments = node.getStateComments();
-    			charNumber = node.getCharNumber();
-			
-    			annots.add(new String[]{taxonId, taxon});
-    			annots.add(new String[]{entityId, entity});
-    			annots.add(new String[]{qualityId, quality});
-    			annots.add(new String[]{publication});
-    			annots.add(new String[]{curators});
-    			annots.add(new String[]{charText, charComments, charNumber});
-    			annots.add(new String[]{stateText, stateComments});
+    				publication = node.getPublication();
+    				curators = node.getCurators();
+    				charText = node.getCharText();
+    				charComments = node.getCharComments();
+    				stateText = node.getStateText();
+    				stateComments = node.getStateComments();
+    				charNumber = node.getCharNumber();
+    				annots = new ArrayList<String[]>(); 
+    				annots.add(new String[]{taxonId, taxon});
+    				annots.add(new String[]{entityId, entity});
+    				annots.add(new String[]{qualityId, quality});
+    				annots.add(new String[]{publication});
+    				annots.add(new String[]{curators});
+    				annots.add(new String[]{charText, charComments, charNumber});
+    				annots.add(new String[]{stateText, stateComments});
     			
-    			results.add(annots);
+    				results.add(annots);
+    			}
     		}
     	}
     	catch (SQLException sqle){

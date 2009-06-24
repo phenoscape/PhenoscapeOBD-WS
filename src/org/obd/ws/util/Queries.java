@@ -326,7 +326,6 @@ public class Queries {
 	private String freeTextDataQuery = 
 		"SELECT " +
 		"reif_id, " +
-		"phenotype_uid, " +
 		"taxon_uid, " +
 		"taxon_label, " +
 		"entity_uid, " +

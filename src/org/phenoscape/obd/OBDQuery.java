@@ -217,6 +217,10 @@ public class OBDQuery {
 
 	public Collection<PhenotypeDTO> executeQueryAndAssembleResults(String queryStr, String searchTerm, Map<String, String> filterOptions) 
 		throws SQLException{
+		/** <a> annotationToReifsMap </a> 
+		 * This new map has been added tp consolidate reif ids for a TAXON to PHENOTYPE assertion*/
+		Map<PhenotypeDTO, Set<String>> annotationToReifsMap = new HashMap<PhenotypeDTO, Set<String>>();
+		
 		Collection<PhenotypeDTO> results = new ArrayList<PhenotypeDTO>();
 		String entityLabel, entityId;
 		PreparedStatement pstmt = null;
@@ -245,10 +249,7 @@ public class OBDQuery {
 				if(!isFilterableRow(filterOptions, filterableValues)){
 					if(!rs.getString(2).contains("GENO")){ //sometimes, genotypes are returned and we don;t want these
 						PhenotypeDTO dto = new PhenotypeDTO(rs.getString(1));
-						/*
-						 * We keep track of both labels and uids, so we dont have to go looking for labels for uids
-						 * at the REST resource level. The queries return everything anyways.
-						 */
+						
 						dto.setTaxon(rs.getString(3));
 						dto.setTaxonId(rs.getString(2));
 						dto.setQuality(rs.getString(5));
@@ -262,10 +263,28 @@ public class OBDQuery {
 						}	
 						dto.setEntity(entityLabel);
 						dto.setEntityId(entityId);
-						dto.setReifId(rs.getString(10));
-						results.add(dto);
+						String reif = rs.getString(10);
+						dto.setNumericalCount(rs.getString(11));
+						
+						//we collect all the reif ids associated with each DTO object
+						Set<String> reifs = annotationToReifsMap.get(dto);
+						if(reifs == null)
+							reifs = new HashSet<String>();
+						reifs.add(reif);
+						annotationToReifsMap.put(dto, reifs);
 					}
 				}
+			}
+			for(PhenotypeDTO dto : annotationToReifsMap.keySet()){
+				//here we reassign the reif ids to the DTO
+				String reifString = "";
+				for(String reif : annotationToReifsMap.get(dto)){
+					reifString += reif + ",";
+				}
+				//we trim out the last comma
+				reifString = reifString.substring(0, reifString.lastIndexOf(","));
+				dto.setReifId(reifString);
+				results.add(dto);
 			}
 		}
 		catch(SQLException sqle){
