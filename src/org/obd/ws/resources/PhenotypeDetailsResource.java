@@ -145,17 +145,19 @@ public class PhenotypeDetailsResource extends Resource {
 		}
 		List<String[]> comp;
 		
-		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj; 
+		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, reifObj, numericalCountObj; 
 		List<JSONObject> phenotypeObjs = new ArrayList<JSONObject>();
 		
 		try{
 			for(int i = 0; i < annots.size(); i++){
+				//TODO add measurements and units info
 				comp = annots.get(i);
 				phenotypeObj = new JSONObject();
 				subjectObj = new JSONObject();
 				entityObj = new JSONObject();
 				qualityObj = new JSONObject();
 				reifObj = new JSONObject();
+				numericalCountObj = new JSONObject();
 				subjectObj.put("id", comp.get(0)[0]);
 				subjectObj.put("name", comp.get(0)[1]);
 				entityObj.put("id", comp.get(1)[0]);
@@ -163,10 +165,12 @@ public class PhenotypeDetailsResource extends Resource {
 				qualityObj.put("id", comp.get(2)[0]);
 				qualityObj.put("name", comp.get(2)[1]);
 				reifObj.put("reif_id", comp.get(3)[0]);
+				numericalCountObj.put("count", comp.get(4)[0]);
 				phenotypeObj.put("subject", subjectObj);
 				phenotypeObj.put("entity", entityObj);
 				phenotypeObj.put("quality", qualityObj);
 				phenotypeObj.put("reified_link", reifObj);	
+				phenotypeObj.put("count", numericalCountObj);
 				phenotypeObjs.add(phenotypeObj);
 			}
 			log.trace(annots.size() + " annotations returned");
@@ -207,7 +211,8 @@ public class PhenotypeDetailsResource extends Resource {
 		Map<String, String> filterOptions = new HashMap<String, String>();
 		
 		String characterId = null, taxonId = null, entityId = null, qualityId = null,
-					character = null, taxon = null, entity = null, quality = null, reifId = null;
+					character = null, taxon = null, entity = null, quality = null, 
+					reifId = null, count = null;
 		String query, searchTerm;
 		/* 
 		 * This IF-THEN decides which query to use. Ideally if subject is provided, we will use
@@ -246,6 +251,8 @@ public class PhenotypeDetailsResource extends Resource {
 				qualityId = node.getQualityId();
 				quality = node.getQuality();
 				reifId = node.getReifId();
+				count = node.getNumericalCount();
+				//TODO measurement and unti values to be added here
 				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || //type is set, so we filter
@@ -255,6 +262,8 @@ public class PhenotypeDetailsResource extends Resource {
 					annots.add(new String[]{entityId, entity});
 					annots.add(new String[]{qualityId, quality});
 					annots.add(new String[]{reifId});
+					annots.add(new String[]{count});
+					//TODO Measurements and units need to be added here
 					results.add(annots);
 				}
 			}
@@ -266,11 +275,13 @@ public class PhenotypeDetailsResource extends Resource {
 		return results;
 	}
 	
-    /**
-     * FIXME Method and parameter documentation incomplete.
-     */
 	/**
-	 * This method filters a node based on input parameter 'type'
+	 * This method filters a node based on input parameter 'type'. If
+	 * "evo" is specified for type, then only Teleost (TTO) results need to be returned
+	 * by the calling {@link getAnnotations} method. If "devo" is specified, only
+	 * ZFIN results (GENE) need to be returned. This method returns a boolean to the calling
+	 * method to indicate if this taxon row needs to be returned. If it returns FALSE, 
+	 * then the calling method DOES NOT filter the taxon. 
 	 * @param searchTerm - this may be a TTO term or GENE term
 	 * @param type - this can be 'evo' or 'devo'
 	 * @return
