@@ -110,10 +110,11 @@ public class Queries {
 		"p1.character_label AS character_label, " +
 		"p1.entity_uid AS entity_uid, " +
 		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"node AS search_node " +
-		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
+		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND" +
 		"	subtaxon_link.predicate_id = ___is_a) " +
 		"JOIN phenotype_by_entity_character AS p1 ON (p1.entity_nid = subtaxon_link.node_id) " +
 		"WHERE " +
@@ -139,7 +140,8 @@ public class Queries {
 		"p1.character_label AS character_label, " +
 		"p1.entity_uid AS entity_uid, " +
 		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +
@@ -172,7 +174,8 @@ public class Queries {
 		"p1.character_label AS character_label, " +
 		"p1.entity_uid AS entity_uid, " +
 		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"node AS search_node " +
 		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
@@ -197,7 +200,8 @@ public class Queries {
 		"p1.quality_label, " +
 		"p1.character_uid, " +
 		"p1.character_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +
@@ -222,7 +226,8 @@ public class Queries {
 		"p1.character_label AS character_label, " +
 		"p1.entity_uid AS entity_uid, " +
 		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"JOIN link AS subtaxon_link ON (p1.subject_nid = subtaxon_link.node_id AND " +
@@ -241,7 +246,8 @@ public class Queries {
 		"p1.character_label AS character_label, " +
 		"p1.entity_uid AS entity_uid, " +
 		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id " +
+		"p1.reif_id AS reif_id, " +
+		"p1.count AS count " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +
