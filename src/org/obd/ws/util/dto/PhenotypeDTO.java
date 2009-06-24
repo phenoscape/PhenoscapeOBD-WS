@@ -28,10 +28,36 @@ public class PhenotypeDTO {
 	
 	private String reifId;
 	
+	private String numericalCount;
+	
+	private String measurement;
+	private String unit; 
+	
 	/*
 	 * GETTERs and SETTERs
 	 */
 	
+	public String getNumericalCount() {
+		return numericalCount;
+	}
+	public void setNumericalCount(String numericalCount) {
+		this.numericalCount = numericalCount;
+	}
+
+	public String getMeasurement() {
+		return measurement;
+	}
+	public void setMeasurement(String measurement) {
+		this.measurement = measurement;
+	}
+
+	public String getUnit() {
+		return unit;
+	}
+	public void setUnit(String unit) {
+		this.unit = unit;
+	}
+
 	public String getTaxonId() {
 		return taxonId;
 	}
