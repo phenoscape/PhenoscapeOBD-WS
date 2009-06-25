@@ -114,7 +114,7 @@ public class TTOTaxonomy {
 	 * creates an OBOSession instance to store this ontology
 	 * @throws DataAdapterException
 	 */
-	public void readOntologyFile() throws DataAdapterException{
+	public void createSessionFromOntology() throws DataAdapterException{
 		List<String> paths = new ArrayList<String>();
 		paths.add(TTO_FILE_NAME);
 		
