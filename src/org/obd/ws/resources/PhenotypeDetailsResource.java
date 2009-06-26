@@ -1,7 +1,9 @@
 package org.obd.ws.resources;
 
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,10 +11,13 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.log4j.Logger;
+import org.bbop.dataadapter.DataAdapterException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.TTOTaxonomy;
+import org.obd.ws.util.TeleostTaxonomyBuilder;
 import org.obd.ws.util.dto.PhenotypeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
@@ -44,13 +49,19 @@ public class PhenotypeDetailsResource extends Resource {
 	private OBDQuery obdq;
 	
 	private Queries queries;
+	
+	private TTOTaxonomy ttoTaxonomy;
+	private TeleostTaxonomyBuilder ttb;
     /**
      * FIXME Constructor and parameter documentation missing.
+     * @throws DataAdapterException 
+     * @throws IOException 
      */
-	public PhenotypeDetailsResource(Context context, Request request, Response response) {
+	public PhenotypeDetailsResource(Context context, Request request, Response response) throws IOException, DataAdapterException {
 		super(context, request, response);
 
 		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get("ttoTaxonomy");
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject") != null){
@@ -246,7 +257,9 @@ public class PhenotypeDetailsResource extends Resource {
 		
 		log.trace("Search Term: " + searchTerm + " Query: " + query);
 		try{
-			for(PhenotypeDTO node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
+			Collection<PhenotypeDTO> phenotypeColl = 
+				obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions);
+			for(PhenotypeDTO node : phenotypeColl){
 				characterId = node.getCharacterId();
 				character = node.getCharacter();
 				taxonId = node.getTaxonId();
@@ -271,6 +284,7 @@ public class PhenotypeDetailsResource extends Resource {
 					//TODO Measurements and units need to be added here
 					results.add(annots);
 				}
+				//NodeDTO mrca = ttb.f 
 			}
 		}
 		catch(SQLException e){

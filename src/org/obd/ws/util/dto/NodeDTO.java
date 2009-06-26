@@ -19,4 +19,27 @@ public class NodeDTO {
 	public NodeDTO(String id){
 		this.id = id; 
 	}
+	
+	@Override
+	public String toString(){
+		return (this.id + " [" + this.name + "]");
+	}
+	
+	@Override
+	public boolean equals(Object node){
+		if(this == node) return true;
+		if(!(node instanceof NodeDTO)) return false;
+		NodeDTO ndto = (NodeDTO)node;
+		if(ndto.getId().equals(this.getId()) &&
+				ndto.getName().equals(this.getName()))
+			return true;
+		return false;
+	}
+	
+	@Override
+	public int hashCode(){
+		int hash = 7;
+		hash = this.getId().hashCode() + 31*(this.getName().hashCode());
+		return hash; 
+	}
 }

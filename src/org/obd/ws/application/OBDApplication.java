@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
+import org.obd.ws.util.TTOTaxonomy;
 import org.obd.ws.util.TeleostTaxonomyBuilder;
 import org.restlet.Application;
 import org.restlet.Context;
@@ -33,8 +34,8 @@ public class OBDApplication extends Application {
         	throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
         			"This is because neither database is ready to be queried. ");
         
-        TeleostTaxonomyBuilder ttb = new TeleostTaxonomyBuilder();
-        this.getContext().getAttributes().put("ttb", ttb);
+        TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
+        this.getContext().getAttributes().put("ttoTaxonomy", ttoTaxonomy);
     }
 
     public Restlet createRoot() {
