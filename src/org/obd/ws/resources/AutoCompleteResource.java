@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -48,19 +49,33 @@ public class AutoCompleteResource extends Resource {
 	private String synonymOption,definitionOption, 
 				ontologies = "oboInOwl,Relations,PATO,ZFA,ZFIN,Stages,TAO,TTO,Collection,Spatial,Sequence,Units,Phenoscape";
 	
-	private final String ID_STRING = "id";
-	private final String NAME_STRING = "name";
-	private final String SYNONYM_STRING = "synonym";
-	private final String DEF_STRING = "definition";
-	private final String MATCH_TYPE_STRING = "match_type";
-	private final String MATCH_TEXT_STRING = "match_text";
-	private final String MATCHES_STRING = "matches";
+	/**
+	 * The maximum number of matches to return.
+	 */
+	private Integer limit = null;
+	
+	private static final String ID_STRING = "id";
+	private static final String NAME_STRING = "name";
+	private static final String SYNONYM_STRING = "synonym";
+	private static final String DEF_STRING = "definition";
+	private static final String MATCH_TYPE_STRING = "match_type";
+	private static final String MATCH_TEXT_STRING = "match_text";
+	private static final String MATCHES_STRING = "matches";
+	
+	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
+	        public int compare(JSONObject o1, JSONObject o2) {
+	            try {
+                    return ((String)o1.get(MATCH_TEXT_STRING)).compareTo((String)o2.get(MATCH_TEXT_STRING));
+                } catch (JSONException e) {
+                    return 0;
+                }
+	        }
+	    };
 	
     /**
      * FIXME Constructor and parameter documentation missing.
      */
-	public AutoCompleteResource(Context context, Request request,
-			Response response) {
+	public AutoCompleteResource(Context context, Request request, Response response) {
 		super(context, request, response);
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
 		
@@ -137,6 +152,19 @@ public class AutoCompleteResource extends Resource {
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
 			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
 		this.options = new String[]{synonymOption, definitionOption, ontologies};
+		
+		final String limitParameter = request.getResourceRef().getQueryAsForm().getFirstValue("limit");
+		if (limitParameter != null) {
+		    try {
+		    this.limit = Integer.parseInt(limitParameter);
+		    if (this.limit < 1) {
+		        this.limit = null;
+		    }
+		    } catch (NumberFormatException e) {
+		        log.error("The value for the limit parameter was not a valid integer", e);
+		        this.limit = null;
+		    }
+		}
 		
 		this.log = Logger.getLogger(this.getClass());
 
@@ -274,7 +302,7 @@ public class AutoCompleteResource extends Resource {
 		catch(JSONException e){
 			log.error("JSON Exception: " + e.getMessage());
 			jObj.put(MATCHES_STRING, matches);
-                        /* FIXME why are we swollowing this exception? */
+                        /* FIXME why are we swallowing this exception? */
 		}
 		return jObj;
 	}
@@ -291,70 +319,38 @@ public class AutoCompleteResource extends Resource {
 	 */
 	private List<JSONObject> sortJsonObjects(Set<JSONObject> matchObjs, String term) throws JSONException{
 		List<JSONObject> sortedMatches = new ArrayList<JSONObject>();
-		List<JSONObject> labelMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
-		List<JSONObject> otherLabelMatches = new ArrayList<JSONObject>();
-		List<JSONObject> synMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
-		List<JSONObject> otherSynMatches = new ArrayList<JSONObject>();
-		List<JSONObject> defMatchesStartingWithSearchTerm = new ArrayList<JSONObject>();
-		List<JSONObject> otherDefMatches = new ArrayList<JSONObject>();
+		List<JSONObject> startsWithMatches = new ArrayList<JSONObject>();
+		List<JSONObject> containedInMatches = new ArrayList<JSONObject>();
+		List<JSONObject> definitionMatches = new ArrayList<JSONObject>();
 		
-		for(JSONObject matchObj : matchObjs){
-			if(matchObj.get(MATCH_TYPE_STRING).equals(DEF_STRING)){
-				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
-					defMatchesStartingWithSearchTerm.add(matchObj);
-				}
-				else{
-					otherDefMatches.add(matchObj);
-				}
-			}
-			else if(matchObj.get(MATCH_TYPE_STRING).equals(SYNONYM_STRING)){
-				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
-					synMatchesStartingWithSearchTerm.add(matchObj);
-				}
-				else{
-					otherSynMatches.add(matchObj);
-				}
-			}
-			else{
-				if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
-					labelMatchesStartingWithSearchTerm.add(matchObj);
-				}
-				else{
-					otherLabelMatches.add(matchObj);
-				}
-			}
+		for (JSONObject matchObj : matchObjs){
+		    if (matchObj.get(MATCH_TYPE_STRING).equals(DEF_STRING)) {
+		        definitionMatches.add(matchObj);
+		    } else if (matchObj.get(MATCH_TYPE_STRING).equals(SYNONYM_STRING)) {
+		        if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+		            startsWithMatches.add(matchObj);
+		        } else {
+		            containedInMatches.add(matchObj);
+		        }
+		    } else { //actual name matches
+		        if (matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+		            startsWithMatches.add(matchObj);
+		        } else {
+		            containedInMatches.add(matchObj);
+		        }
+		    }
 		}
-		
-		sortedMatches.addAll(assort(labelMatchesStartingWithSearchTerm));
-		sortedMatches.addAll(assort(synMatchesStartingWithSearchTerm));
-		sortedMatches.addAll(assort(defMatchesStartingWithSearchTerm));
-		sortedMatches.addAll(assort(otherLabelMatches));
-		sortedMatches.addAll(assort(otherSynMatches));
-		sortedMatches.addAll(assort(otherDefMatches));
-		return sortedMatches;
+		Collections.sort(startsWithMatches, MATCHES_COMPARATOR);
+		Collections.sort(containedInMatches, MATCHES_COMPARATOR);
+		Collections.sort(definitionMatches, MATCHES_COMPARATOR);
+		sortedMatches.addAll(startsWithMatches);
+		sortedMatches.addAll(containedInMatches);
+		sortedMatches.addAll(definitionMatches);
+		if (this.limit != null && this.limit < sortedMatches.size()) {
+		    return sortedMatches.subList(0, this.limit);
+		} else {
+		    return sortedMatches;
+		}
 	}
-	
-    /**
-     * FIXME Method and parameter documentation missing.
-     */
-	/**
-	 * This method sorts the JSON objects in the input list by name 
-	 * @param inputList
-	 * @return
-	 * @throws JSONException
-	 */
-	List<JSONObject> assort(List<JSONObject> inputList) throws JSONException{
-		Map<String, JSONObject> nameToObjectMap = new HashMap<String, JSONObject>();
-		List<String> names = new ArrayList<String>();
-		List<JSONObject> outputList = new ArrayList<JSONObject>();
-		for(JSONObject obj : inputList){
-			names.add(obj.getString(MATCH_TEXT_STRING));
-			nameToObjectMap.put(obj.getString(MATCH_TEXT_STRING), obj);
-		}
-		Collections.sort(names);
-		for(String name : names){
-			outputList.add(nameToObjectMap.get(name));
-		}
-		return outputList;
-	}
+
 }
