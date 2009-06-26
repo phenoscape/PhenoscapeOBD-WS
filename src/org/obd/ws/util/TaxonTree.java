@@ -26,9 +26,12 @@ public class TaxonTree {
 	private Set<NodeDTO> leaves;
 	/** This structure maps a taxon to the EQ combinations it is associated with */
 	private Map<NodeDTO,  Map<NodeDTO, Set<NodeDTO>>> nodeToEQMap;
+	/** This structure maps a taxon to the number of annotations associated with it */
 	private Map<NodeDTO, Integer> nodeToAnnotationCountMap; 
 	/** This structure maps a node to the Reif Ids that mention it*/
 	private Map<NodeDTO, List<String>> nodeToReifIdsMap;
+	/** This structure maps a taxon to the count of the entity associated with it */
+	private Map<NodeDTO, Map<NodeDTO, Set<String>>> nodeToECMap;
 
 	/*
 	 * GETTERs and SETTERs
@@ -78,6 +81,13 @@ public class TaxonTree {
 	public void setNodeToReifIdsMap(Map<NodeDTO, List<String>> nodeToReifIdsMap) {
 		this.nodeToReifIdsMap = nodeToReifIdsMap;
 	}
+	
+	public Map<NodeDTO, Map<NodeDTO, Set<String>>> getNodeToECMap() {
+		return nodeToECMap;
+	}
+	public void setNodeToECMap(Map<NodeDTO, Map<NodeDTO, Set<String>>> nodeToECMap) {
+		this.nodeToECMap = nodeToECMap;
+	}
 	/**
 	 * The constructor simply initializes the branches, the leaves, the qualities to node
 	 * map and the node to annotation count map
@@ -88,6 +98,7 @@ public class TaxonTree {
 		nodeToEQMap = new HashMap<NodeDTO,  Map<NodeDTO, Set<NodeDTO>>>();
 		nodeToAnnotationCountMap = new HashMap<NodeDTO, Integer>();
 		nodeToReifIdsMap = new HashMap<NodeDTO, List<String>>();
+		nodeToECMap = new HashMap<NodeDTO, Map<NodeDTO, Set<String>>>();
 	}
 	
 	/**
