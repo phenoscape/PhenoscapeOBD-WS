@@ -9,7 +9,6 @@ import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
 import org.obd.ws.util.TTOTaxonomy;
-import org.obd.ws.util.TeleostTaxonomyBuilder;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
