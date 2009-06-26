@@ -17,6 +17,7 @@ import org.json.JSONObject;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
+import org.obd.ws.util.TaxonTree;
 import org.obd.ws.util.TaxonomyBuilder;
 import org.obd.ws.util.dto.NodeDTO;
 import org.obd.ws.util.dto.PhenotypeDTO;
@@ -164,11 +165,11 @@ public class PhenotypeDetailsResource extends Resource {
 		} catch (IOException e) {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 					"[IO EXCEPTION] Something broke server side. Consult server logs");
-	return null;
+			return null;
 		} catch (DataAdapterException e) {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 					"[DATA ADAPTER EXCEPTION] Something broke server side. Consult server logs");
-	return null;
+			return null;
 		}
 		List<String[]> comp;
 		Set<String> reifSet;
@@ -280,6 +281,13 @@ public class PhenotypeDetailsResource extends Resource {
 			if(type != null && type.equals("evo")){
 				taxonomyBuilder = new TaxonomyBuilder(ttoTaxonomy, phenotypeColl);
 				NodeDTO mrca = taxonomyBuilder.findMRCA(taxonomyBuilder.getTaxonColl(), null);
+				TaxonTree tree = taxonomyBuilder.constructTreeFromPhenotypeDTOs();
+				if(group.equals("root")){
+					taxonId = mrca.getId();
+					taxon = mrca.getName();
+					List<List<NodeDTO>> listOfEQCRLists = 
+						tree.getNodeToListOfEQCRListsMap().get(mrca);
+				}
 				
 			}
 			else{

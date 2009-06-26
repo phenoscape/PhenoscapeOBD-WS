@@ -2,13 +2,11 @@ package org.obd.ws.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.ws.util.dto.NodeDTO;
@@ -51,6 +49,11 @@ public class TaxonomyBuilder {
 		generateTaxonListFromPhenotypeList();
 	}
 	
+	/**
+	 * A simple method that extracts the taxon from each
+	 * phenotype and creates a new collection of these 
+	 * taxa
+	 */
 	public void generateTaxonListFromPhenotypeList(){
 		NodeDTO taxon;
 		for(PhenotypeDTO phenotype : phenotypeColl){
@@ -111,17 +114,22 @@ public class TaxonomyBuilder {
 		return pathFromMrca.get(0);
 	}
 	
+	/**
+	 * Constructs a taxon tree from the input list of 
+	 * phenotype DTOs, complete with EQ annotations for
+	 * every node, annotation count, and reif ids
+	 * @return
+	 * @throws IOException
+	 * @throws DataAdapterException
+	 */
 	public TaxonTree constructTreeFromPhenotypeDTOs() throws IOException, DataAdapterException{
 		
 		TaxonTree tree = new TaxonTree();
-		Map<NodeDTO, Map<NodeDTO, Set<NodeDTO>>> taxonToEQMap = 
-					tree.getNodeToEQMap();
+		Map<NodeDTO, List<List<NodeDTO>>> taxonToListOfEQCRListsMap = 
+					tree.getNodeToListOfEQCRListsMap();
 		Map<NodeDTO, Integer> taxonToAnnotationCountMap = 
 					tree.getNodeToAnnotationCountMap();
-		Map<NodeDTO, List<String>> taxonToReifIdsMap = 
-					tree.getNodeToReifIdsMap();
-		NodeDTO taxon, entity, quality;
-		String reifId;
+		NodeDTO taxon, entity, quality, count, reifId;
 		for(PhenotypeDTO phenotype : phenotypeColl){
 			taxon = new NodeDTO(phenotype.getTaxonId());
 			taxon.setName(phenotype.getTaxon());
@@ -129,48 +137,37 @@ public class TaxonomyBuilder {
 			entity.setName(phenotype.getEntity());
 			quality = new NodeDTO(phenotype.getQualityId());
 			quality.setName(phenotype.getQuality());
-			reifId = phenotype.getReifId();
+			count = new NodeDTO(phenotype.getNumericalCount());
+			count.setName("");
+			reifId = new NodeDTO(phenotype.getReifId());
+			reifId.setName("");
 			
 			//Now we want to update everything for the upstream taxa all the way to the root
 			for(NodeDTO node : ttoTaxonomy.getNodeToPathMap().get(taxon)){
 				//handle EQ annotations here
 				//taxonToEQMap = assignEQAnnotationToTaxon(dto, taxonToEQMap);
-				Map<NodeDTO, Set<NodeDTO>> entityToQualitySetMap = taxonToEQMap.get(node);
-				if(entityToQualitySetMap == null){
-					entityToQualitySetMap = new HashMap<NodeDTO, Set<NodeDTO>>();
+				List<List<NodeDTO>> listOfEQCRLists = taxonToListOfEQCRListsMap.get(node);
+				if(listOfEQCRLists == null){
+					listOfEQCRLists = new ArrayList<List<NodeDTO>>();
 				}
-				Set<NodeDTO> qualitySet = entityToQualitySetMap.get(entity);
-				if(qualitySet == null)
-					qualitySet = new HashSet<NodeDTO>();
-				qualitySet.add(quality);
-				entityToQualitySetMap.put(entity, qualitySet);
-				taxonToEQMap.put(node, entityToQualitySetMap);
+				List<NodeDTO> eqcrList = Arrays.asList(new NodeDTO[]{entity, quality, count, reifId});
+				listOfEQCRLists.add(eqcrList);
+				
+				taxonToListOfEQCRListsMap.put(node, listOfEQCRLists);
 				
 				//handle annotation counts here
 				//taxonToAnnotationCountMap = assignAnnotationCountToTaxon(dto, taxonToAnnotationCountMap);
 				Integer annotationCtForTaxon = taxonToAnnotationCountMap.get(node);
 				if(annotationCtForTaxon == null)
 					annotationCtForTaxon = 0;
-				taxonToAnnotationCountMap.put(node, ++annotationCtForTaxon);
-				
-				//handle reif ids here
-				//taxonToReifIdsMap = assignReifIdsToTaxon(dto, taxonToReifIdsMap);
-				List<String> reifIdsForTaxon = taxonToReifIdsMap.get(node);
-				if(reifIdsForTaxon == null)
-					reifIdsForTaxon = new ArrayList<String>();
-				reifIdsForTaxon.add(reifId);
-				taxonToReifIdsMap.put(node, reifIdsForTaxon);
+				taxonToAnnotationCountMap.put(node, ++annotationCtForTaxon);				
 			}
 		}
-		tree.setNodeToEQMap(taxonToEQMap);
+		tree.setNodeToListOfEQCRListsMap(taxonToListOfEQCRListsMap);
 		tree.setNodeToAnnotationCountMap(taxonToAnnotationCountMap);
-		tree.setNodeToReifIdsMap(taxonToReifIdsMap);
 		
 		return tree;
 	}
-	
-	
-	
 
 	/**
 	 * The main method. This will be used to test the other methods before
