@@ -17,7 +17,8 @@ import org.json.JSONObject;
 import org.obd.query.Shard;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
-import org.obd.ws.util.TeleostTaxonomyBuilder;
+import org.obd.ws.util.TaxonomyBuilder;
+import org.obd.ws.util.dto.NodeDTO;
 import org.obd.ws.util.dto.PhenotypeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
@@ -41,6 +42,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private String quality_id; 
 	private String publication_id;
 	private String type;
+	private String group = "root";
 	
 	private Map<String, String> parameters;
 	
@@ -51,7 +53,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private Queries queries;
 	
 	private TTOTaxonomy ttoTaxonomy;
-	private TeleostTaxonomyBuilder ttb;
+	private TaxonomyBuilder taxonomyBuilder;
     /**
      * FIXME Constructor and parameter documentation missing.
      * @throws DataAdapterException 
@@ -79,6 +81,10 @@ public class PhenotypeDetailsResource extends Resource {
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("type") != null){
 			this.type = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("type")));
 		}
+		if(request.getResourceRef().getQueryAsForm().getFirstValue("group") != null){
+			this.group = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("group")));
+		}
+
 		
 		queries = new Queries(obdsql);
 		obdq = new OBDQuery(obdsql);
@@ -155,6 +161,14 @@ public class PhenotypeDetailsResource extends Resource {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 					"[SQL EXCEPTION] Something broke server side. Consult server logs");
 			return null;
+		} catch (IOException e) {
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+					"[IO EXCEPTION] Something broke server side. Consult server logs");
+	return null;
+		} catch (DataAdapterException e) {
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+					"[DATA ADAPTER EXCEPTION] Something broke server side. Consult server logs");
+	return null;
 		}
 		List<String[]> comp;
 		Set<String> reifSet;
@@ -213,10 +227,12 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @param type - can take one of two values. 'evo' for taxon data or 'devo' for ZFIN data
 	 * @return 
 	 * @throws SQLException 
+	 * @throws IOException 
+	 * @throws DataAdapterException 
 	 */
 	private List<List<String[]>> 
 			getAnnotations(String subject_id, String entity_id, String char_id, String pub_id, String type) 
-			throws SQLException{
+			throws SQLException, IOException, DataAdapterException{
 		
 		List<List<String[]>> results = new ArrayList<List<String[]>>();
 		List<String[]> annots;
@@ -259,22 +275,28 @@ public class PhenotypeDetailsResource extends Resource {
 		try{
 			Collection<PhenotypeDTO> phenotypeColl = 
 				obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions);
-			for(PhenotypeDTO node : phenotypeColl){
-				characterId = node.getCharacterId();
-				character = node.getCharacter();
-				taxonId = node.getTaxonId();
-				taxon = node.getTaxon();
-				entityId = node.getEntityId();
-				entity = node.getEntity();
-				qualityId = node.getQualityId();
-				quality = node.getQuality();
-				reifId = node.getReifId();
-				count = node.getNumericalCount();
-				//TODO measurement and unti values to be added here
-				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
-						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-				if((type != null && !filterNodeForEvoOrDevo(taxonId, type)) || //type is set, so we filter
-						(type == null)){
+			if(type != null)
+				phenotypeColl = filterCollectionByType(phenotypeColl, type);
+			if(type != null && type.equals("evo")){
+				taxonomyBuilder = new TaxonomyBuilder(ttoTaxonomy, phenotypeColl);
+				NodeDTO mrca = taxonomyBuilder.findMRCA(taxonomyBuilder.getTaxonColl(), null);
+				
+			}
+			else{
+				for(PhenotypeDTO node : phenotypeColl){
+					characterId = node.getCharacterId();
+					character = node.getCharacter();
+					taxonId = node.getTaxonId();
+					taxon = node.getTaxon();
+					entityId = node.getEntityId();
+					entity = node.getEntity();
+					qualityId = node.getQualityId();
+					quality = node.getQuality();
+					reifId = node.getReifId();
+					count = node.getNumericalCount();
+					//TODO measurement and unti values to be added here
+					log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
+							entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 					annots = new ArrayList<String[]>();
 					annots.add(new String[]{taxonId, taxon});
 					annots.add(new String[]{entityId, entity});
@@ -284,10 +306,16 @@ public class PhenotypeDetailsResource extends Resource {
 					//TODO Measurements and units need to be added here
 					results.add(annots);
 				}
-				//NodeDTO mrca = ttb.f 
 			}
+			
 		}
 		catch(SQLException e){
+			log.fatal(e);
+			throw e;
+		} catch (IOException e) {
+			log.fatal(e);
+			throw e;
+		} catch (DataAdapterException e) {
 			log.fatal(e);
 			throw e;
 		}
@@ -295,21 +323,51 @@ public class PhenotypeDetailsResource extends Resource {
 	}
 	
 	/**
-	 * This method filters a node based on input parameter 'type'. If
-	 * "evo" is specified for type, then only Teleost (TTO) results need to be returned
-	 * by the calling {@link getAnnotations} method. If "devo" is specified, only
-	 * ZFIN results (GENE) need to be returned. This method returns a boolean to the calling
-	 * method to indicate if this taxon row needs to be returned. If it returns FALSE, 
-	 * then the calling method DOES NOT filter the taxon. 
-	 * @param searchTerm - this may be a TTO term or GENE term
-	 * @param type - this can be 'evo' or 'devo'
-	 * @return
+	 * A method to filter the collection based upon 
+	 * the value of the "type" parameter
+	 * @param phenotypeColl
+	 * @param type - can be "evo" or "devo". This is set in the calling method
+	 * @return input collection minus TTOs or GENEs depending on the value of the 
+	 * "type" parameter
 	 */
-	private boolean filterNodeForEvoOrDevo(String taxonId, String type){
-		if((type.equals("evo") && taxonId.contains("TTO"))
-				|| (type.equals("devo") && taxonId.contains("GENE"))){
-			return false;
+	private Collection<PhenotypeDTO> filterCollectionByType(Collection<PhenotypeDTO> phenotypeColl, String type){
+		if(type.equals("evo"))
+			return filterGenesFromCollection(phenotypeColl);
+		else
+			return filterTaxaFromCollection(phenotypeColl);
+	}
+
+	/**
+	 * A simple method that weeds out DTOs with TTOs as their taxa
+	 * from the collection
+	 * @param phenotypeColl
+	 * @return input collection minus TTOs
+	 */
+	private Collection<PhenotypeDTO> filterTaxaFromCollection(
+			Collection<PhenotypeDTO> phenotypeColl) {
+		Collection<PhenotypeDTO> collectionToReturn = new ArrayList<PhenotypeDTO>();
+		for(PhenotypeDTO phenotypeDTO : phenotypeColl){
+			if(phenotypeDTO.getTaxonId().contains("GENE")){
+				collectionToReturn.add(phenotypeDTO);
+			}
 		}
-		return true;
+		return collectionToReturn;
+	}
+
+	/**
+	 * A simple method that weeds out DTOs with GENEs as their taxa
+	 * from the collection
+	 * @param phenotypeColl
+	 * @return input collection minus GENEs
+	 */
+	private Collection<PhenotypeDTO> filterGenesFromCollection(
+			Collection<PhenotypeDTO> phenotypeColl) {
+		Collection<PhenotypeDTO> collectionToReturn = new ArrayList<PhenotypeDTO>();
+		for(PhenotypeDTO phenotypeDTO : phenotypeColl){
+			if(phenotypeDTO.getTaxonId().contains("TTO")){
+				collectionToReturn.add(phenotypeDTO);
+			}
+		}
+		return collectionToReturn;
 	}
 }
