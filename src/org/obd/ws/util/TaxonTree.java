@@ -19,23 +19,25 @@ import org.obd.ws.util.dto.NodeDTO;
  */
 public class TaxonTree {
 	
-	private NodeDTO root;
+	private NodeDTO mrca;
 	private Set<NodeDTO> leaves;
 	/** This structure maps a taxon to the EQC combinations it is associated with. We also track the
 	 * reif ids associated with each EQC combination */
-	private Map<NodeDTO,  List<List<NodeDTO>>> nodeToListOfEQCRListsMap;
+	private Map<NodeDTO,  List<List<String>>> nodeToListOfEQCRListsMap;
 	/** This structure maps a taxon to the number of annotations associated with it */
 	private Map<NodeDTO, Integer> nodeToAnnotationCountMap; 
+	/** This structure hold information about every branch and its children */
+	private Map<NodeDTO, Set<NodeDTO>> nodeToChildrenMap;
 
 	/*
 	 * GETTERs and SETTERs
 	 * 
 	 */
-	public NodeDTO getRoot() {
-		return root;
+	public NodeDTO getMrca() {
+		return mrca;
 	}
-	public void setRoot(NodeDTO root) {
-		this.root = root;
+	public void setMrca(NodeDTO mrca) {
+		this.mrca = mrca;
 	}
 	
 	public Set<NodeDTO> getLeaves() {
@@ -45,11 +47,11 @@ public class TaxonTree {
 		this.leaves = leaves;
 	}
 	
-	public Map<NodeDTO, List<List<NodeDTO>>> getNodeToListOfEQCRListsMap() {
+	public Map<NodeDTO, List<List<String>>> getNodeToListOfEQCRListsMap() {
 		return nodeToListOfEQCRListsMap;
 	}
 	public void setNodeToListOfEQCRListsMap(
-			Map<NodeDTO,  List<List<NodeDTO>>> nodeToListOfEQCRListsMap) {
+			Map<NodeDTO,  List<List<String>>> nodeToListOfEQCRListsMap) {
 		this.nodeToListOfEQCRListsMap = nodeToListOfEQCRListsMap;
 	}
 	
@@ -60,15 +62,21 @@ public class TaxonTree {
 			Map<NodeDTO, Integer> nodeToAnnotationCountMap) {
 		this.nodeToAnnotationCountMap = nodeToAnnotationCountMap;
 	}
-
 	
+	public Map<NodeDTO, Set<NodeDTO>> getNodeToChildrenMap() {
+		return nodeToChildrenMap;
+	}
+	public void setNodeToChildrenMap(Map<NodeDTO, Set<NodeDTO>> nodeToChildrenMap) {
+		this.nodeToChildrenMap = nodeToChildrenMap;
+	}
 	/**
 	 * The constructor simply initializes the branches, the leaves, the qualities to node
 	 * map and the node to annotation count map
 	 */
 	public TaxonTree(){
 		leaves = new HashSet<NodeDTO>();
-		nodeToListOfEQCRListsMap = new HashMap<NodeDTO,  List<List<NodeDTO>>>();
+		nodeToListOfEQCRListsMap = new HashMap<NodeDTO,  List<List<String>>>();
 		nodeToAnnotationCountMap = new HashMap<NodeDTO, Integer>();
+		nodeToChildrenMap = new HashMap<NodeDTO, Set<NodeDTO>>();
 	}
 }

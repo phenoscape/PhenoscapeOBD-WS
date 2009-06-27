@@ -4,9 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.ws.util.dto.NodeDTO;
@@ -14,13 +16,14 @@ import org.obd.ws.util.dto.PhenotypeDTO;
 
 /**
  * @author cartik
- * @PURPOSE The purpose of this class is to recreate the hierarchy of 
- * teleost species in a data structure. In addition, it includes a method
- * to determine the Most Recent Common Ancestor (MRCA) of any set of taxa 
+ * @PURPOSE The purpose of this class is to create a tree of annotations
+ * from an input of phenotypes. The tree is rooted at the MRCA of the 
+ * taxa from the input phenotypes
  */
 
 public class TaxonomyBuilder {
 	
+	private TaxonTree tree;
 	private TTOTaxonomy ttoTaxonomy;
 	private Collection<PhenotypeDTO> phenotypeColl;
 	private LinkedList<NodeDTO> taxonColl;
@@ -33,20 +36,30 @@ public class TaxonomyBuilder {
 	public LinkedList<NodeDTO> getTaxonColl() {
 		return taxonColl;
 	}
-
+	
+	public TaxonTree getTree(){
+		return tree;
+	}
 	/**
-	 * The default constructor reads in the ontology from the 
-	 * URL and stores it in a file. It also intializes the
-	 * instance variables
+	 * @PURPOSE This constructor takes in a list of phenotypes and 
+	 * generates a Taxon Tree, with annotations at each node 
+	 * of the tree. It uses the Teleost Taxonomy (TTOTaxonomy)
+	 * class for this purpose
+	 * @param ttoTaxonomy  taxonomically arranged TTO nodes
+	 * @param phenotypeColl input phenotypes
 	 * @throws IOException
-	 * @throws DataAdapterException 
+	 * @throws DataAdapterException
 	 */
 	public TaxonomyBuilder(TTOTaxonomy ttoTaxonomy, Collection<PhenotypeDTO> phenotypeColl) 
 					throws IOException, DataAdapterException{
+		this.tree = new TaxonTree();
 		this.ttoTaxonomy = ttoTaxonomy;
 		this.taxonColl = new LinkedList<NodeDTO>();
 		this.phenotypeColl = phenotypeColl;
 		generateTaxonListFromPhenotypeList();
+		NodeDTO mrca = this.findMRCA(taxonColl, null);
+		tree.setMrca(mrca);
+		constructTreeFromPhenotypeDTOs();
 	}
 	
 	/**
@@ -54,7 +67,7 @@ public class TaxonomyBuilder {
 	 * phenotype and creates a new collection of these 
 	 * taxa
 	 */
-	public void generateTaxonListFromPhenotypeList(){
+	private void generateTaxonListFromPhenotypeList(){
 		NodeDTO taxon;
 		for(PhenotypeDTO phenotype : phenotypeColl){
 			taxon = new NodeDTO(phenotype.getTaxonId());
@@ -69,7 +82,7 @@ public class TaxonomyBuilder {
 	 * @param mrca - the current MRCA
 	 * @return the MRCA of the entire list of taxa
 	 */
-	public NodeDTO findMRCA(LinkedList<NodeDTO> taxa, NodeDTO mrca){
+	private NodeDTO findMRCA(LinkedList<NodeDTO> taxa, NodeDTO mrca){
 		if(taxa.size() == 0 || ttoTaxonomy.getRoot().equals(mrca))
 			return mrca;
 		NodeDTO first = taxa.remove(0);
@@ -84,7 +97,7 @@ public class TaxonomyBuilder {
 	 * @param mrca - the other taxon
 	 * @return - the mrca of the two taxa
 	 */
-	public NodeDTO findMRCA(NodeDTO oClass, NodeDTO mrca){
+	private NodeDTO findMRCA(NodeDTO oClass, NodeDTO mrca){
 		if(mrca == null)
 			return oClass;
 		else if(ttoTaxonomy.getNodeToPathMap().get(oClass).contains(mrca))
@@ -113,6 +126,18 @@ public class TaxonomyBuilder {
 		}
 		return pathFromMrca.get(0);
 	}
+	/**
+	 * A method to trace the path from the input node to
+	 * the MRCA of the tree
+	 * @param nodeDTO
+	 * @return
+	 */
+	private List<NodeDTO> getPathToMrca(NodeDTO nodeDTO){
+		List<NodeDTO> pathToTTORoot = 
+			ttoTaxonomy.getNodeToPathMap().get(nodeDTO);
+		int indexOfMrca = pathToTTORoot.indexOf(tree.getMrca());
+		return pathToTTORoot.subList(0, indexOfMrca + 1);
+	}
 	
 	/**
 	 * Constructs a taxon tree from the input list of 
@@ -122,53 +147,93 @@ public class TaxonomyBuilder {
 	 * @throws IOException
 	 * @throws DataAdapterException
 	 */
-	public TaxonTree constructTreeFromPhenotypeDTOs() throws IOException, DataAdapterException{
-		
-		TaxonTree tree = new TaxonTree();
-		Map<NodeDTO, List<List<NodeDTO>>> taxonToListOfEQCRListsMap = 
-					tree.getNodeToListOfEQCRListsMap();
-		Map<NodeDTO, Integer> taxonToAnnotationCountMap = 
-					tree.getNodeToAnnotationCountMap();
-		NodeDTO taxon, entity, quality, count, reifId;
+	private void constructTreeFromPhenotypeDTOs() throws IOException, DataAdapterException{
 		for(PhenotypeDTO phenotype : phenotypeColl){
-			taxon = new NodeDTO(phenotype.getTaxonId());
-			taxon.setName(phenotype.getTaxon());
-			entity = new NodeDTO(phenotype.getEntityId());
-			entity.setName(phenotype.getEntity());
-			quality = new NodeDTO(phenotype.getQualityId());
-			quality.setName(phenotype.getQuality());
-			count = new NodeDTO(phenotype.getNumericalCount());
-			count.setName("");
-			reifId = new NodeDTO(phenotype.getReifId());
-			reifId.setName("");
-			
-			//Now we want to update everything for the upstream taxa all the way to the root
-			for(NodeDTO node : ttoTaxonomy.getNodeToPathMap().get(taxon)){
-				//handle EQ annotations here
-				//taxonToEQMap = assignEQAnnotationToTaxon(dto, taxonToEQMap);
-				List<List<NodeDTO>> listOfEQCRLists = taxonToListOfEQCRListsMap.get(node);
-				if(listOfEQCRLists == null){
-					listOfEQCRLists = new ArrayList<List<NodeDTO>>();
-				}
-				List<NodeDTO> eqcrList = Arrays.asList(new NodeDTO[]{entity, quality, count, reifId});
-				listOfEQCRLists.add(eqcrList);
-				
-				taxonToListOfEQCRListsMap.put(node, listOfEQCRLists);
-				
-				//handle annotation counts here
-				//taxonToAnnotationCountMap = assignAnnotationCountToTaxon(dto, taxonToAnnotationCountMap);
-				Integer annotationCtForTaxon = taxonToAnnotationCountMap.get(node);
-				if(annotationCtForTaxon == null)
-					annotationCtForTaxon = 0;
-				taxonToAnnotationCountMap.put(node, ++annotationCtForTaxon);				
-			}
+			updateTreeNodesWithPhenotype(phenotype);
+			updateTreeNodesWithAnnotationCounts(phenotype);
+			updateTreeBranches(phenotype);
 		}
-		tree.setNodeToListOfEQCRListsMap(taxonToListOfEQCRListsMap);
-		tree.setNodeToAnnotationCountMap(taxonToAnnotationCountMap);
-		
-		return tree;
 	}
-
+	
+	/**
+	 * @PURPOSE This method updates the phenotypes of all the ancestor nodes 
+	 * of the taxon of the input assertion
+	 * @param phenotype - the input taxon to phenotype assertion
+	 */
+	private void updateTreeNodesWithPhenotype(PhenotypeDTO phenotype){
+		
+		Map<NodeDTO, List<List<String>>> nodeToListOfEQCRListsMap = 
+										tree.getNodeToListOfEQCRListsMap();
+		
+		NodeDTO taxon = new NodeDTO(phenotype.getTaxonId()) ;
+		taxon.setName(phenotype.getTaxon());
+		
+		String count = phenotype.getNumericalCount();
+		if(count == null)
+			count = "";
+		List<NodeDTO> pathToMrca = getPathToMrca(taxon);
+		for(NodeDTO node : pathToMrca){
+			List<List<String>> listOfEQCRLists = 
+				nodeToListOfEQCRListsMap.get(node);
+			if(listOfEQCRLists == null)
+				listOfEQCRLists = new ArrayList<List<String>>();
+			listOfEQCRLists.add(Arrays.asList(new String[]{
+				phenotype.getEntityId(),
+				phenotype.getEntity(),
+				phenotype.getQualityId(),
+				phenotype.getQuality(),
+				phenotype.getNumericalCount(),
+				phenotype.getReifId()
+			}));
+			nodeToListOfEQCRListsMap.put(node, listOfEQCRLists);
+		}
+		tree.setNodeToListOfEQCRListsMap(nodeToListOfEQCRListsMap);
+	}
+	
+	/**
+	 * This method updates the annotation counts of all the ancestor nodes of 
+	 * the taxon from the input assertion 
+	 * @param phenotype - the input taxon to phenotype assertion
+	 */
+	private void updateTreeNodesWithAnnotationCounts(PhenotypeDTO phenotype){
+		Map<NodeDTO, Integer> taxonToAnnotationCountMap = 
+			tree.getNodeToAnnotationCountMap();
+		
+		NodeDTO taxon = new NodeDTO(phenotype.getTaxonId()) ;
+		taxon.setName(phenotype.getTaxon());
+		List<NodeDTO> pathToMrca = getPathToMrca(taxon);
+		for(NodeDTO node : pathToMrca){
+			Integer annotationCtForTaxon = taxonToAnnotationCountMap.get(node);
+			if(annotationCtForTaxon == null)
+				annotationCtForTaxon = 0;
+			taxonToAnnotationCountMap.put(node, ++annotationCtForTaxon);	
+		}
+		tree.setNodeToAnnotationCountMap(taxonToAnnotationCountMap);
+	}
+	
+	/**
+	 * This method creates a map of branching points to
+	 * children from the input taxon to phenotype assertion
+	 * @param phenotype - the taxon to phenotype assertion
+	 */
+	private void updateTreeBranches(PhenotypeDTO phenotype){
+		Map<NodeDTO, Set<NodeDTO>> nodeToChildrenMap = 
+								tree.getNodeToChildrenMap();
+		NodeDTO taxon = new NodeDTO(phenotype.getTaxonId()) ;
+		taxon.setName(phenotype.getTaxon());
+		List<NodeDTO> pathToMrca = getPathToMrca(taxon);
+		for(int i = 0;  i < pathToMrca.size() - 1; i++){
+			NodeDTO node = pathToMrca.get(i);
+			NodeDTO parent = pathToMrca.get(i + 1);
+			Set<NodeDTO> children = nodeToChildrenMap.get(parent);
+			if(children == null)
+				children = new HashSet<NodeDTO>();
+			children.add(node);
+			nodeToChildrenMap.put(parent, children);
+		}
+		tree.setNodeToChildrenMap(nodeToChildrenMap);
+	}
+	
 	/**
 	 * The main method. This will be used to test the other methods before
 	 * they are invoked directly from the other classes REST resources to
