@@ -170,6 +170,8 @@ public class TaxonomyBuilder {
 		NodeDTO taxon = new NodeDTO(phenotype.getTaxonId()) ;
 		taxon.setName(phenotype.getTaxon());
 		
+		tree.getLeaves().add(taxon);
+		
 		String count = phenotype.getNumericalCount();
 		if(count == null)
 			count = "";
