@@ -65,7 +65,7 @@ public class AutoCompleteResource extends Resource {
 	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
 	        public int compare(JSONObject o1, JSONObject o2) {
 	            try {
-                    return ((String)o1.get(MATCH_TEXT_STRING)).compareTo((String)o2.get(MATCH_TEXT_STRING));
+                    return ((String)o1.get(MATCH_TEXT_STRING)).compareToIgnoreCase((String)o2.get(MATCH_TEXT_STRING));
                 } catch (JSONException e) {
                     return 0;
                 }
