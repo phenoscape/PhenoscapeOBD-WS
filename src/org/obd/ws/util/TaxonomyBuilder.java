@@ -69,11 +69,13 @@ public class TaxonomyBuilder {
 	 */
 	private void generateTaxonListFromPhenotypeList(){
 		NodeDTO taxon;
+		Set<NodeDTO> setOfTaxa = new HashSet<NodeDTO>();
 		for(PhenotypeDTO phenotype : phenotypeColl){
 			taxon = new NodeDTO(phenotype.getTaxonId());
 			taxon.setName(phenotype.getTaxon());
-			taxonColl.add(taxon);
+			setOfTaxa.add(taxon);
 		}
+		taxonColl.addAll(setOfTaxa);
 	}
 	
 	/**
