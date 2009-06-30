@@ -37,22 +37,14 @@ public class AutoCompleteResource extends Resource {
 	private Shard obdsql;
 	private Logger log;
 
-	/*
-	 * This structure 'nameToOntologyMap' maps commonly used prefixes to the 
-	 * default namespaces of the ontologies
-	 */
-	private Map<String, Set<String>> nameToOntologyMap;
+	private Map<String, Set<String>> ontologyPrefixToDefaultNamespaceMap;
 	
     /* FIXME it sounds like a bad idea to hard-code the list of
      * ontologies in a general purpose piece of OBD-WS code
      */
-	private String synonymOption,definitionOption, 
-				ontologies = "oboInOwl,Relations,PATO,ZFA,ZFIN,Stages,TAO,TTO,Collection,Spatial,Sequence,Units,Phenoscape";
+	private String synonymOption,definitionOption, ontologies;
 	
-	/**
-	 * The maximum number of matches to return.
-	 */
-	private Integer limit = null;
+	private Integer limitOfMatches = null;
 	
 	private static final String ID_STRING = "id";
 	private static final String NAME_STRING = "name";
@@ -92,57 +84,57 @@ public class AutoCompleteResource extends Resource {
 		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
 		 */
 		Set<String> ontologyList;
-		nameToOntologyMap = new HashMap<String, Set<String>>();
+		ontologyPrefixToDefaultNamespaceMap = new HashMap<String, Set<String>>();
 		ontologyList = new HashSet<String>();
 		ontologyList.add("oboInOwl");
 		ontologyList.add("oboInOwl:Subset");
-		nameToOntologyMap.put("oboInOwl", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("oboInOwl", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("relationship");
-		nameToOntologyMap.put("Relations", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Relations", ontologyList);
 
 		ontologyList = new HashSet<String>();
 		ontologyList.add("quality");
 		ontologyList.add("pato.ontology");
-		nameToOntologyMap.put("PATO", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("PATO", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("zebrafish_anatomy");
-		nameToOntologyMap.put("ZFA", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("ZFA", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("zebrafish_stages");
 		ontologyList.add("zebrafish_anatomical_ontology");
-		nameToOntologyMap.put("Stages", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Stages", ontologyList);
 
 		ontologyList = new HashSet<String>();		
 		ontologyList.add("teleost_anatomy");
-		nameToOntologyMap.put("TAO", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("TAO", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("teleost-taxonomy");
-		nameToOntologyMap.put("TTO",ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("TTO",ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("museum");
-		nameToOntologyMap.put("Collection", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Collection", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("spatial"); 
-		nameToOntologyMap.put("Spatial", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Spatial", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("sequence");
-		nameToOntologyMap.put("Sequence", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Sequence", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("unit.ontology");
-		nameToOntologyMap.put("Units", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Units", ontologyList);
 		
 		ontologyList = new HashSet<String>();
 		ontologyList.add("phenoscape_vocab");
-		nameToOntologyMap.put("Phenoscape", ontologyList);
+		ontologyPrefixToDefaultNamespaceMap.put("Phenoscape", ontologyList);
 		
         this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("text"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)
@@ -156,13 +148,13 @@ public class AutoCompleteResource extends Resource {
 		final String limitParameter = request.getResourceRef().getQueryAsForm().getFirstValue("limit");
 		if (limitParameter != null) {
 		    try {
-		    this.limit = Integer.parseInt(limitParameter);
-		    if (this.limit < 1) {
-		        this.limit = null;
+		    this.limitOfMatches = Integer.parseInt(limitParameter);
+		    if (this.limitOfMatches < 1) {
+		        this.limitOfMatches = null;
 		    }
 		    } catch (NumberFormatException e) {
 		        log.error("The value for the limit parameter was not a valid integer", e);
-		        this.limit = null;
+		        this.limitOfMatches = null;
 		    }
 		}
 		
@@ -244,8 +236,8 @@ public class AutoCompleteResource extends Resource {
 				zfinOption = true;
 			byOntologyOption = new ArrayList<String>();
 			for(String choice : options[2].split(",")){
-				if(nameToOntologyMap.containsKey(choice)){
-					byOntologyOption.addAll(nameToOntologyMap.get(choice));
+				if(ontologyPrefixToDefaultNamespaceMap.containsKey(choice)){
+					byOntologyOption.addAll(ontologyPrefixToDefaultNamespaceMap.get(choice));
 				}
 			}
 		}
@@ -346,8 +338,8 @@ public class AutoCompleteResource extends Resource {
 		sortedMatches.addAll(startsWithMatches);
 		sortedMatches.addAll(containedInMatches);
 		sortedMatches.addAll(definitionMatches);
-		if (this.limit != null && this.limit < sortedMatches.size()) {
-		    return sortedMatches.subList(0, this.limit);
+		if (this.limitOfMatches != null && this.limitOfMatches < sortedMatches.size()) {
+		    return sortedMatches.subList(0, this.limitOfMatches);
 		} else {
 		    return sortedMatches;
 		}
