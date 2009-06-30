@@ -44,7 +44,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private String quality_id; 
 	private String publication_id;
 	private String type;
-	private String group = "root";
+	private String group;
 	
 	private Map<String, String> parameters;
 	Map<String, String> queryResultsFilterSpecs;
@@ -177,7 +177,7 @@ public class PhenotypeDetailsResource extends Resource {
 				obdq.executeQueryAndAssembleResults(query, searchTerm, queryResultsFilterSpecs);
 			if(type != null)
 				phenotypeColl = filterCollectionByType(phenotypeColl, type);
-			if(type != null && type.equals("evo")){
+			if(type != null && type.equals("evo") && group != null){
 				taxonToAssertionsMap = 
 					generateTreeBasedDataStructureFromAssertions(taxonToAssertionsMap, phenotypeColl);
 			}
@@ -241,6 +241,14 @@ public class PhenotypeDetailsResource extends Resource {
 							+ "'evo' or 'devo'");
 			return false;
 		}
+		if(group != null && !group.equals("root") && !group.matches("TTO:[0-9]+")){
+			getResponse().setStatus(
+					Status.CLIENT_ERROR_BAD_REQUEST,
+					"ERROR: [INVALID PARAMETER] The input parameter for group can only be "
+							+ "'root' or a valid TTO taxon");
+			return false;
+		}
+		
 		//TODO Publication ID check
 		
 		parameters.put("entity_id", entity_id);

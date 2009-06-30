@@ -1,8 +1,6 @@
 package org.obd.ws.util;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -171,27 +169,103 @@ public class TaxonomyBuilder {
 		taxon.setName(phenotype.getTaxon());
 		
 		tree.getLeaves().add(taxon);
-		
-		String count = phenotype.getNumericalCount();
-		if(count == null)
-			count = "";
+
 		List<NodeDTO> pathToMrca = getPathToMrca(taxon);
 		for(NodeDTO node : pathToMrca){
 			List<List<String>> listOfEQCRLists = 
 				nodeToListOfEQCRListsMap.get(node);
+			
 			if(listOfEQCRLists == null)
-				listOfEQCRLists = new ArrayList<List<String>>();
-			listOfEQCRLists.add(Arrays.asList(new String[]{
-				phenotype.getEntityId(),
-				phenotype.getEntity(),
-				phenotype.getQualityId(),
-				phenotype.getQuality(),
-				phenotype.getNumericalCount(),
-				phenotype.getReifId()
-			}));
+				listOfEQCRLists = addPhenotypeToListOfEQCRLists(phenotype, listOfEQCRLists, 
+						(pathToMrca.indexOf(node) == 0));
+			else{
+				listOfEQCRLists = consolidateReifIds(phenotype, listOfEQCRLists, (pathToMrca.indexOf(node) == 0));
+			}
 			nodeToListOfEQCRListsMap.put(node, listOfEQCRLists);
 		}
 		tree.setNodeToListOfEQCRListsMap(nodeToListOfEQCRListsMap);
+	}
+	/**
+	 * @PURPOSE This method is used to consolidate reif ids at nodes, which already have the
+	 * input phenotype. 
+	 * @param phenotype - the input phenotype
+	 * @param listOfEqcrLists - the existing set of phenotype annotations for the node
+	 * @param isLeafNode - a boolean that tells if the node that is being handled has the phenotype
+	 * directly asserted to it if TRUE, or if FALSE, it is a higher node in the taxonomy 
+	 * @return
+	 */
+	private List<List<String>> consolidateReifIds(PhenotypeDTO phenotype, List<List<String>> listOfEqcrLists, 
+			boolean isLeafNode){
+		for(int i = 0 ; i < listOfEqcrLists.size(); i++){
+			List<String> eqcrList = listOfEqcrLists.get(i);
+			if(isPhenotypeSameAsEqcrList(phenotype, eqcrList)){
+				if(isLeafNode){
+					String rFromEqcr = eqcrList.remove(5);
+					String rFromPhenotype = phenotype.getReifId();
+					rFromEqcr += "," + rFromPhenotype;
+					eqcrList.add(5, rFromEqcr);
+				}
+				else{
+					eqcrList.remove(5);
+					eqcrList.add(5, "");
+				}
+				listOfEqcrLists.remove(i);
+				listOfEqcrLists.add(i, eqcrList);
+				return listOfEqcrLists;
+			}
+		}
+		return addPhenotypeToListOfEQCRLists(phenotype, listOfEqcrLists, isLeafNode);
+	}
+	
+	/**
+	 * @PURPOSE A method to check if the input phenotype matches an eqcr representation;
+	 * specifically, the Entity Quality Character of the EQCR. The R (Reif Id) is not
+	 * considered
+	 * @param phenotype - the input phenotype
+	 * @param eqcrList - the eqcr List against which the input phenotype is compared
+	 * @return
+	 */
+	private boolean isPhenotypeSameAsEqcrList(PhenotypeDTO phenotype, List<String> eqcrList){
+		String e = eqcrList.get(0);
+		String q = eqcrList.get(2);
+		String c = eqcrList.get(4);
+		
+		String eFromPhenotype = phenotype.getEntityId();
+		String qFromPhenotype = phenotype.getQualityId();
+		String cFromPhenotype = phenotype.getNumericalCount();
+		
+		if(e.equals(eFromPhenotype) && q.equals(qFromPhenotype) && 
+				c == cFromPhenotype)
+			return true;
+		return false;
+	}
+	
+	/**
+	 * @PURPOSE This method adds the new phenotype to the existing loist of EQCRs associated with the node
+	 * @param phenotype - the input phenotype
+	 * @param listOfEQCRLists - the existing eqcr lists for the node
+	 * @param isLeafNode - a boolean that tells if the node that is being handled has the phenotype
+	 * directly asserted to it if TRUE, or if FALSE, it is a higher node in the taxonomy  
+	 * @return
+	 */
+	private List<List<String>> addPhenotypeToListOfEQCRLists(PhenotypeDTO phenotype, List<List<String>> listOfEQCRLists, 
+			boolean isLeafNode){
+		if(listOfEQCRLists == null)
+			listOfEQCRLists = new LinkedList<List<String>>();
+		List<String> eqcrList = new LinkedList<String>();
+		eqcrList.add(phenotype.getEntityId());
+		eqcrList.add(phenotype.getEntity());
+		eqcrList.add(phenotype.getQualityId());
+		eqcrList.add(phenotype.getQuality());
+		eqcrList.add(phenotype.getNumericalCount());
+		if(isLeafNode){
+			eqcrList.add("");
+		}else{
+			eqcrList.add(phenotype.getNumericalCount());
+		}
+			
+		listOfEQCRLists.add(eqcrList);
+		return listOfEQCRLists;
 	}
 	
 	/**
