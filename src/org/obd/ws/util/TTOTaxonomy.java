@@ -42,7 +42,7 @@ public class TTOTaxonomy {
 	
 	private static final String TTO_URL_STRING = 
 			"http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo";
-	private static final String TTO_FILE_NAME = "teleost_taxonomy.obo";
+	private static final String TTO_FILE_NAME = "/tmp/teleost_taxonomy.obo";
 
 	/* GETTERS and SETTERs */
 	public NodeDTO getRoot() {
