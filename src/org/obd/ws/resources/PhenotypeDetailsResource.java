@@ -365,7 +365,6 @@ public class PhenotypeDetailsResource extends Resource {
 				throws IOException, DataAdapterException, PhenoscapeTreeAssemblyException{
 		taxonomyBuilder = new TaxonomyBuilder(ttoTaxonomy, phenotypeColl);
 		TaxonTree taxonTree = taxonomyBuilder.getTree();
-		
 		NodeDTO mrca = taxonTree.getMrca();
 		if(group.equals("root")){
 			List<List<String>> listOfEQCRLists = 
@@ -381,12 +380,16 @@ public class PhenotypeDetailsResource extends Resource {
 					taxonToAssertionsMap.put(child, listOfEQCRLists);
 				}
 			}
+			else if(taxonTree.getLeaves().contains(node)){
+				taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
+			}
 			else{
 				throw new PhenoscapeTreeAssemblyException("");
 			}
 		}
 		return taxonToAssertionsMap;
 	}
+	
 	
 	/**
 	 * This method generates a simple Taxon to List of Phenotypes

@@ -259,9 +259,9 @@ public class TaxonomyBuilder {
 		eqcrList.add(phenotype.getQuality());
 		eqcrList.add(phenotype.getNumericalCount());
 		if(isLeafNode){
-			eqcrList.add("");
+			eqcrList.add(phenotype.getReifId());
 		}else{
-			eqcrList.add(phenotype.getNumericalCount());
+			eqcrList.add("");
 		}
 			
 		listOfEQCRLists.add(eqcrList);
