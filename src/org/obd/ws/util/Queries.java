@@ -343,6 +343,57 @@ public class Queries {
 		"WHERE " +
 		"reif_id = ?";
 
+	/** The main query string for auto completion. */
+	private String autocompleteLabelQuery =
+		"SELECT " +
+		"n.uid AS uid, " +
+		"n.label AS label, " +
+		"NULL AS synonym, " +
+		"NULL AS definition " +
+		"FROM node AS n " +
+		"WHERE " +
+		"lower(n.label) ~* ";
+	
+	/** The synonym query string */
+	private String autocompleteSynonymQuery = 
+		"SELECT " +
+		"n.uid AS uid, " +
+		"n.label AS label, " +
+		"a.label AS synonym, " +
+		"NULL AS definition " +
+		"FROM node AS n, alias AS a " +
+		"WHERE " +
+		"a.node_id = n.node_id AND " +
+		"lower(a.label) ~* ";
+	
+	/** The definition query string */
+	private String autocompleteDefinitionQuery = 
+		"SELECT " +
+		"n.uid AS uid, " +
+		"n.label AS label, " +
+		"NULL AS synonym, " +
+		"d.label AS definition " +
+		"FROM node AS n, description AS d " +
+		"WHERE " +
+		"d.node_id = n.node_id AND " +
+		"lower(d.label) ~* ";
+	
+	/** The gene query string */
+	private String autocompleteGeneQuery = 
+		"SELECT " +
+		"n2.uid AS uid, " +
+		"n2.label AS label, " +
+		"NULL AS synonym, " +
+		"NULL AS definition " +
+		"FROM node AS n2 " +
+		"WHERE " +
+		"n2.uid ~* '.*ZDB-GENE.*' AND " +
+		"lower(n2.label) ~* ";
+	
+	/** This fragment is used if ontology options are specified in the auto completion request	 */
+	private String sourceIdFragmentForAutocompleteQuery = 
+		" AND n.source_id IN "; 
+	
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
 	 * @param shard
@@ -405,6 +456,27 @@ public class Queries {
 		return replacePatternsWithIds(freeTextDataQuery);
 	}
 	
+	public String getAutocompleteLabelQuery(){
+		return autocompleteLabelQuery;
+	}
+	
+	public String getAutocompleteSynonymQuery(){
+		return autocompleteSynonymQuery;
+	}
+	
+	public String getAutocompleteDefinitionQuery(){
+		return autocompleteDefinitionQuery;
+	}
+
+	public String getAutocompleteGeneQuery(){
+		return autocompleteGeneQuery;
+	}
+
+	public String getSourceIdFragmentForAutocompleteQuery(){
+		return sourceIdFragmentForAutocompleteQuery;
+	}
+
+
 	/**
 	 * This method cycles through the input query and replaces all the patterns from the enumeration 
 	 * that it finds in the query with the correct node id
