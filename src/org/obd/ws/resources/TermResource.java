@@ -1,5 +1,8 @@
 package org.obd.ws.resources;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -264,6 +267,25 @@ public class TermResource extends Resource {
 			}
 			jsonObj.put("parents", parents);
 			jsonObj.put("children", children);
+			
+			String commentQuery = 
+				"SELECT val " +
+				"FROM tagval " +
+				"WHERE " +
+				"tag_id = (SELECT node_id FROM node WHERE uid = 'oboInOwl:comment') AND " +
+				"node_id = (SELECT node_id FROM node WHERE uid = ?)";
+			
+			Connection conn = ((OBDSQLShard)obdsql).getConnection();
+			PreparedStatement pstmt = conn.prepareStatement(commentQuery);
+			pstmt.setString(1, termId);
+			System.out.println(pstmt);
+			ResultSet rs = pstmt.executeQuery();
+			System.out.println("Finished");
+			String comment = "";
+			while(rs.next()){
+				comment = rs.getString(1);
+			}
+			jsonObj.put("comment", comment);
 		} else {
 			jsonObj = null;
 		}
