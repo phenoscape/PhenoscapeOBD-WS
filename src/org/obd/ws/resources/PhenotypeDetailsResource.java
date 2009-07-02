@@ -288,6 +288,13 @@ public class PhenotypeDetailsResource extends Resource {
 				subjectObj.put("id", taxonDTO.getId());
 				subjectObj.put("name", taxonDTO.getName());
 				phenotypeObjs = new ArrayList<JSONObject>();
+				if(annots.get(taxonDTO).get(0).get(5).length() > 0){
+					subjectObj.put("leaf", true);
+				}
+				else{
+					subjectObj.put("leaf", false);
+				}
+				
 				for(List<String> phenotype : annots.get(taxonDTO)){
 					String count = phenotype.get(4);
 					if(count == null)
@@ -335,7 +342,6 @@ public class PhenotypeDetailsResource extends Resource {
 			if(entity_id != null){
 				query += " AND entity_uid = '" + entity_id + "'";
 			}
-//			queryResultsFilterSpecs.put("entity", entity_id);
 		}
 		else{
 			query = queries.getAnatomyQuery();
@@ -347,7 +353,6 @@ public class PhenotypeDetailsResource extends Resource {
 		if(character_id != null){
 			query += " AND character_uid = '" + character_id + "'";
 		}
-		//queryResultsFilterSpecs.put("character", character_id);
 		queryResultsFilterSpecs.put("publication", null); //TODO pub_id goes here;
 		return Arrays.asList(new String[]{query, searchTerm});
 	}
