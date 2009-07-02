@@ -41,7 +41,7 @@ public class PhenotypeDetailsResource extends Resource {
 	
 	private String subject_id;
 	private String entity_id;
-	private String quality_id; 
+	private String character_id; 
 	private String publication_id;
 	private String type;
 	private String group;
@@ -80,7 +80,7 @@ public class PhenotypeDetailsResource extends Resource {
 			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("entity")));
 		}
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("quality") != null){
-			this.quality_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("quality")));
+			this.character_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("quality")));
 		}
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
 			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
@@ -227,7 +227,7 @@ public class PhenotypeDetailsResource extends Resource {
 			return null;
 		} 
 		*/
-		if(quality_id != null && !quality_id.startsWith("PATO:")){
+		if(character_id != null && !character_id.startsWith("PATO:")){
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
 					"ERROR: The input parameter for quality "
@@ -252,7 +252,7 @@ public class PhenotypeDetailsResource extends Resource {
 		//TODO Publication ID check
 		
 		parameters.put("entity_id", entity_id);
-		parameters.put("quality_id", quality_id);
+		parameters.put("quality_id", character_id);
 		parameters.put("subject_id", subject_id);
 		parameters.put("publication_id", publication_id);
 		
@@ -332,7 +332,10 @@ public class PhenotypeDetailsResource extends Resource {
 			else
 				query = queries.getTaxonQuery();
 			searchTerm = subject_id;
-			queryResultsFilterSpecs.put("entity", entity_id);
+			if(entity_id != null){
+				query += " AND entity_uid = '" + entity_id + "'";
+			}
+//			queryResultsFilterSpecs.put("entity", entity_id);
 		}
 		else{
 			query = queries.getAnatomyQuery();
@@ -341,7 +344,10 @@ public class PhenotypeDetailsResource extends Resource {
 			 */
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 		}
-		queryResultsFilterSpecs.put("character", quality_id);
+		if(character_id != null){
+			query += " AND character_uid = '" + character_id + "'";
+		}
+		//queryResultsFilterSpecs.put("character", character_id);
 		queryResultsFilterSpecs.put("publication", null); //TODO pub_id goes here;
 		return Arrays.asList(new String[]{query, searchTerm});
 	}
@@ -371,25 +377,43 @@ public class PhenotypeDetailsResource extends Resource {
 				taxonTree.getNodeToListOfEQCRListsMap().get(mrca);
 			taxonToAssertionsMap.put(mrca, listOfEQCRLists);
 		}else{
-			NodeDTO node = ttoTaxonomy.getIdToNodeMap().get(group);
-			Set<NodeDTO> children = taxonTree.getNodeToChildrenMap().get(node);
-			if(children != null){
-				for(NodeDTO child : children){
-					List<List<String>> listOfEQCRLists = 
-						taxonTree.getNodeToListOfEQCRListsMap().get(child);
-					taxonToAssertionsMap.put(child, listOfEQCRLists);
-				}
-			}
-			else if(taxonTree.getLeaves().contains(node)){
-				taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
-			}
-			else{
-				throw new PhenoscapeTreeAssemblyException("");
-			}
+			taxonToAssertionsMap = processChildrenOfGroupNodeFromInput(taxonToAssertionsMap);
 		}
 		return taxonToAssertionsMap;
 	}
 	
+	/**
+	 * This is a helper method that processes the annotations from the tree and returns them to 
+	 * calling {@link generateTreeBasedDataStructureFromAssertions} method
+	 * @param taxonToAssertionsMap - the node to assertions map to be processed
+	 * @return the processed node to assertions map
+	 * @throws PhenoscapeTreeAssemblyException
+	 */
+	private Map<NodeDTO, List<List<String>>> processChildrenOfGroupNodeFromInput(
+			Map<NodeDTO,List<List<String>>> taxonToAssertionsMap) throws PhenoscapeTreeAssemblyException{
+		NodeDTO groupNodeFromInput = ttoTaxonomy.getIdToNodeMap().get(group);
+		TaxonTree tree = taxonomyBuilder.getTree();
+		Set<NodeDTO> children = tree.getNodeToChildrenMap().get(groupNodeFromInput);
+		
+		if(children != null){
+			for(NodeDTO child : children){
+				List<List<String>> listOfEQCRLists = 
+					tree.getNodeToListOfEQCRListsMap().get(child);
+				taxonToAssertionsMap.put(child, listOfEQCRLists);
+			}
+		}
+		else if(tree.getLeaves().contains(groupNodeFromInput)){
+			taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
+		}
+		else if(tree.getNodeToChildrenMap().get(tree.getMrca()) == null){
+			NodeDTO mrcaNode = tree.getMrca();
+			taxonToAssertionsMap.put(mrcaNode, tree.getNodeToListOfEQCRListsMap().get(mrcaNode));
+		}
+		else{
+			throw new PhenoscapeTreeAssemblyException("");
+		}
+		return taxonToAssertionsMap;
+	}
 	
 	/**
 	 * This method generates a simple Taxon to List of Phenotypes
