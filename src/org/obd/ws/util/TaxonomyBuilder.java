@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.bbop.dataadapter.DataAdapterException;
+import org.bbop.util.ObjectUtil;
 import org.obd.ws.util.dto.NodeDTO;
 import org.obd.ws.util.dto.PhenotypeDTO;
 
@@ -233,10 +234,9 @@ public class TaxonomyBuilder {
 		String eFromPhenotype = phenotype.getEntityId();
 		String qFromPhenotype = phenotype.getQualityId();
 		String cFromPhenotype = phenotype.getNumericalCount();
-		
-		if(e.equals(eFromPhenotype) && q.equals(qFromPhenotype) && 
-				c == cFromPhenotype)
-			return true;
+		if (e.equals(eFromPhenotype) && q.equals(qFromPhenotype) && ObjectUtil.equals(c, cFromPhenotype)) {
+		    return true;
+		}
 		return false;
 	}
 	
