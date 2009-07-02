@@ -278,9 +278,7 @@ public class TermResource extends Resource {
 			Connection conn = ((OBDSQLShard)obdsql).getConnection();
 			PreparedStatement pstmt = conn.prepareStatement(commentQuery);
 			pstmt.setString(1, termId);
-			System.out.println(pstmt);
 			ResultSet rs = pstmt.executeQuery();
-			System.out.println("Finished");
 			String comment = "";
 			while(rs.next()){
 				comment = rs.getString(1);
