@@ -92,12 +92,20 @@ public class PhenotypeDetailsResource extends Resource {
 			this.group = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("group")));
 		}
 
-		
 		queries = new Queries(obdsql);
-		obdq = new OBDQuery(obdsql);
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 		queryResultsFilterSpecs = new HashMap<String, String>();
+		 try{
+	        obdq = new OBDQuery(obdsql);
+		 }
+	     catch(SQLException e){
+	      	this.jObjs = null;
+	      	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+	      		"[SQL EXCEPTION] Something broke server side. Ontology prefix to node id map " +
+	      		"of OBDQuery object could not " +
+				"be constructed.");
+	     }
 	}
 	
    /**

@@ -1,5 +1,7 @@
 package org.phenoscape.obd;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -39,21 +42,54 @@ public class OBDQuery {
 	private Connection conn;
 	public Logger log;
 	private Queries queries;
+	
+	private static final String PREFIX_TO_NS_FILE = 
+			"PrefixToDefaultNamespaceOfOntology.properties";
+	/** A structure which maps ontology prefixes to their 
+	 * default namespaces */
+	private Map<String, Set<String>> prefixToDefaultNamespacesMap;
+	/** A structure to map default namespaces of ontologies to their
+	 * node ids in the database */
+	private Map<String, String> defaultNamespaceToNodeIdMap;
+	/** An enumeration of the possible match types for the 
+	 * {@link getAutocompletionsForSearchTerm} method	 */
 	public static enum AutoCompletionMatchTypes{
 		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
 	};
 	
-	
+	/** @PURPOSE GETTER for the map from default namespaces of ontologies 
+	 * to their node ids in the database */
+	public Map<String, String> getDefaultNamespaceToNodeIdMap() {
+		return defaultNamespaceToNodeIdMap;
+	}
+	/** @PURPOSE  GETTER for the map from ontology prefixes to default namespaces
+	 * @return
+	 */
+	public Map<String, Set<String>> getPrefixToDefaultNamespacesMap() {
+		return prefixToDefaultNamespacesMap;
+	}
+
+
 	/**
 	 * This is the default constructor. 
 	 * @param shard = the shard to use. THis has to be an AbstractSQLShard to use the connection
 	 * it comes with
+	 * @throws SQLException 
 	 */
-	public OBDQuery(Shard shard){
+	public OBDQuery(Shard shard) throws SQLException{
 		this.shard = shard;
 		this.conn = ((AbstractSQLShard)shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
 		this.queries = new Queries(this.shard);
+		this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
+		this.prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
+		this.constructDefaultNamespaceToNodeIdMap();
+		try{
+			this.constructPrefixToDefaultNamespacesMap();
+		}
+		catch(IOException e){
+			throw new SQLException(e.getMessage() + " This is an IO Exception");
+		}
 	}
 
 	/**
@@ -454,6 +490,191 @@ public class OBDQuery {
 	}
 	
 	/**
+	 * @PURPOSE This method uses the input search term from the form, and the 
+	 * specified search options to first construct an SQL query and then 
+	 * return the autocompletions returned by the query execution as a 
+	 * data structure to the {@link AutoCompleteResource}
+	 * @param searchTerm - the input search term from the form
+	 * @param searchOptions - the search options specified in the form
+	 * @return - a data structure which groups the autocompletions under
+	 * different categories viz. label match, synonym match and definition
+	 * match
+	 * @throws SQLException
+	 */
+	public Map<String, List<List<String>>> getAutocompletionsForSearchTerm(String searchTerm, 
+			Map<String, String> searchOptions) throws SQLException{
+		List<String> ontologySourceIds = createSourceIdListFromOntologyOptions(searchOptions);
+		String query = 
+			constructAutocompleteQueryFromSearchTermAndSearchOptions(searchTerm, searchOptions);
+			return executeAutocompletionQueryAndProcessResults(query, ontologySourceIds);
+	}
+	
+	/**
+	 * @PURPOSE This method uses the input search term and input specified 
+	 * search options to construct an SQL query, which will be executed by the 
+	 * {@link executeAutocompletionQueryAndProcessResults} method
+	 * @param searchTerm - the input search term (comes from the form)
+	 * @param searchOptions - search options specified in the form
+	 * @return a SQL query string 
+	 */
+	private String constructAutocompleteQueryFromSearchTermAndSearchOptions(String searchTerm,
+			Map<String, String> searchOptions){
+		String completedQueryString = "";
+		
+		String synonymOption = searchOptions.get("synonymOption");
+		String definitionOption = searchOptions.get("definitionOption");
+		boolean zfinOption = false;
+		
+		String autocompleteLabelQuery = queries.getAutocompleteLabelQuery() + 
+														"'" + searchTerm + "'";
+		String autocompleteSynonymQuery = queries.getAutocompleteSynonymQuery() + 
+														"'" + searchTerm + "'";
+		String autocompleteDefinitonQuery = queries.getAutocompleteDefinitionQuery() + 
+														"'" + searchTerm + "'";
+		String autocompleteGeneQuery = queries.getAutocompleteGeneQuery() + 
+														"'" + searchTerm + "'";
+		completedQueryString = autocompleteLabelQuery;
+		
+		if(Boolean.parseBoolean(synonymOption)){
+			completedQueryString += " UNION " + autocompleteSynonymQuery;
+		}
+		if(Boolean.parseBoolean(definitionOption)){
+			completedQueryString += " UNION " + autocompleteDefinitonQuery;
+		}
+		if(zfinOption){
+			completedQueryString += " UNION " + autocompleteGeneQuery;
+		}
+		return completedQueryString;
+	}
+	
+	/**
+	 * @PURPOSE This query executes the given query and iterates through the 
+	 * returned result set to construct a data structure, which groups each
+	 * result under one of label match, synonym match or definition match
+	 * @param query - the SQL query, which is assembled by the 
+	 * {@link constructAutocompleteQueryFromSearchTermAndSearchOptions} method
+	 * @return - a data structure which groups the autocompletions under
+	 * different categories viz. label match, synonym match and definition
+	 * match
+	 * @throws SQLException
+	 */
+	private Map<String, List<List<String>>>
+				executeAutocompletionQueryAndProcessResults(String query, 
+						List<String> sourceIdList) throws SQLException{
+		
+		Map<String, List<List<String>>> resultsFromDifferentCategories =
+			new HashMap<String, List<List<String>>>();
+		
+		List<List<String>> labelMatches = new ArrayList<List<String>>();
+		List<List<String>> synonymMatches = new ArrayList<List<String>>();
+		List<List<String>> definitionMatches = new ArrayList<List<String>>();
+		
+		java.sql.Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(query);
+		List<String> row;
+		String uid, label, definition, synonym, sourceId;
+		while(rs.next()){
+			row = new ArrayList<String>();
+			uid = rs.getString(1);
+			label = rs.getString(2);
+			synonym = rs.getString(3);
+			definition = rs.getString(4);
+			sourceId = rs.getString(5);
+			
+			if(!uid.contains("GENE")){ //GENEs dont have source ids
+				if(isToBeFiltered(sourceId, sourceIdList))
+					continue;
+			}
+			row.add(uid);
+			row.add(label);
+			row.add(synonym);
+			row.add(definition);
+			
+			if(definition != null && definition.length() > 0)
+				definitionMatches.add(row);
+			else if(synonym != null && synonym.length() > 0)
+				synonymMatches.add(row);
+			else
+				labelMatches.add(row);
+		}
+		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), 
+								labelMatches);
+		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), 
+								synonymMatches);
+		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), 
+								definitionMatches);
+		return resultsFromDifferentCategories;
+	}
+	
+	/**
+	 * @PURPOSE This method creates a list of source ids from the database
+	 * given the list of ontologies to be searched
+	 * @param searchOptions - the search options input from the 
+	 * form. This includes the list of ontologies to be searched 
+	 * @return a list of source ids for every ontology in the list
+	 */
+	private List<String> createSourceIdListFromOntologyOptions(
+			Map<String, String> searchOptions){
+		List<String> sourceIdList = new ArrayList<String>();
+		String ontologyOption = searchOptions.get("ontologyOption");
+		if(ontologyOption != null && ontologyOption.length() > 0){
+			for(String prefix : ontologyOption.split(",")){
+				if(prefixToDefaultNamespacesMap.get(prefix) != null){
+					for(String namespace : 
+						prefixToDefaultNamespacesMap.get(prefix)){
+						sourceIdList.add(this.defaultNamespaceToNodeIdMap.get(namespace));
+					}
+				}
+			}
+		}
+		return sourceIdList;
+	}
+	/**
+	 * @PURPOSE This method decides if a result is to be
+	 * filtered given the source id.
+	 * @PROCEDURE The input source id is compared with the
+	 * list of source ids of the ontologies whose terms are
+	 * to be included in the results
+	 * @param sourceId - the source id of the result
+	 * @param sourceIdList - the list of source ids corr.
+	 * to the ontologies whose terms are to be included 
+	 * in the results
+	 * @return a boolean to indicate if this result is to be
+	 * filtered
+	 */
+	private boolean isToBeFiltered(String sourceId, 
+			List<String> sourceIdList) {
+		if(sourceId == null) return true; 
+		if(sourceIdList != null && sourceIdList.size() > 0){
+			if(sourceIdList.contains(sourceId))
+				return false;
+			else
+				return true;
+		}
+		return false;
+	}
+	/**
+	 * @PURPOSE This method reads in the list of default namespaces from a file and
+	 * adds the corresponding node ids to a map
+	 * @throws IOException
+	 * @throws SQLException 
+	 */
+	private void constructDefaultNamespaceToNodeIdMap() throws SQLException{
+		String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
+		String nodeId, uid;
+		java.sql.Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(sourceNodeQuery);
+		while(rs.next()){
+			nodeId = rs.getString(1);
+			uid = rs.getString(2);
+			if(uid.length() > 0){
+				this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
+			}
+		}
+	}
+	
+	@Deprecated
+	/**
      * @PURPOSE The purpose of this method is to return matching nodes for
      * autocompletion
 	 * @author cartik
@@ -490,4 +711,31 @@ public class OBDQuery {
 		return results;
 	}	
 	
+	/**
+	 * @PURPOSE This method constructs a mapping
+	 * from every prefix used in the autocompletion
+	 * service to the set of default namespaces of the
+	 * ontologies the prefix comes from
+	 * @PROCEDURE This method reads the allowed 
+	 * prefix to namespace mappings from a static text 
+	 * file. This is converted into a map
+	 * @throws IOException
+	 */
+	private void constructPrefixToDefaultNamespacesMap() 
+										throws IOException{
+		InputStream inStream = 
+			this.getClass().getResourceAsStream(PREFIX_TO_NS_FILE);
+		Properties props = new Properties();
+		props.load(inStream);
+		Set<String> namespaceSet;
+		for(Object key : props.keySet()){
+			String prefix = key.toString();
+			String commaDelimitedNamespaces = props.get(key).toString();
+			namespaceSet = new HashSet<String>();
+			for(String namespace : commaDelimitedNamespaces.split(",")){
+				namespaceSet.add(namespace);
+			}
+			prefixToDefaultNamespacesMap.put(prefix, namespaceSet);
+		}
+	}
 }

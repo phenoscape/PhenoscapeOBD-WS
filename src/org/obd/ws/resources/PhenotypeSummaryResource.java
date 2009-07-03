@@ -69,10 +69,18 @@ public PhenotypeSummaryResource(Context context, Request request, Response respo
 			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("examples"))));
 		}
 		
-		obdq = new OBDQuery(obdsql);
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 		queries = new Queries(obdsql);
+		 try{
+	       	obdq = new OBDQuery(obdsql);
+		 }catch(SQLException e){
+	      	this.jObjs = null;
+	       	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+				"[SQL EXCEPTION] Something broke server side. " +
+				"Ontology prefix to node id map of OBDQuery object could not " +
+				"be constructed.");
+		 }
 	}
 
 	/**

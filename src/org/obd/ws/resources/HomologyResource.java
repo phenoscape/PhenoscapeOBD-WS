@@ -36,11 +36,22 @@ public class HomologyResource extends Resource {
     public HomologyResource(Context context, Request request, Response response) {
         super(context, request, response);
         this.shard = (Shard)this.getContext().getAttributes().get("shard");
-        obdq = new OBDQuery(shard);
-        queries = new Queries(shard);
         this.termID = Reference.decode((String)(request.getAttributes().get("termID")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
+        queries = new Queries(shard);
+        try{
+        	obdq = new OBDQuery(shard);
+        }
+        catch(SQLException e){
+        	this.jObjs = null;
+        	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+				"[SQL EXCEPTION] Something broke server side. Ontology prefix to " +
+				"node id map of OBDQuery object could not " +
+				"be constructed.");
+        	
+        }
+
     }
 
     public Representation represent(Variant variant) throws ResourceException {

@@ -50,10 +50,20 @@ public class AnnotationResource extends Resource {
     public AnnotationResource(Context context, Request request, Response response) {
         super(context, request, response);
         this.shard = (Shard)this.getContext().getAttributes().get("shard");
-        obdq = new OBDQuery(shard);
         this.annotationId = Reference.decode((String)(request.getAttributes().get("annotation_id")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
+        try{
+        	obdq = new OBDQuery(shard);
+        }
+        catch(SQLException e){
+        	log().fatal("Error in the SQL query");
+        	this.jObjs = null;
+        	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[SQL EXCEPTION] Something broke server side. Ontology prefix to " +
+			"node id map of OBDQuery object could not " +
+			"be constructed.");
+        }
     }
 
     /**

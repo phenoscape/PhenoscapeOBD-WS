@@ -3,7 +3,6 @@ package org.obd.ws.resources;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -15,7 +14,6 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.Node;
 import org.obd.query.Shard;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
@@ -23,6 +21,7 @@ import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
 import org.restlet.data.Request;
 import org.restlet.data.Response;
+import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.resource.Representation;
 import org.restlet.resource.Resource;
@@ -31,20 +30,30 @@ import org.restlet.resource.Variant;
 
 public class AutoCompleteResource extends Resource {
 
-	private final String text;
-	private String[] options;
+	/** The term to be searched for */
+	private String text;
+	/** The synonym option to be used in the search */
+	private String synonymOption;
+	/** The definition option to be used in the search */
+	private String definitionOption;
+	/** The list of ontologies whose terms are to be matched against */
+	private String ontologyOption;	
+	/** This indicates search for genes. Needs to be handled separately because these don't come from an ontology */ 
+	
 	private JSONObject jObjs;
+	/** The Shard object that connects to the database */
 	private Shard obdsql;
+	/** The SQL connection to be used */
 	private Logger log;
 
-	private Map<String, Set<String>> ontologyPrefixToDefaultNamespaceMap;
-	
-    /* FIXME it sounds like a bad idea to hard-code the list of
-     * ontologies in a general purpose piece of OBD-WS code
-     */
-	private String synonymOption,definitionOption, ontologies;
-	
+	/** A parameter to limit the number of matches */
 	private Integer limitOfMatches = null;
+	
+	/** A structure to keep track of the search options input
+	 * from the form such as ontologyList, synonyms, definitions
+	 * etc.
+	 */
+	private Map<String, String> searchOptions;
 	
 	private static final String ID_STRING = "id";
 	private static final String NAME_STRING = "name";
@@ -54,154 +63,108 @@ public class AutoCompleteResource extends Resource {
 	private static final String MATCH_TEXT_STRING = "match_text";
 	private static final String MATCHES_STRING = "matches";
 	
-	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
-	        public int compare(JSONObject o1, JSONObject o2) {
-	            try {
-                    return ((String)o1.get(MATCH_TEXT_STRING)).compareToIgnoreCase((String)o2.get(MATCH_TEXT_STRING));
-                } catch (JSONException e) {
-                    return 0;
-                }
-	        }
-	    };
+	private static final String ONTOLOGY_OPTION_STRING = "ontologyOption";
+	private static final String SYNONYM_OPTION_STRING = "synonymOption";
+	private static final String DEFINITION_OPTION_STRING = "definitionOption";
 	
-    /**
-     * FIXME Constructor and parameter documentation missing.
-     */
-	public AutoCompleteResource(Context context, Request request, Response response) {
+	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
+		public int compare(JSONObject o1, JSONObject o2) {
+			try {
+				return ((String)o1.get(MATCH_TEXT_STRING)).compareToIgnoreCase((String)o2.get(MATCH_TEXT_STRING));
+			} catch (JSONException e) {
+				return 0;
+			}
+		}
+	};
+	
+	/**
+	 * @PURPOSE This construnctor instantiates all the instance variables and also
+	 * reads in the form parameters. It also does a little work towards seeting up the final query
+	 * @param context - the application context
+	 * @param request - the Rest request
+	 * @param response - the Rest response
+	 * @throws SQLException
+	 */
+	public AutoCompleteResource(Context context, Request request, Response response) throws SQLException {
 		super(context, request, response);
 		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
+		this.log = Logger.getLogger(this.getClass());
+		this.searchOptions = new HashMap<String, String>();
 		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-
-                /* FIXME This seems to be a poor way of doing
-                 * this. Shouldn't this at a minimum be read in from a
-                 * file, and/or use constants are encoded in a
-                 * separate class. And can this not dynamically be
-                 * obtained from the database? It is also more or less
-                 * duplicated from TermResource.
-                 */
-		/*
-		 * A hard coded mapping from ontology prefixes for auto completion to the actual default namespaces stored in the database
-		 */
-		Set<String> ontologyList;
-		ontologyPrefixToDefaultNamespaceMap = new HashMap<String, Set<String>>();
-		ontologyList = new HashSet<String>();
-		ontologyList.add("oboInOwl");
-		ontologyList.add("oboInOwl:Subset");
-		ontologyPrefixToDefaultNamespaceMap.put("oboInOwl", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("relationship");
-		ontologyPrefixToDefaultNamespaceMap.put("Relations", ontologyList);
-
-		ontologyList = new HashSet<String>();
-		ontologyList.add("quality");
-		ontologyList.add("pato.ontology");
-		ontologyPrefixToDefaultNamespaceMap.put("PATO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("zebrafish_anatomy");
-		ontologyPrefixToDefaultNamespaceMap.put("ZFA", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("zebrafish_stages");
-		ontologyList.add("zebrafish_anatomical_ontology");
-		ontologyPrefixToDefaultNamespaceMap.put("Stages", ontologyList);
-
-		ontologyList = new HashSet<String>();		
-		ontologyList.add("teleost_anatomy");
-		ontologyPrefixToDefaultNamespaceMap.put("TAO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("teleost-taxonomy");
-		ontologyPrefixToDefaultNamespaceMap.put("TTO",ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("museum");
-		ontologyPrefixToDefaultNamespaceMap.put("Collection", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("spatial"); 
-		ontologyPrefixToDefaultNamespaceMap.put("Spatial", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("sequence");
-		ontologyPrefixToDefaultNamespaceMap.put("Sequence", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("unit.ontology");
-		ontologyPrefixToDefaultNamespaceMap.put("Units", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("phenoscape_vocab");
-		ontologyPrefixToDefaultNamespaceMap.put("Phenoscape", ontologyList);
 		
         this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("text"));
+        text = text.trim().toLowerCase();
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)
 			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("syn"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("def") != null)
 			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("def"));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
-			ontologies = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
-		this.options = new String[]{synonymOption, definitionOption, ontologies};
+			ontologyOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
 		
 		final String limitParameter = request.getResourceRef().getQueryAsForm().getFirstValue("limit");
-		if (limitParameter != null) {
-		    try {
-		    this.limitOfMatches = Integer.parseInt(limitParameter);
-		    if (this.limitOfMatches < 1) {
-		        this.limitOfMatches = null;
-		    }
-		    } catch (NumberFormatException e) {
-		        log.error("The value for the limit parameter was not a valid integer", e);
-		        this.limitOfMatches = null;
-		    }
+		if (limitParameter != null)
+			this.limitOfMatches = Integer.parseInt(limitParameter);
+		if(!inputFormParametersAreValid()){
+			throw new IllegalArgumentException("Invalid form parameters");
 		}
-		
-		this.log = Logger.getLogger(this.getClass());
-
+		searchOptions.put(SYNONYM_OPTION_STRING, synonymOption);
+		searchOptions.put(DEFINITION_OPTION_STRING, definitionOption);
+		searchOptions.put(ONTOLOGY_OPTION_STRING, ontologyOption);
+	}
+	
+	/**
+	 * A method to check if input parameters from the form are valid
+	 * @return
+	 */
+	private boolean inputFormParametersAreValid(){
+		if(text == null){
+			getResponse().setStatus(
+					Status.CLIENT_ERROR_BAD_REQUEST,
+					"ERROR: Please specify a string to search for");
+			return false;
+		}
+		if (limitOfMatches != null) {
+			try {
+				if (this.limitOfMatches < 1) {
+					this.limitOfMatches = null;
+				}
+			} catch (NumberFormatException e) {
+				log.error("The value for the limit parameter was not a valid integer", e);
+				this.limitOfMatches = null;
+				return false;
+			}
+		}
+		return true;
 	}
 
     /**
-     * FIXME Constructor and parameter documentation missing.
+     * This method is responsible for creating the representation of the JSON Object
+     * from the query results which will be forwarded to the invoking client 
      */
-	// this constructor is to be used only for testing purposes
-	AutoCompleteResource(Shard obdsql, String text, String... options) {
-		this.text = text;
-		this.obdsql = obdsql;
-		this.options = options;
-		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-	}
-
-    /**
-     * FIXME Method and parameter documentation missing.
-     */
-        @Override
+    @Override
 	public Representation represent(Variant variant) 
             throws ResourceException {
 
 		Representation rep = null;
 
 		try {
-			this.jObjs = getTextMatches(this.text.toLowerCase(), this.options);
+			this.jObjs = getTextMatches();
 		} catch (JSONException e) {
-                    /* FIXME Need to provide information to the
-                     * client, so add an appropriate message.
-                     */
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+					"[JSON EXCEPTION] Something broke on the JSON Object side. Consult server logs");
                     log.error(e);
-                    throw new ResourceException(e);
+            return null;
 		} catch (SQLException e) {
-                    /* FIXME Need to provide information to the
-                     * client, so add an appropriate message.
-                     */
-                    log.error(e);
-                    throw new ResourceException(e);
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+				"[SQL EXCEPTION] Something broke on the SQL query. Consult server logs");
+            	log.error(e);
+            return null;
 		}
 		
 		rep = new JsonRepresentation(this.jObjs);
 
 		return rep;
-
 	}
 
 	/**
@@ -215,75 +178,57 @@ public class AutoCompleteResource extends Resource {
 	 * @throws ClassNotFoundException
 	 * @throws JSONException
 	 */
-	private JSONObject getTextMatches(String text, String... options)
+	private JSONObject getTextMatches()
             throws JSONException, SQLException {
 
 		JSONObject jObj = new JSONObject();
 		OBDQuery obdq = new OBDQuery(obdsql);
-		String bySynonymOption = ((options[0] == null || options[0].length() == 0) ? "false"
-				: options[0]);
-		String byDefinitionOption = ((options[1] == null || options[1].length() == 0) ? "false"
-				: options[1]);
-		List<String> byOntologyOption = null;
-		/*
-		 * We use a separate option for ZFIN because GENEs do not come from an ontology
-		 * but from a text file and are to be queried separately. For terms that come from 
-		 * an ontology, we can use source ids in the queries
-		 */
-		boolean zfinOption = false; 
-		if(options[2] != null && options[2].length() > 0){
-			if (options[2].contains("ZFIN"))
-				zfinOption = true;
-			byOntologyOption = new ArrayList<String>();
-			for(String choice : options[2].split(",")){
-				if(ontologyPrefixToDefaultNamespaceMap.containsKey(choice)){
-					byOntologyOption.addAll(ontologyPrefixToDefaultNamespaceMap.get(choice));
-				}
-			}
-		}
+		String term = ".*" + text + ".*";
+		Map<String, List<List<String>>> results = 
+			obdq.getAutocompletionsForSearchTerm(term, searchOptions);
 		
-		Map<String, Collection<Node>> results = obdq.getCompletionsForSearchTerm(text, zfinOption, byOntologyOption,
-				Boolean.parseBoolean(bySynonymOption), Boolean.parseBoolean(byDefinitionOption));
-		
-		Collection<Node> nameNodes = results.get(OBDQuery.AutoCompletionMatchTypes.LABEL_MATCH.name());
-		Collection<Node> synonymNodes = results.get(OBDQuery.AutoCompletionMatchTypes.SYNONYM_MATCH.name());
-		Collection<Node> definitionNodes = results.get(OBDQuery.AutoCompletionMatchTypes.DEFINITION_MATCH.name());
+		List<List<String>> labelMatches = 
+			results.get(OBDQuery.AutoCompletionMatchTypes.LABEL_MATCH.name());
+		List<List<String>> synonymMatches = 
+			results.get(OBDQuery.AutoCompletionMatchTypes.SYNONYM_MATCH.name());
+		List<List<String>> definitionMatches = 
+			results.get(OBDQuery.AutoCompletionMatchTypes.DEFINITION_MATCH.name());
 		
 		Set<JSONObject> matches = new HashSet<JSONObject>();
 		int i = 0, j = 0, k = 0;
-		if(nameNodes.size() > 0){
-			for(Node node : nameNodes){
+		if(labelMatches.size() > 0){
+			for(List<String> label : labelMatches){
 				JSONObject nameMatch = new JSONObject();
-				nameMatch.put(ID_STRING, node.getId());
-				nameMatch.put(NAME_STRING, node.getLabel());
+				nameMatch.put(ID_STRING, label.get(0));
+				nameMatch.put(NAME_STRING, label.get(1));
 				nameMatch.put(MATCH_TYPE_STRING, NAME_STRING);
-				nameMatch.put(MATCH_TEXT_STRING, node.getLabel());
+				nameMatch.put(MATCH_TEXT_STRING, label.get(1));
 				matches.add(nameMatch);
-				log.debug( ++i + ". Name matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + node.getLabel());
+				log.debug( ++i + ". Name matches for search term: " + text + "\tID: " + label.get(0) + "\tLABEL: " + label.get(1));
 			}
 		}
-		if(synonymNodes != null && synonymNodes.size() > 0){
-			for(Node node : synonymNodes){
+		if(synonymMatches != null && synonymMatches.size() > 0){
+			for(List<String> synonym : synonymMatches){
 				JSONObject synonymMatch = new JSONObject();
-				synonymMatch.put(ID_STRING, node.getId());
-				synonymMatch.put(NAME_STRING, node.getLabel());
+				synonymMatch.put(ID_STRING, synonym.get(0));
+				synonymMatch.put(NAME_STRING, synonym.get(1));
 				synonymMatch.put(MATCH_TYPE_STRING, SYNONYM_STRING);
-				synonymMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
+				synonymMatch.put(MATCH_TEXT_STRING, synonym.get(2));
 				matches.add(synonymMatch);
-				log.debug(++j + ". Synonym matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
-						node.getLabel() + "\tSYNONYM: " + node.getStatements()[0].getTargetId());
+				log.debug(++j + ". Synonym matches for search term: " + text + "\tID: " + synonym.get(0) + "\tLABEL: " + 
+						synonym.get(1) + "\tSYNONYM: " + synonym.get(2));
 			}
 		}
-		if(definitionNodes != null && definitionNodes.size() > 0){
-			for(Node node : definitionNodes){
+		if(definitionMatches != null && definitionMatches.size() > 0){
+			for(List<String> definition : definitionMatches){
 				JSONObject definitionMatch = new JSONObject();
-				definitionMatch.put(ID_STRING, node.getId());
-				definitionMatch.put(NAME_STRING, node.getLabel());
+				definitionMatch.put(ID_STRING, definition.get(0));
+				definitionMatch.put(NAME_STRING, definition.get(1));
 				definitionMatch.put(MATCH_TYPE_STRING, DEF_STRING);
-				definitionMatch.put(MATCH_TEXT_STRING, node.getStatements()[0].getTargetId());
+				definitionMatch.put(MATCH_TEXT_STRING, definition.get(3));
 				matches.add(definitionMatch);
-				log.debug(++k + ". Definition matches for search term: " + text + "\tID: " + node.getId() + "\tLABEL: " + 
-					node.getLabel() + "\tDefinition: " + node.getStatements()[0].getTargetId());
+				log.debug(++k + ". Definition matches for search term: " + text + "\tID: " + definition.get(0) + "\tLABEL: " + 
+						definition.get(1) + "\tDefinition: " + definition.get(3));
 			}
 		}
 		jObj.put("search_term", text);
@@ -299,44 +244,56 @@ public class AutoCompleteResource extends Resource {
 		return jObj;
 	}
 
-    /**
-     * FIXME Method (what, why, how) and parameter documentation missing.
-     */
-	/**
-	 * This method has been created to sort the matches returned by the search string
-	 * Terms starting with the search string are placed higher than terms which only
-	 * contain the search string. And labels go first, synonyms next, definitions last
-	 * @param matches
-	 * @return
-	 */
+   /**
+    * @PURPOSE This method uses the {@link MATCHES_COMPARATOR} to sort
+    * the input set of JSON Objects in such a way that:
+    * + objects containing labels or synonyms, which start with the search term are
+    *   sorted first
+    * + objects containing labels or synonyms, which contain the search term are sorted 
+    *   second
+    * + objects containing definitions containing the search term are sorted 
+    *   third 
+    * @param matchObjs - the set of JSON objects to be sorted
+    * @param term - the search term, which is to be used in the sorting
+    * process
+    * @return - properly sorted list of JSON Objects
+    * @throws JSONException
+    */
 	private List<JSONObject> sortJsonObjects(Set<JSONObject> matchObjs, String term) throws JSONException{
 		List<JSONObject> sortedMatches = new ArrayList<JSONObject>();
-		List<JSONObject> startsWithMatches = new ArrayList<JSONObject>();
-		List<JSONObject> containedInMatches = new ArrayList<JSONObject>();
+		List<JSONObject> labelStartsWithMatches = new ArrayList<JSONObject>();
+		List<JSONObject> labelContainsMatches = new ArrayList<JSONObject>();
+		List<JSONObject> synonymStartsWithMatches = new ArrayList<JSONObject>();
+		List<JSONObject> synonymContainsMatches = new ArrayList<JSONObject>();
+
 		List<JSONObject> definitionMatches = new ArrayList<JSONObject>();
 		
 		for (JSONObject matchObj : matchObjs){
 		    if (matchObj.get(MATCH_TYPE_STRING).equals(DEF_STRING)) {
 		        definitionMatches.add(matchObj);
 		    } else if (matchObj.get(MATCH_TYPE_STRING).equals(SYNONYM_STRING)) {
-		        if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
-		            startsWithMatches.add(matchObj);
+		        if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term)){
+		            synonymStartsWithMatches.add(matchObj);
 		        } else {
-		            containedInMatches.add(matchObj);
+		            synonymContainsMatches.add(matchObj);
 		        }
 		    } else { //actual name matches
-		        if (matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
-		            startsWithMatches.add(matchObj);
+		        if (matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term)){
+		            labelStartsWithMatches.add(matchObj);
 		        } else {
-		            containedInMatches.add(matchObj);
+		            labelContainsMatches.add(matchObj);
 		        }
 		    }
 		}
-		Collections.sort(startsWithMatches, MATCHES_COMPARATOR);
-		Collections.sort(containedInMatches, MATCHES_COMPARATOR);
+		Collections.sort(labelStartsWithMatches, MATCHES_COMPARATOR);
+		Collections.sort(labelContainsMatches, MATCHES_COMPARATOR);
+		Collections.sort(synonymStartsWithMatches, MATCHES_COMPARATOR);
+		Collections.sort(synonymContainsMatches, MATCHES_COMPARATOR);
 		Collections.sort(definitionMatches, MATCHES_COMPARATOR);
-		sortedMatches.addAll(startsWithMatches);
-		sortedMatches.addAll(containedInMatches);
+		sortedMatches.addAll(labelStartsWithMatches);
+		sortedMatches.addAll(labelContainsMatches);
+		sortedMatches.addAll(synonymStartsWithMatches);
+		sortedMatches.addAll(synonymContainsMatches);
 		sortedMatches.addAll(definitionMatches);
 		if (this.limitOfMatches != null && this.limitOfMatches < sortedMatches.size()) {
 		    return sortedMatches.subList(0, this.limitOfMatches);
