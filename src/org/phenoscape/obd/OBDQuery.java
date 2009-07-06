@@ -1,7 +1,5 @@
 package org.phenoscape.obd;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,7 +10,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,6 +20,7 @@ import org.obd.model.Node;
 import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
+import org.obd.ws.resources.AutoCompleteResource;
 import org.obd.ws.util.Collections;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.AnnotationDTO;
@@ -43,8 +41,10 @@ public class OBDQuery {
 	public Logger log;
 	private Queries queries;
 	
-	private static final String PREFIX_TO_NS_FILE = 
-			"PrefixToDefaultNamespaceOfOntology.properties";
+	public static enum AutoCompletionMatchTypes{
+		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
+	};
+
 	/** A structure which maps ontology prefixes to their 
 	 * default namespaces */
 	private Map<String, Set<String>> prefixToDefaultNamespacesMap;
@@ -53,9 +53,6 @@ public class OBDQuery {
 	private Map<String, String> defaultNamespaceToNodeIdMap;
 	/** An enumeration of the possible match types for the 
 	 * {@link getAutocompletionsForSearchTerm} method	 */
-	public static enum AutoCompletionMatchTypes{
-		LABEL_MATCH, SYNONYM_MATCH, DEFINITION_MATCH
-	};
 	
 	/** @PURPOSE GETTER for the map from default namespaces of ontologies 
 	 * to their node ids in the database */
@@ -80,18 +77,37 @@ public class OBDQuery {
 		this.shard = shard;
 		this.conn = ((AbstractSQLShard)shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
-		this.queries = new Queries(this.shard);
-		this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
-		this.prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
-		this.constructDefaultNamespaceToNodeIdMap();
-		try{
-			this.constructPrefixToDefaultNamespacesMap();
-		}
-		catch(IOException e){
-			throw new SQLException(e.getMessage() + " This is an IO Exception");
-		}
 	}
 
+	/**
+	 * Overloaded constructor. This will optimize the use of the Queries object throughout 
+	 * the application
+	 * @param shard - the shard to use
+	 * @param queries - the instance of the Queries class
+	 * @throws SQLException
+	 */
+	public OBDQuery(Shard shard, Queries queries) throws SQLException{
+		this(shard);
+		this.queries = queries;
+	}
+	
+	/**
+	 * This constructor is meant for use by the auto completion and term info service. This is 
+	 * because this uses maps that are passed to it by the inovoking service. These services
+	 * obtain the maps from the application context level.  
+	 * @param shard
+	 * @param queries
+	 * @param nsToSourceIdMap 
+	 * @param prefixToNSMap
+	 * @throws SQLException
+	 */
+	public OBDQuery(Shard shard, Queries queries, Map<String, String> nsToSourceIdMap, 
+			Map<String, Set<String>> prefixToNSMap) throws SQLException{
+		this(shard, queries);
+		this.defaultNamespaceToNodeIdMap = nsToSourceIdMap;
+		this.prefixToDefaultNamespacesMap = prefixToNSMap;
+	}
+	
 	/**
 	 * @author cartik
 	 * @param reifLinkId - the search parameter for the SQL query. This is an INTEGER
@@ -506,7 +522,7 @@ public class OBDQuery {
 		List<String> ontologySourceIds = createSourceIdListFromOntologyOptions(searchOptions);
 		String query = 
 			constructAutocompleteQueryFromSearchTermAndSearchOptions(searchTerm, searchOptions);
-			return executeAutocompletionQueryAndProcessResults(query, ontologySourceIds);
+		return executeAutocompletionQueryAndProcessResults(query, ontologySourceIds);
 	}
 	
 	/**
@@ -523,15 +539,12 @@ public class OBDQuery {
 		
 		String synonymOption = searchOptions.get("synonymOption");
 		String definitionOption = searchOptions.get("definitionOption");
-		boolean zfinOption = false;
 		
 		String autocompleteLabelQuery = queries.getAutocompleteLabelQuery() + 
 														"'" + searchTerm + "'";
 		String autocompleteSynonymQuery = queries.getAutocompleteSynonymQuery() + 
 														"'" + searchTerm + "'";
 		String autocompleteDefinitonQuery = queries.getAutocompleteDefinitionQuery() + 
-														"'" + searchTerm + "'";
-		String autocompleteGeneQuery = queries.getAutocompleteGeneQuery() + 
 														"'" + searchTerm + "'";
 		completedQueryString = autocompleteLabelQuery;
 		
@@ -540,9 +553,6 @@ public class OBDQuery {
 		}
 		if(Boolean.parseBoolean(definitionOption)){
 			completedQueryString += " UNION " + autocompleteDefinitonQuery;
-		}
-		if(zfinOption){
-			completedQueryString += " UNION " + autocompleteGeneQuery;
 		}
 		return completedQueryString;
 	}
@@ -653,25 +663,6 @@ public class OBDQuery {
 		}
 		return false;
 	}
-	/**
-	 * @PURPOSE This method reads in the list of default namespaces from a file and
-	 * adds the corresponding node ids to a map
-	 * @throws IOException
-	 * @throws SQLException 
-	 */
-	private void constructDefaultNamespaceToNodeIdMap() throws SQLException{
-		String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
-		String nodeId, uid;
-		java.sql.Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery(sourceNodeQuery);
-		while(rs.next()){
-			nodeId = rs.getString(1);
-			uid = rs.getString(2);
-			if(uid.length() > 0){
-				this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
-			}
-		}
-	}
 	
 	@Deprecated
 	/**
@@ -710,32 +701,4 @@ public class OBDQuery {
 		}
 		return results;
 	}	
-	
-	/**
-	 * @PURPOSE This method constructs a mapping
-	 * from every prefix used in the autocompletion
-	 * service to the set of default namespaces of the
-	 * ontologies the prefix comes from
-	 * @PROCEDURE This method reads the allowed 
-	 * prefix to namespace mappings from a static text 
-	 * file. This is converted into a map
-	 * @throws IOException
-	 */
-	private void constructPrefixToDefaultNamespacesMap() 
-										throws IOException{
-		InputStream inStream = 
-			this.getClass().getResourceAsStream(PREFIX_TO_NS_FILE);
-		Properties props = new Properties();
-		props.load(inStream);
-		Set<String> namespaceSet;
-		for(Object key : props.keySet()){
-			String prefix = key.toString();
-			String commaDelimitedNamespaces = props.get(key).toString();
-			namespaceSet = new HashSet<String>();
-			for(String namespace : commaDelimitedNamespaces.split(",")){
-				namespaceSet.add(namespace);
-			}
-			prefixToDefaultNamespacesMap.put(prefix, namespaceSet);
-		}
-	}
 }

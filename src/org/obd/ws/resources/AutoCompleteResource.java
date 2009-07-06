@@ -15,6 +15,8 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.query.Shard;
+import org.obd.ws.application.OBDApplication;
+import org.obd.ws.util.Queries;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -45,6 +47,13 @@ public class AutoCompleteResource extends Resource {
 	private Shard obdsql;
 	/** The SQL connection to be used */
 	private Logger log;
+	/** The Queries object to be used */
+	private Queries queries;
+	/** The map from default namespaces of the ontologies to their corr. node ids in the database */
+	private Map<String, String> nsToSourceIdMap;
+	/** The map from prefixes of the terms to the default namespaces of the ontologies they come from */
+	private Map<String, Set<String>> prefixToNSMap;
+	
 
 	/** A parameter to limit the number of matches */
 	private Integer limitOfMatches = null;
@@ -67,6 +76,12 @@ public class AutoCompleteResource extends Resource {
 	private static final String SYNONYM_OPTION_STRING = "synonymOption";
 	private static final String DEFINITION_OPTION_STRING = "definitionOption";
 	
+	private static final String INPUT_TEXT_STRING = "text";
+	private static final String INPUT_SYN_STRING = "syn";
+	private static final String INPUT_DEF_STRING = "def";
+	private static final String INPUT_ONTOLOGY_STRING = "ontology";
+	private static final String INPUT_LIMIT_STRING = "limit";
+	
 	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
 		public int compare(JSONObject o1, JSONObject o2) {
 			try {
@@ -87,22 +102,27 @@ public class AutoCompleteResource extends Resource {
 	 */
 	public AutoCompleteResource(Context context, Request request, Response response) throws SQLException {
 		super(context, request, response);
-		this.obdsql = (Shard)this.getContext().getAttributes().get("shard");
+		this.obdsql = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+		this.prefixToNSMap = 
+			(Map<String, Set<String>>)this.getContext().getAttributes().get(OBDApplication.PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING);
+		this.nsToSourceIdMap = 
+			(Map<String, String>)this.getContext().getAttributes().get(OBDApplication.DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING);
 		this.log = Logger.getLogger(this.getClass());
 		this.searchOptions = new HashMap<String, String>();
 		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		
-        this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("text"));
+        this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_TEXT_STRING));
         text = text.trim().toLowerCase();
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("syn") != null)
-			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("syn"));
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("def") != null)
-			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("def"));
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("ontology") != null)
-			ontologyOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue("ontology"));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_SYN_STRING) != null)
+			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_SYN_STRING));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_DEF_STRING ) != null)
+			definitionOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_DEF_STRING ));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_ONTOLOGY_STRING) != null)
+			ontologyOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_ONTOLOGY_STRING));
 		
-		final String limitParameter = request.getResourceRef().getQueryAsForm().getFirstValue("limit");
+		final String limitParameter = request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_LIMIT_STRING);
 		if (limitParameter != null)
 			this.limitOfMatches = Integer.parseInt(limitParameter);
 		if(!inputFormParametersAreValid()){
@@ -182,8 +202,9 @@ public class AutoCompleteResource extends Resource {
             throws JSONException, SQLException {
 
 		JSONObject jObj = new JSONObject();
-		OBDQuery obdq = new OBDQuery(obdsql);
-		String term = ".*" + text + ".*";
+		OBDQuery obdq = new OBDQuery(obdsql, this.queries, this.nsToSourceIdMap, this.prefixToNSMap);
+		//For search terms shorter than 3, only "begins with" searches are done  
+		String term = text.length() > 3 ? "%" + text + "%" : text + "%";
 		Map<String, List<List<String>>> results = 
 			obdq.getAutocompletionsForSearchTerm(term, searchOptions);
 		
@@ -247,9 +268,9 @@ public class AutoCompleteResource extends Resource {
    /**
     * @PURPOSE This method uses the {@link MATCHES_COMPARATOR} to sort
     * the input set of JSON Objects in such a way that:
-    * + objects containing labels or synonyms, which start with the search term are
+    * + objects containing labels and synonyms, which start with the search term are
     *   sorted first
-    * + objects containing labels or synonyms, which contain the search term are sorted 
+    * + objects containing labels and synonyms, which contain the search term are sorted 
     *   second
     * + objects containing definitions containing the search term are sorted 
     *   third 
@@ -261,39 +282,32 @@ public class AutoCompleteResource extends Resource {
     */
 	private List<JSONObject> sortJsonObjects(Set<JSONObject> matchObjs, String term) throws JSONException{
 		List<JSONObject> sortedMatches = new ArrayList<JSONObject>();
-		List<JSONObject> labelStartsWithMatches = new ArrayList<JSONObject>();
-		List<JSONObject> labelContainsMatches = new ArrayList<JSONObject>();
-		List<JSONObject> synonymStartsWithMatches = new ArrayList<JSONObject>();
-		List<JSONObject> synonymContainsMatches = new ArrayList<JSONObject>();
-
+		List<JSONObject> startsWithMatches = new ArrayList<JSONObject>();
+		List<JSONObject> containedInMatches = new ArrayList<JSONObject>();
 		List<JSONObject> definitionMatches = new ArrayList<JSONObject>();
 		
 		for (JSONObject matchObj : matchObjs){
 		    if (matchObj.get(MATCH_TYPE_STRING).equals(DEF_STRING)) {
 		        definitionMatches.add(matchObj);
 		    } else if (matchObj.get(MATCH_TYPE_STRING).equals(SYNONYM_STRING)) {
-		        if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term)){
-		            synonymStartsWithMatches.add(matchObj);
+		        if(matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+		            startsWithMatches.add(matchObj);
 		        } else {
-		            synonymContainsMatches.add(matchObj);
+		            containedInMatches.add(matchObj);
 		        }
 		    } else { //actual name matches
-		        if (matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term)){
-		            labelStartsWithMatches.add(matchObj);
+		        if (matchObj.getString(MATCH_TEXT_STRING).toLowerCase().startsWith(term.toLowerCase())){
+		            startsWithMatches.add(matchObj);
 		        } else {
-		            labelContainsMatches.add(matchObj);
+		            containedInMatches.add(matchObj);
 		        }
 		    }
 		}
-		Collections.sort(labelStartsWithMatches, MATCHES_COMPARATOR);
-		Collections.sort(labelContainsMatches, MATCHES_COMPARATOR);
-		Collections.sort(synonymStartsWithMatches, MATCHES_COMPARATOR);
-		Collections.sort(synonymContainsMatches, MATCHES_COMPARATOR);
+		Collections.sort(startsWithMatches, MATCHES_COMPARATOR);
+		Collections.sort(containedInMatches, MATCHES_COMPARATOR);
 		Collections.sort(definitionMatches, MATCHES_COMPARATOR);
-		sortedMatches.addAll(labelStartsWithMatches);
-		sortedMatches.addAll(labelContainsMatches);
-		sortedMatches.addAll(synonymStartsWithMatches);
-		sortedMatches.addAll(synonymContainsMatches);
+		sortedMatches.addAll(startsWithMatches);
+		sortedMatches.addAll(containedInMatches);
 		sortedMatches.addAll(definitionMatches);
 		if (this.limitOfMatches != null && this.limitOfMatches < sortedMatches.size()) {
 		    return sortedMatches.subList(0, this.limitOfMatches);
@@ -301,5 +315,4 @@ public class AutoCompleteResource extends Resource {
 		    return sortedMatches;
 		}
 	}
-
 }

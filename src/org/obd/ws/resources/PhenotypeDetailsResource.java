@@ -15,6 +15,7 @@ import org.bbop.dataadapter.DataAdapterException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.query.Shard;
+import org.obd.ws.application.OBDApplication;
 import org.obd.ws.exceptions.PhenoscapeTreeAssemblyException;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
@@ -57,6 +58,13 @@ public class PhenotypeDetailsResource extends Resource {
 	private TTOTaxonomy ttoTaxonomy;
 	private TaxonomyBuilder taxonomyBuilder;
     
+	private static final String SUBJECT_STRING = "subject";
+	private static final String ENTITY_STRING = "entity";
+	private static final String QUALITY_STRING = "quality";
+	private static final String PUBLICATION_STRING = "publication";
+	private static final String TYPE_STRING = "type";
+	private static final String GROUP_STRING = "group";
+	
 	/**
 	 * This constructor reads in objects from the application context, initializes
 	 * instance variables and reads in the form data into the instance variables
@@ -69,42 +77,40 @@ public class PhenotypeDetailsResource extends Resource {
 	public PhenotypeDetailsResource(Context context, Request request, Response response) throws IOException, DataAdapterException {
 		super(context, request, response);
 
-		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
-		this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get("ttoTaxonomy");
+		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
+		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject") != null){
-			this.subject_id = Reference.decode((String) (request.getResourceRef().getQueryAsForm().getFirstValue("subject")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(SUBJECT_STRING) != null){
+			this.subject_id = Reference.decode((String) (request.getResourceRef().getQueryAsForm().getFirstValue(SUBJECT_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("entity") != null){
-			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("entity")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(ENTITY_STRING) != null){
+			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(ENTITY_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("quality") != null){
-			this.character_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("quality")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(QUALITY_STRING) != null){
+			this.character_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(QUALITY_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
-			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(PUBLICATION_STRING) != null){
+			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(PUBLICATION_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("type") != null){
-			this.type = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("type")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(TYPE_STRING) != null){
+			this.type = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(TYPE_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("group") != null){
-			this.group = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("group")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(GROUP_STRING) != null){
+			this.group = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(GROUP_STRING)));
 		}
 
-		queries = new Queries(obdsql);
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 		queryResultsFilterSpecs = new HashMap<String, String>();
 		 try{
-	        obdq = new OBDQuery(obdsql);
+	        obdq = new OBDQuery(obdsql, queries);
 		 }
 	     catch(SQLException e){
 	      	this.jObjs = null;
 	      	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-	      		"[SQL EXCEPTION] Something broke server side. Ontology prefix to node id map " +
-	      		"of OBDQuery object could not " +
-				"be constructed.");
+	      		"[SQL EXCEPTION] Something broke server side. Consult server logs");
 	     }
 	}
 	

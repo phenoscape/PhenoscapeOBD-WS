@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.query.Shard;
+import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.HomologDTO;
 import org.phenoscape.obd.OBDQuery;
@@ -35,23 +36,19 @@ public class HomologyResource extends Resource {
 
     public HomologyResource(Context context, Request request, Response response) {
         super(context, request, response);
-        this.shard = (Shard)this.getContext().getAttributes().get("shard");
+        this.shard = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
         this.termID = Reference.decode((String)(request.getAttributes().get("termID")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
-        queries = new Queries(shard);
         try{
-        	obdq = new OBDQuery(shard);
+        	obdq = new OBDQuery(shard, queries);
         }
         catch(SQLException e){
         	this.jObjs = null;
         	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-				"[SQL EXCEPTION] Something broke server side. Ontology prefix to " +
-				"node id map of OBDQuery object could not " +
-				"be constructed.");
-        	
+				"[SQL EXCEPTION] Something broke server side. Consult server logs");
         }
-
     }
 
     public Representation represent(Variant variant) throws ResourceException {

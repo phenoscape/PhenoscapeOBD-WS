@@ -1,13 +1,22 @@
 package org.obd.ws.application;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.ParseException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
+import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
 import org.restlet.Application;
 import org.restlet.Context;
@@ -16,7 +25,40 @@ import org.restlet.Router;
 
 public class OBDApplication extends Application {
 
+	private Queries queries;
+	private OBDSQLShard obdsql;
+	
+	/** A structure which maps ontology prefixes to their 
+	 * default namespaces */
+	private Map<String, Set<String>> prefixToDefaultNamespacesMap;
+	/** A structure to map default namespaces of ontologies to their
+	 * node ids in the database */
+	private Map<String, String> defaultNamespaceToNodeIdMap;
+	/** An enumeration of the possible match types for the 
+	 * {@link getAutocompletionsForSearchTerm} method	 */
 
+	/** @PURPOSE GETTER for the map from default namespaces of ontologies 
+	 * to their node ids in the database */
+	public Map<String, String> getDefaultNamespaceToNodeIdMap() {
+		return defaultNamespaceToNodeIdMap;
+	}
+	/** @PURPOSE  GETTER for the map from ontology prefixes to default namespaces
+	 * @return
+	 */
+	public Map<String, Set<String>> getPrefixToDefaultNamespacesMap() {
+		return prefixToDefaultNamespacesMap;
+	}
+
+	/* Some static Strings */
+	public static final String PREFIX_TO_NS_FILE = 
+		"PrefixToDefaultNamespaceOfOntology.properties";
+	public static final String PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING = 
+		"prefixToDefaultNamespacesMap";
+	public static final String DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING = 
+		"defaultNamespacesToSourceIdMap";
+	public static final String TTO_TAXONOMY_STRING = "ttoTaxonomy";
+	public static final String QUERIES_STRING = "queries";
+	public static final String SHARD_STRING = "shard";
     public OBDApplication(Context context){
         super(context);
     }
@@ -25,16 +67,24 @@ public class OBDApplication extends Application {
     				PhenoscapeDbConnectionException, DataAdapterException{
     	
     	DatabaseToggler dbToggler = new DatabaseToggler();
+    	this.prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
+    	this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
     	
-        OBDSQLShard obdsql = dbToggler.chooseDatabase();
-        if(obdsql != null)
-        	this.getContext().getAttributes().put("shard", obdsql);
-        else
+        obdsql = dbToggler.chooseDatabase();
+        if(obdsql != null){
+        	this.getContext().getAttributes().put(SHARD_STRING, obdsql);
+        	queries = new Queries(obdsql);
+        	this.getContext().getAttributes().put(QUERIES_STRING, queries);
+        	this.constructPrefixToDefaultNamespacesMap();
+        	this.constructDefaultNamespaceToNodeIdMap();
+        	this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
+        	this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
+        }else
         	throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
         			"This is because neither database is ready to be queried. ");
         
         TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
-        this.getContext().getAttributes().put("ttoTaxonomy", ttoTaxonomy);
+        this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
 
     public Restlet createRoot() {
@@ -69,4 +119,52 @@ public class OBDApplication extends Application {
         return Logger.getLogger(this.getClass());
     }
 
+    /**
+	 * @PURPOSE This method reads in the list of default namespaces from a file and
+	 * adds the corresponding node ids to a map
+	 * @throws IOException
+	 * @throws SQLException 
+	 */
+	private void constructDefaultNamespaceToNodeIdMap() throws SQLException{
+		String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
+		String nodeId, uid;
+		Connection conn = obdsql.getConnection();
+		java.sql.Statement stmt = conn.createStatement();
+		ResultSet rs = stmt.executeQuery(sourceNodeQuery);
+		while(rs.next()){
+			nodeId = rs.getString(1);
+			uid = rs.getString(2);
+			if(uid.length() > 0){
+				this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
+			}
+		}
+	}
+	
+	/**
+	 * @PURPOSE This method constructs a mapping
+	 * from every prefix used in the autocompletion
+	 * service to the set of default namespaces of the
+	 * ontologies the prefix comes from
+	 * @PROCEDURE This method reads the allowed 
+	 * prefix to namespace mappings from a static text 
+	 * file. This is converted into a map
+	 * @throws IOException
+	 */
+	private void constructPrefixToDefaultNamespacesMap() 
+										throws IOException{
+		InputStream inStream = 
+			this.getClass().getResourceAsStream(PREFIX_TO_NS_FILE);
+		Properties props = new Properties();
+		props.load(inStream);
+		Set<String> namespaceSet;
+		for(Object key : props.keySet()){
+			String prefix = key.toString();
+			String commaDelimitedNamespaces = props.get(key).toString();
+			namespaceSet = new HashSet<String>();
+			for(String namespace : commaDelimitedNamespaces.split(",")){
+				namespaceSet.add(namespace);
+			}
+			prefixToDefaultNamespacesMap.put(prefix, namespaceSet);
+		}
+	}
 }

@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.query.Shard;
+import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.PhenotypeDTO;
 import org.phenoscape.obd.OBDQuery;
@@ -45,41 +46,50 @@ public class PhenotypeSummaryResource extends Resource {
 	private OBDQuery obdq;
 	private Queries queries;
 	
-    /**
-     * FIXME Constructor and parameter documentation missing.
-     */
-public PhenotypeSummaryResource(Context context, Request request, Response response) {
+	private static final String SUBJECT_STRING = "subject";
+	private static final String ENTITY_STRING = "entity";
+	private static final String QUALITY_STRING = "quality";
+	private static final String PUBLICATION_STRING = "publication";
+	private static final String EXAMPLES_STRING = "examples";
+	
+	/**
+	 * This is the contructor for this class. It reads in context paremeters and initializes local variables
+	 * It also reads in the 
+	 * @param context - The context of the application
+	 * @param request - The request coming in to the REST service endpoint interface
+	 * @param response - The response going out from the REST service endpoint interface
+	 */
+	public PhenotypeSummaryResource(Context context, Request request, Response response) {
 		super(context, request, response);
 
-		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("subject") != null){
-			this.subject_id = Reference.decode((String) (request.getResourceRef().getQueryAsForm().getFirstValue("subject")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(SUBJECT_STRING) != null){
+			this.subject_id = Reference.decode((String) (request.getResourceRef().getQueryAsForm().getFirstValue(SUBJECT_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("entity") != null){
-			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("entity")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(ENTITY_STRING) != null){
+			this.entity_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(ENTITY_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("quality") != null){
-			this.quality_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("quality")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(QUALITY_STRING) != null){
+			this.quality_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(QUALITY_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("publication") != null){
-			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("publication")));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(PUBLICATION_STRING) != null){
+			this.publication_id = Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(PUBLICATION_STRING)));
 		}
-		if(request.getResourceRef().getQueryAsForm().getFirstValue("examples") != null){
-			this.examples_count = Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue("examples"))));
+		if(request.getResourceRef().getQueryAsForm().getFirstValue(EXAMPLES_STRING) != null){
+			this.examples_count = 
+				Integer.parseInt(Reference.decode((String)(request.getResourceRef().getQueryAsForm().getFirstValue(EXAMPLES_STRING))));
 		}
 		
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
-		queries = new Queries(obdsql);
-		 try{
-	       	obdq = new OBDQuery(obdsql);
+		try{
+	       	obdq = new OBDQuery(obdsql, queries);
 		 }catch(SQLException e){
 	      	this.jObjs = null;
 	       	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-				"[SQL EXCEPTION] Something broke server side. " +
-				"Ontology prefix to node id map of OBDQuery object could not " +
-				"be constructed.");
+				"[SQL EXCEPTION] Something broke server side. Consult server logs");
 		 }
 	}
 

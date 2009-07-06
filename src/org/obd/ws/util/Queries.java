@@ -354,7 +354,7 @@ public class Queries {
 		"n.source_id AS source_id " +
 		"FROM node AS n " +
 		"WHERE " +
-		"lower(n.label) ~* ";
+		"lower(n.label) LIKE ";
 	/** @GROUP Query part for auto completion  
 	 * The synonym query string */
 	private String autocompleteSynonymQuery = 
@@ -367,7 +367,7 @@ public class Queries {
 		"FROM node AS n, alias AS a " +
 		"WHERE " +
 		"a.node_id = n.node_id AND " +
-		"lower(a.label) ~* ";
+		"lower(a.label) LIKE ";
 	/** @GROUP Query part for auto completion  
 	 * The definition query string */
 	private String autocompleteDefinitionQuery = 
@@ -380,19 +380,7 @@ public class Queries {
 		"FROM node AS n, description AS d " +
 		"WHERE " +
 		"d.node_id = n.node_id AND " +
-		"lower(d.label) ~* ";
-	/** @GROUP Query part for auto completion  
-	 * The gene query string */
-	private String autocompleteGeneQuery = 
-		"SELECT " +
-		"n2.uid AS uid, " +
-		"n2.label AS label, " +
-		"NULL AS synonym, " +
-		"NULL AS definition " +
-		"FROM node AS n2 " +
-		"WHERE " +
-		"n2.uid ~* '.*ZDB-GENE.*' AND " +
-		"lower(n2.label) ~* ";
+		"lower(d.label) LIKE ";
 	
 	/**This query is used for retrieving the node ids 
 	 * in the database for the ontologies sp. ontology
@@ -479,10 +467,6 @@ public class Queries {
 	
 	public String getAutocompleteDefinitionQuery(){
 		return autocompleteDefinitionQuery;
-	}
-
-	public String getAutocompleteGeneQuery(){
-		return autocompleteGeneQuery;
 	}
 
 	public String getQueryForNodeIdsForOntologies() {
