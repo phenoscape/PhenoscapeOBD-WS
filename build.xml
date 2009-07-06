@@ -147,8 +147,8 @@
                  uid=db_username
                  pwd=db_password
             -->
-            <classes dir="${src}" 
-                     includes="org/obd/ws/application/*.properties"/>
+            <classes dir="${src}" includes="org/obd/ws/application/*.properties"/>
+			<classes dir="${src}" includes="org/phenoscape/obd/*.properties"/>
             <lib dir="${weblib}" />
         </war>
     </target>
