@@ -372,9 +372,10 @@ public class PhenotypeDetailsResource extends Resource {
 		Set<String> reifIdSet = new HashSet<String>();
 		if(oneOrMoreReifIds != null && oneOrMoreReifIds.length() > 0){
 			if(oneOrMoreReifIds.contains(",")){
-				for(String reifId : oneOrMoreReifIds.split(","))
+				for(String reifId : oneOrMoreReifIds.split(",")){
 					if(reifId.length() > 0)
 						reifIdSet.add(reifId);
+				}
 			}
 			else
 				reifIdSet.add(oneOrMoreReifIds);
