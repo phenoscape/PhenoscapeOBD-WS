@@ -226,7 +226,7 @@ public class TTOTaxonomy {
 	}
 	
 	/**
-	 * THis method checks if the input taxon is extinct. If it is, this is 
+	 * This method checks if the input taxon is extinct. If it is, this is 
 	 * added to a set of extinct taxa
 	 * @param oboClass - the input taxon
 	 */
