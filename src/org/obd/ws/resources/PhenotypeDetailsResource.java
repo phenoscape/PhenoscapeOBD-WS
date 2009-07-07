@@ -424,7 +424,11 @@ public class PhenotypeDetailsResource extends Resource {
 		else if(tree.getLeaves().contains(groupNodeFromInput)){
 			taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
 		}
-		else if(tree.getNodeToChildrenMap().get(tree.getMrca()) == null){
+		else if(tree.getNodeToChildrenMap().get(tree.getMrca()) == null){ //mrca does not have children
+			NodeDTO mrcaNode = tree.getMrca();
+			taxonToAssertionsMap.put(mrcaNode, tree.getNodeToListOfEQCRListsMap().get(mrcaNode));
+		}
+		else if(tree.getMrca() != null){ //MRCA is lower than the search nnode
 			NodeDTO mrcaNode = tree.getMrca();
 			taxonToAssertionsMap.put(mrcaNode, tree.getNodeToListOfEQCRListsMap().get(mrcaNode));
 		}
