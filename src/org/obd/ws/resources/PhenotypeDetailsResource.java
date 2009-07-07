@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -292,15 +293,33 @@ public class PhenotypeDetailsResource extends Resource {
 	private JSONObject assembleJSONObjectFromDataStructure
 				(Map<NodeDTO, List<List<String>>> annots) 
 					throws ResourceException{
-		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj; 
+		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, rankObj; 
 		List<JSONObject> phenotypeObjs;
 		List<JSONObject> subjectObjs = new ArrayList<JSONObject>();
+		Set<String> reifIdSet;
 		JSONObject result = new JSONObject();
 		try{
 			for(NodeDTO taxonDTO : annots.keySet()){
 				subjectObj = new JSONObject();
 				subjectObj.put("id", taxonDTO.getId());
 				subjectObj.put("name", taxonDTO.getName());
+				if(taxonDTO.getId().startsWith("TTO")){
+					if(ttoTaxonomy.getSetOfExtinctTaxa().contains(taxonDTO))
+						subjectObj.put("extinct", true);
+					else
+						subjectObj.put("extinct", false);
+					rankObj = new JSONObject();
+					NodeDTO rankDTO = ttoTaxonomy.getTaxonToRankMap().get(taxonDTO);
+					if(rankDTO != null){
+						rankObj.put("id", rankDTO.getId());
+						rankObj.put("name", rankDTO.getName());
+					}
+					else{
+						rankObj.put("id", "");
+						rankObj.put("name", "");
+					}
+					subjectObj.put("rank", rankObj);
+				}
 				phenotypeObjs = new ArrayList<JSONObject>();
 				if(annots.get(taxonDTO).get(0).get(5).length() > 0){
 					subjectObj.put("leaf", true);
@@ -323,7 +342,11 @@ public class PhenotypeDetailsResource extends Resource {
 					phenotypeObj.put("entity", entityObj);
 					phenotypeObj.put("quality", qualityObj);
 					phenotypeObj.put("count", count);
-					phenotypeObj.put("id", phenotype.get(5));
+					reifIdSet = processReifIdsForTaxon(phenotype.get(5));
+					if(reifIdSet.size() > 0)
+						phenotypeObj.put("id", reifIdSet);
+					else
+						phenotypeObj.put("id", "");
 					phenotypeObjs.add(phenotypeObj);
 				}
 				subjectObj.put("phenotypes", phenotypeObjs);
@@ -337,6 +360,26 @@ public class PhenotypeDetailsResource extends Resource {
                     throw new ResourceException(jsone);
 		}
 		return result;
+	}
+
+	/**
+	 * A helper method to handle reif ids coming through for the taxa. It 
+	 * parses a comma delimited list of reif ids and puts them into a set
+	 * @param oneOrMoreReifIds
+	 * @return
+	 */
+	private Set<String> processReifIdsForTaxon(String oneOrMoreReifIds){
+		Set<String> reifIdSet = new HashSet<String>();
+		if(oneOrMoreReifIds != null && oneOrMoreReifIds.length() > 0){
+			if(oneOrMoreReifIds.contains(",")){
+				for(String reifId : oneOrMoreReifIds.split(","))
+					if(reifId.length() > 0)
+						reifIdSet.add(reifId);
+			}
+			else
+				reifIdSet.add(oneOrMoreReifIds);
+		}
+		return reifIdSet;
 	}
 	/**
 	 * A helper method which crea6tes a query based upon the 

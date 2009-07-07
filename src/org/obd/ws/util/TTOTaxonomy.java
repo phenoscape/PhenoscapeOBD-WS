@@ -21,6 +21,7 @@ import org.obo.dataadapter.OBOFileAdapter;
 import org.obo.datamodel.Link;
 import org.obo.datamodel.OBOClass;
 import org.obo.datamodel.OBOSession;
+import org.obo.datamodel.PropertyValue;
 import org.obo.util.TermUtil;
 
 public class TTOTaxonomy {
@@ -39,11 +40,17 @@ public class TTOTaxonomy {
 	private Set<NodeDTO> nodes;
 	/** This structure keeps track of the path from each node to the root of the taxonomy*/
 	private Map<NodeDTO, List<NodeDTO>> nodeToPathMap;
+	/** This structure maps every taxon in the TTO to its proper rank */
+	private Map<NodeDTO, NodeDTO> taxonToRankMap;
+	/** This structure keeps track of extinct taxa */
+	private Set<NodeDTO> setOfExtinctTaxa;
 	
 	private static final String TTO_URL_STRING = 
 			"http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo";
 	private static final String TTO_FILE_NAME = "/tmp/teleost_taxonomy.obo";
 
+	private static final String HAS_RANK_RELATION_STRING = "has_rank";
+	private static final String IS_EXTINCT_RELATION_STRING = "is_extinct";
 	/* GETTERS and SETTERs */
 	public NodeDTO getRoot() {
 		return root;
@@ -88,6 +95,14 @@ public class TTOTaxonomy {
 	public Map<String, NodeDTO> getIdToNodeMap() {
 		return idToNodeMap;
 	}
+	
+	public Map<NodeDTO, NodeDTO> getTaxonToRankMap() {
+		return taxonToRankMap;
+	}
+
+	public Set<NodeDTO> getSetOfExtinctTaxa() {
+		return setOfExtinctTaxa;
+	}
 
 	/**
 	 * Constructor initializes instance variables and calls the methods to
@@ -102,6 +117,8 @@ public class TTOTaxonomy {
 		nodeToParentMap = new HashMap<NodeDTO, NodeDTO>();
 		idToNodeMap = new HashMap<String, NodeDTO>();
 		nodeToPathMap = new HashMap<NodeDTO, List<NodeDTO>>();
+		taxonToRankMap = new HashMap<NodeDTO, NodeDTO>();
+		setOfExtinctTaxa = new HashSet<NodeDTO>();
 		
 		readOntologyIntoLocalFile();
 		createSessionFromOntology();
@@ -114,7 +131,7 @@ public class TTOTaxonomy {
 	 * and transcribes it to a local file
 	 * @throws IOException
 	 */
-	public void readOntologyIntoLocalFile() throws IOException{
+	private void readOntologyIntoLocalFile() throws IOException{
 		URL ttoURL = new URL(TTO_URL_STRING);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(ttoURL.openStream()));
 		File ttoFile = new File(TTO_FILE_NAME);
@@ -136,7 +153,7 @@ public class TTOTaxonomy {
 	 * creates an OBOSession instance to store this ontology
 	 * @throws DataAdapterException
 	 */
-	public void createSessionFromOntology() throws DataAdapterException{
+	private void createSessionFromOntology() throws DataAdapterException{
 		List<String> paths = new ArrayList<String>();
 		paths.add(TTO_FILE_NAME);
 		
@@ -155,7 +172,7 @@ public class TTOTaxonomy {
 	 * This method takes in every oboClass from the session and arranges them 
 	 * into a taxonomy
 	 */
-	public void createTaxonomyFromSession(){
+	private void createTaxonomyFromSession(){
 		for(OBOClass oboClass : TermUtil.getTerms(oboSession)){
 	    	if(oboClass.getNamespace() != null && !oboClass.isObsolete() &&
 	    			oboClass.getID().matches("TTO:[0-9]+")){
@@ -163,6 +180,9 @@ public class TTOTaxonomy {
 	    		NodeDTO nodeDTO = createNodeDTOFromOBOClass(oboClass);
 	    		nodes.add(nodeDTO);
 	    		idToNodeMap.put(oboClass.getID(), nodeDTO);
+	    		
+	    		extractRankForTaxon(oboClass);
+	    		checkIfTaxonIsExtinct(oboClass);
 	    		
 	    		if(oboClass.getChildren().size() == 0){//a leaf node
 	    			leaves.add(nodeDTO);
@@ -181,11 +201,51 @@ public class TTOTaxonomy {
 	}
 	
 	/**
+	 * This method extracts the rank information for a taxon and adds it to a 
+	 * map 
+	 * @param oboClass - the input taxon
+	 */
+	private void extractRankForTaxon(OBOClass oboClass){
+		for(PropertyValue propertyValue : oboClass.getPropertyValues()){
+			if(propertyValue.getValue().contains(HAS_RANK_RELATION_STRING)){
+				String propValue = propertyValue.getValue();
+				 if(propValue != null && propValue != ""){
+					 String[] propValueComponents = propValue.split("\\s");
+					 if(propValueComponents.length == 2){
+						 NodeDTO taxon = new NodeDTO(oboClass.getID());
+						 taxon.setName(oboClass.getName());
+						 NodeDTO rank  = new NodeDTO(propValueComponents[1]);
+						 String rankLabel = 
+							 propValueComponents[1].substring(propValueComponents[1].indexOf(":") + 1);
+						 rank.setName(rankLabel);
+						 taxonToRankMap.put(taxon, rank);					 
+					 }
+				 }
+			}
+		}
+	}
+	
+	/**
+	 * THis method checks if the input taxon is extinct. If it is, this is 
+	 * added to a set of extinct taxa
+	 * @param oboClass - the input taxon
+	 */
+	private void checkIfTaxonIsExtinct(OBOClass oboClass){
+		for(PropertyValue propertyValue : oboClass.getPropertyValues()){
+			if(propertyValue.getValue().contains(IS_EXTINCT_RELATION_STRING)){
+				NodeDTO extinctTaxon = new NodeDTO(oboClass.getID());
+				extinctTaxon.setName(oboClass.getName());
+				setOfExtinctTaxa.add(extinctTaxon);
+			}
+		}
+	}
+	
+	/**
 	 * This method traces paths to the root of the taxonomy
 	 * for every node in the taxonomy and updates 
 	 * the data structure, which holds this information
 	 */
-	public void tracePathsToRootForAllNodes(){
+	private void tracePathsToRootForAllNodes(){
 		for(NodeDTO node : nodes){
 			List<NodeDTO> pathToRoot = 
 				tracePathToRootForNode(node, new ArrayList<NodeDTO>());
@@ -200,7 +260,7 @@ public class TTOTaxonomy {
 	 * @param path
 	 * @return
 	 */
-	public List<NodeDTO> tracePathToRootForNode(NodeDTO node, List<NodeDTO> path){
+	private List<NodeDTO> tracePathToRootForNode(NodeDTO node, List<NodeDTO> path){
 		path.add(node);
 		if(nodeToParentMap.get(node) == null)
 			return path;
