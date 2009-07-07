@@ -21,6 +21,8 @@ import org.obd.model.Statement;
 import org.obd.query.LinkQueryTerm;
 import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
+import org.obd.ws.application.OBDApplication;
+import org.obd.ws.util.Queries;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -40,87 +42,23 @@ public class TermResource extends Resource {
 	private Shard obdsql;
 	private Logger log;
 	
-	private Map<String, Set<String>> nameToOntologyMap;
+	private Queries queries;
 	
     /**
      * FIXME Constructor and parameter documentation missing.
      */
 	public TermResource(Context context, Request request, Response response) {
 		super(context, request, response);
-		this.obdsql = (Shard) this.getContext().getAttributes().get("shard");
+		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-		// this.getVariants().add(new Variant(MediaType.TEXT_HTML));
-		
-                /* FIXME This seems to be a poor way of doing
-                 * this. Shouldn't this at a minimum be read in from a
-                 * file, and/or use constants are encoded in a
-                 * separate class. And can this not dynamically be
-                 * obtained from the database?
-                 */
-		Set<String> ontologyList;
-		nameToOntologyMap = new HashMap<String, Set<String>>();
-		ontologyList = new HashSet<String>();
-		ontologyList.add("oboInOwl");
-		ontologyList.add("oboInOwl:Subset");
-		nameToOntologyMap.put("oboInOwl", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("relationship");
-		nameToOntologyMap.put("OBO_REL", ontologyList);
-
-		ontologyList = new HashSet<String>();
-		ontologyList.add("quality");
-		ontologyList.add("pato.ontology");
-		nameToOntologyMap.put("PATO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("zebrafish_anatomy");
-		nameToOntologyMap.put("ZFA", ontologyList);
-		
-		ontologyList = new HashSet<String>();		
-		ontologyList.add("teleost_anatomy");
-		nameToOntologyMap.put("TAO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("teleost-taxonomy");
-		nameToOntologyMap.put("TTO",ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("museum");
-		nameToOntologyMap.put("COLLECTION", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("spatial"); 
-		nameToOntologyMap.put("BSPO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("sequence");
-		nameToOntologyMap.put("SO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("unit.ontology");
-		nameToOntologyMap.put("UO", ontologyList);
-		
-		ontologyList = new HashSet<String>();
-		ontologyList.add("phenoscape_vocab");
-		nameToOntologyMap.put("PHENOSCAPE", ontologyList);
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
 		
 		this.log = Logger.getLogger(this.getClass());
 	}
 
-    /**
-     * FIXME Constructor and parameter documentation missing.
-     */
-	// this constructor is to be used only for testing purposes
-	TermResource(Shard obdsql, String termId) {
-		this.termId = termId;
-		this.obdsql = obdsql;
-		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-	}
-
-        @Override
+    @Override
 	public Representation represent(Variant variant) 
             throws ResourceException {
 

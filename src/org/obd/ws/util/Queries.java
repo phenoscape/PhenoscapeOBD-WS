@@ -395,6 +395,26 @@ public class Queries {
 		"WHERE " +
 		"node.source_id IS NOT NULL";
 	
+	/**This query s used for getting targets of relations from the 
+	 * 
+	 */
+	private String targetsOfTermQuery = 
+		"SELECT " +
+		"subject_node.uid AS subject_uid, " +
+		"subject_node.label AS subject_label, " +
+		"predicate_node.uid AS predicate_uid, " +
+		"predicate_node.label AS predicate_label, " +
+		"object_node.uid AS object_uid, " +
+		"object_node.label AS object_label " +
+		"FROM link " +
+		"JOIN node AS predicate_node ON (predicate_node.node_id = link.predicate_id) " +
+		"JOIN node AS object_node ON (object_node.node_id = link.object_id) " +
+		"JOIN node AS subject_node ON (subject_node.node_id = link.node_id AND " +
+		"	subject_node.node_id = (SELECT node_id FROM node WHERE uid = ?)) " +
+		"WHERE " +
+		"link.is_inferred = 'f' AND " +
+		"object_node.label IS NOT NULL";
+	
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
 	 * @param shard
