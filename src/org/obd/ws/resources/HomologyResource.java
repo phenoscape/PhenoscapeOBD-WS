@@ -10,7 +10,9 @@ import org.json.JSONObject;
 import org.obd.query.Shard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.TTOTaxonomy;
 import org.obd.ws.util.dto.HomologDTO;
+import org.obd.ws.util.dto.NodeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -33,11 +35,13 @@ public class HomologyResource extends Resource {
     
     private OBDQuery obdq;
     private Queries queries;
-
+    private TTOTaxonomy ttoTaxonomy;
+    
     public HomologyResource(Context context, Request request, Response response) {
         super(context, request, response);
         this.shard = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
         this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
         this.termID = Reference.decode((String)(request.getAttributes().get("termID")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
@@ -55,7 +59,7 @@ public class HomologyResource extends Resource {
 
     	List<List<String[]>> results;
     	
-    	JSONObject lhEntityObj, lhTaxonObj, rhEntityObj, rhTaxonObj, sourceObj;
+    	JSONObject lhEntityObj, lhTaxonObj, rhEntityObj, rhTaxonObj, sourceObj, lhRankObj, rhRankObj;
     	JSONObject homologyObj, subjectObj, targetObj, evidenceObj;
     	List<JSONObject> homologyObjs = new ArrayList<JSONObject>();
     	
@@ -81,8 +85,10 @@ public class HomologyResource extends Resource {
         	for(List<String[]> row : results){
         		lhEntityObj = new JSONObject();
         		lhTaxonObj = new JSONObject();
+        		lhRankObj = new JSONObject();
         		rhEntityObj = new JSONObject();
         		rhTaxonObj = new JSONObject();
+        		rhRankObj = new JSONObject();
         		sourceObj = new JSONObject();
         		
         		homologyObj = new JSONObject();
@@ -95,6 +101,20 @@ public class HomologyResource extends Resource {
         		lhTaxonObj.put("id", row.get(1)[0]);
         		lhTaxonObj.put("name", row.get(1)[1]);
         		
+        		NodeDTO lhTaxon = new NodeDTO(row.get(1)[0]);
+        		lhTaxon.setName(row.get(1)[1]);
+        		
+        		NodeDTO lhRank = ttoTaxonomy.getTaxonToRankMap().get(lhTaxon);
+        		if(lhRank != null){
+        			lhRankObj.put("id", lhRank.getId());
+        			lhRankObj.put("name", lhRank.getName());
+        		}
+        		else{
+        			lhRankObj.put("id", "");
+        			lhRankObj.put("name", "");
+        		}
+        		lhTaxonObj.put("rank", lhRankObj);
+        		
         		subjectObj.put("entity", lhEntityObj);
         		subjectObj.put("taxon", lhTaxonObj);
         		
@@ -102,6 +122,20 @@ public class HomologyResource extends Resource {
         		rhEntityObj.put("name", row.get(2)[1]);
         		rhTaxonObj.put("id", row.get(3)[0]);
         		rhTaxonObj.put("name", row.get(3)[1]);
+        		
+        		NodeDTO rhTaxon = new NodeDTO(row.get(3)[0]);
+        		rhTaxon.setName(row.get(3)[1]);
+        		
+        		NodeDTO rhRank = ttoTaxonomy.getTaxonToRankMap().get(rhTaxon);
+        		if(rhRank != null){
+        			rhRankObj.put("id", rhRank.getId());
+        			rhRankObj.put("name", rhRank.getName());
+        		}
+        		else{
+        			rhRankObj.put("id", "");
+        			rhRankObj.put("name", "");
+        		}
+        		rhTaxonObj.put("rank", rhRankObj);
         		
         		targetObj.put("entity", rhEntityObj);
         		targetObj.put("taxon", rhTaxonObj);

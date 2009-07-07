@@ -10,7 +10,9 @@ import org.json.JSONObject;
 import org.obd.query.Shard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.TTOTaxonomy;
 import org.obd.ws.util.dto.AnnotationDTO;
+import org.obd.ws.util.dto.NodeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -42,6 +44,8 @@ public class AnnotationResource extends Resource {
     private OBDQuery obdq;
     private Queries queries;
     
+    private TTOTaxonomy ttoTaxonomy;
+    
     /**
      * Constructor extends the default constructor
      * Initializes the Shard, Queries, OBDQuery and the JSON Object which
@@ -54,6 +58,7 @@ public class AnnotationResource extends Resource {
         super(context, request, response);
         this.shard = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
         this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
         this.annotationId = Reference.decode((String)(request.getAttributes().get("annotation_id")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
@@ -89,7 +94,7 @@ public class AnnotationResource extends Resource {
     	
     	List<JSONObject> sourceObjs = new ArrayList<JSONObject>();
     	JSONObject phenotypeObj, sourceObj;
-    	JSONObject entityObj, taxonObj, qualityObj;
+    	JSONObject entityObj, taxonObj, qualityObj, rankObj;
     	
     	try{
     		annots = getMetadata(annotationId);
@@ -112,6 +117,23 @@ public class AnnotationResource extends Resource {
     			
     				taxonObj.put("id", annot.get(0)[0]);
     				taxonObj.put("name", annot.get(0)[1]);
+    				
+    				if(annot.get(0)[0].startsWith("TTO")){
+    					NodeDTO taxonDTO = new NodeDTO(annot.get(0)[0]);
+    					taxonDTO.setName(annot.get(0)[1]);
+    				   	rankObj = new JSONObject();			
+    					NodeDTO rankDTO = ttoTaxonomy.getTaxonToRankMap().get(taxonDTO);
+    					if(rankDTO != null){
+    						rankObj.put("id", rankDTO.getId());
+    						rankObj.put("name", rankDTO.getName());
+    					}
+    					else{
+    						rankObj.put("id", "");
+    						rankObj.put("name", "");
+    					}
+    					taxonObj.put("rank", rankObj);
+    				}
+    				
     				entityObj.put("id", annot.get(1)[0]);
     				entityObj.put("name", annot.get(1)[1]);
     				qualityObj.put("id", annot.get(2)[0]);
