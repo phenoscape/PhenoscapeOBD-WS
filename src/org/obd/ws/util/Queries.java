@@ -49,6 +49,8 @@ public class Queries {
 	private static final String HAS_COMMENT_RELATION_ID = "PHENOSCAPE:has_comment";
 	private static final String HAS_NUMBER_RELATION_ID = "PHENOSCAPE:has_number";
 	
+	private static final String OBO_COMMENT_TAG_ID = "oboInOwl:comment";
+	
 	/*
 	 * An enumeration to keep track of the patterns to look for
 	 * in the raw query
@@ -69,7 +71,8 @@ public class Queries {
 		HAS_DATUM("___has_Datum", HAS_DATUM_RELATION_ID),
 		HAS_CURATORS("___has_curators", HAS_CURATORS_RELATION_ID),
 		HAS_COMMENT("___has_comment", HAS_COMMENT_RELATION_ID), 
-		HAS_NUMBER("___has_number", HAS_NUMBER_RELATION_ID);
+		HAS_NUMBER("___has_number", HAS_NUMBER_RELATION_ID),
+		COMMENT("___comment", OBO_COMMENT_TAG_ID);
 
 		
 		QueryPlaceholder(String name, String rId){
@@ -395,10 +398,9 @@ public class Queries {
 		"WHERE " +
 		"node.source_id IS NOT NULL";
 	
-	/**This query s used for getting targets of relations from the 
-	 * 
-	 */
-	private String targetsOfTermQuery = 
+	/**This query is used for getting targets of relations where the 
+	 * search term is the subject */
+	private String parentOfTermQuery = 
 		"SELECT " +
 		"subject_node.uid AS subject_uid, " +
 		"subject_node.label AS subject_label, " +
@@ -413,7 +415,50 @@ public class Queries {
 		"	subject_node.node_id = (SELECT node_id FROM node WHERE uid = ?)) " +
 		"WHERE " +
 		"link.is_inferred = 'f' AND " +
-		"object_node.label IS NOT NULL";
+		"object_node.label IS NOT NULL AND " +
+		"object_node.source_id IS NOT NULL";
+	
+	/** This query gets the sources of relations where the input term
+	 * is an object */
+	private String childrenOfTermQuery = 
+		"SELECT " +
+		"subject_node.uid AS subject_uid, " +
+		"subject_node.label AS subject_label, " +
+		"predicate_node.uid AS predicate_uid, " +
+		"predicate_node.label AS predicate_label, " +
+		"object_node.uid AS object_uid, " +
+		"object_node.label AS object_label " +
+		"FROM link " +
+		"JOIN node AS predicate_node ON (predicate_node.node_id = link.predicate_id) " +
+		"JOIN node AS subject_node ON (subject_node.node_id = link.node_id) " +
+		"JOIN node AS object_node ON (object_node.node_id = link.object_id AND " +
+		"	object_node.node_id = (SELECT node_id FROM node WHERE uid = ?)) " +
+		"WHERE " +
+		"link.is_inferred = 'f' AND " +
+		"subject_node.label IS NOT NULL AND " +
+		"subject_node.source_id IS NOT NULL";
+	
+	/** This query gets the comments for the term which are
+	 * extracted from the ontology 	 */
+	private String commentOnTermQuery = 
+		"SELECT val AS comment " +
+		"FROM tagval " + 
+		"WHERE " +
+		"tag_id = ___comment AND " +
+		"node_id = (SELECT node_id FROM node WHERE uid = ?)" ;
+	
+	/** This query retrieves the synonyms of the search term 
+	 * and their scopes  */
+	private String synonymOfTermQuery = 
+		"SELECT label AS synonym " +
+		"FROM alias " +
+		"WHERE node_id = (SELECT node_id FROM node WHERE uid = ?)";
+	
+	/** This query retrieves the definition of the 
+	 * search term  */
+	private String definitionOfTermQuery = 
+		"SELECT label AS definition FROM description " +
+		"WHERE node_id = (SELECT node_id FROM node WHERE uid = ?)";
 	
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
@@ -444,6 +489,8 @@ public class Queries {
 		relationNodeIds.put(HAS_CURATORS_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_CURATORS_RELATION_ID));
 		relationNodeIds.put(HAS_COMMENT_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_COMMENT_RELATION_ID));
 		relationNodeIds.put(HAS_NUMBER_RELATION_ID, ((OBDSQLShard) this.shard).getNodeInternalId(HAS_NUMBER_RELATION_ID));
+		relationNodeIds.put(OBO_COMMENT_TAG_ID, ((OBDSQLShard) this.shard).getNodeInternalId(OBO_COMMENT_TAG_ID));
+		
 	}
 	
 	/*
@@ -491,6 +538,26 @@ public class Queries {
 
 	public String getQueryForNodeIdsForOntologies() {
 		return queryForNodeIdsForOntologies;
+	}
+
+	public String getParentOfTermQuery() {
+		return parentOfTermQuery;
+	}
+	
+	public String getChildrenOfTermQuery() {
+		return childrenOfTermQuery;
+	}
+
+	public String getCommentOnTermQuery() {
+		return replacePatternsWithIds(commentOnTermQuery);
+	}
+
+	public String getSynonymOfTermQuery() {
+		return synonymOfTermQuery;
+	}
+
+	public String getDefinitionOfTermQuery() {
+		return definitionOfTermQuery;
 	}
 
 	/**

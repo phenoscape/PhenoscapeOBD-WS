@@ -22,7 +22,7 @@ import org.obd.query.impl.OBDSQLShard;
  */
 public class DatabaseToggler {
 	
-	private final String driverName = "jdbc:postgresql://darwin.nescent.org/"; 
+	private final String driverName = "jdbc:postgresql://"; 
 	/**
 	 * The names of the two databases. These can be changed
 	 */
@@ -47,10 +47,12 @@ public class DatabaseToggler {
         Properties props = new Properties(); 
         props.load(fis);
 
-        String db1 = driverName + dbName1;
-        String db2 = driverName + dbName2;
+        String dbHost = (String)props.get("dbHost");
+        String db1 = driverName + dbHost + "/" + dbName1;
+        String db2 = driverName + dbHost + "/" + dbName2;
         String uid = (String)props.get("uid");
         String pwd = (String)props.get("pwd");
+        
 
         //			String localDbHost = (String)props.get("localDbHost");
         //			String localUid = (String)props.get("localUid");

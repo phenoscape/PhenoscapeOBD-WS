@@ -4,25 +4,18 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.model.LiteralStatement;
 import org.obd.model.Node;
-import org.obd.model.Statement;
-import org.obd.query.LinkQueryTerm;
 import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
+import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
@@ -43,14 +36,25 @@ public class TermResource extends Resource {
 	private Logger log;
 	
 	private Queries queries;
+//	private TTOTaxonomy ttoTaxonomy;
+	private Connection conn;
 	
-    /**
-     * FIXME Constructor and parameter documentation missing.
-     */
-	public TermResource(Context context, Request request, Response response) {
+	private OBDQuery obdq; 
+   /**
+    * This constructor initializes and instantiates the instance parameters. It also gets the 
+    * form input parameter
+    * @param context - the context of the application
+    * @param request - the request coming to the REST service endpoint interface
+    * @param response - the response going out
+ * @throws SQLException 
+    */
+	public TermResource(Context context, Request request, Response response) throws SQLException {
 		super(context, request, response);
-		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.obdsql = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.conn = ((OBDSQLShard)obdsql).getConnection();
+		this.obdq = new OBDQuery(obdsql);
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+	//	this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		this.termId = Reference.decode((String) (request.getAttributes()
 				.get("termID")));
@@ -58,6 +62,12 @@ public class TermResource extends Resource {
 		this.log = Logger.getLogger(this.getClass());
 	}
 
+	/**
+	 * This is the most important method in this class, overridden. 
+	 * It calls the method which finds all the information that is 
+	 * pertinent to the input term and throws exceptions and sets 
+	 * error statuses if the input term is invalid 
+	 */
     @Override
 	public Representation represent(Variant variant) 
             throws ResourceException {
@@ -90,174 +100,105 @@ public class TermResource extends Resource {
      * @param termId - search term
      * @return JSON Object
      * @throws JSONException
+     * @throws SQLException
      */
 	private JSONObject getTermInfo(String termId) throws JSONException, SQLException {
 
 		JSONObject jsonObj = new JSONObject();
-		if(termId.indexOf(":") < 0){
-			return null;
-		}
+		
+		Set<JSONObject> parents = new HashSet<JSONObject>();
+		Set<JSONObject> children = new HashSet<JSONObject>();
+		Set<JSONObject> synonyms = new HashSet<JSONObject>();
+		
+		String relationId, relationName, targetId, targetName, subjectId, subjectName;
+		String comment = "", definition = "";
+		String synonym;
+		
 		if (obdsql.getNode(termId) != null) {
-			
-			String prefix = termId.substring(0, termId.indexOf(":"));
-			
-			Set<Statement> sourceStatements = new HashSet<Statement>();
-			Set<Statement> targetStatements = new HashSet<Statement>();
-			
-			LinkQueryTerm slqt, tlqt;
-			slqt = new LinkQueryTerm();
-			slqt.setNode(termId);
-			slqt.setInferred(false);
-			
-			/* 
-			 * this is hacky but it's done because restricting by ontology using QueryTerm.setSource() does not seem to work 
-			*/
-			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(slqt)){
-				/* Filter out compositional descriptions and terms from outside the ontology */
-				if(!stmt.getTargetId().contains("^") && !stmt.getTargetId().contains("INTERSECTION")
-						&& stmt.getTargetId().contains(prefix) && !stmt.getTargetId().contains("RESTRICTION")){
-					sourceStatements.add(stmt);
-				}
-			}
-			tlqt = new LinkQueryTerm();
-			tlqt.setTarget(termId);
-			tlqt.setInferred(false);
-			for(Statement stmt : ((OBDSQLShard)obdsql).getLinkStatementsByQuery(tlqt)){
-				/* Filter out compositional descriptions and terms from outside the ontology */
-				if(!stmt.getNodeId().contains("^") && !stmt.getNodeId().contains("INTERSECTION") && 
-						stmt.getNodeId().contains(prefix) && !stmt.getNodeId().contains("RESTRICTION"))
-					targetStatements.add(stmt);
-			}
-			
-			Set<JSONObject> parents = new HashSet<JSONObject>();
-			Set<JSONObject> children = new HashSet<JSONObject>();
-			Set<JSONObject> synonyms = new HashSet<JSONObject>();
-			
 			jsonObj.put("id", termId);
-			String def = "";
-			Collection<LiteralStatement> lstmts = obdsql
-					.getLiteralStatementsByNode(termId);
-			for (LiteralStatement lstmt : lstmts) {
-				if (lstmt.getRelationId().toLowerCase().contains("definition")) {
-					def = lstmt.getTargetId();
+			Node termNode = obdsql.getNode(termId);
+			String termLabel = termNode.getLabel();
+			if(termLabel == null)
+				termLabel = obdq.simpleLabel(termId);
+			jsonObj.put("name", termLabel);
+						
+			PreparedStatement parentOfTermStmt = conn.prepareStatement(queries.getParentOfTermQuery());
+			parentOfTermStmt.setString(1, termId);
+			ResultSet rsForParentQuery = parentOfTermStmt.executeQuery();
+			while(rsForParentQuery.next()){
+				relationId = rsForParentQuery.getString(3);
+				relationName = rsForParentQuery.getString(4);
+				targetId = rsForParentQuery.getString(5);
+				targetName = rsForParentQuery.getString(6);
+				if(!relationId.contains("DbXref")){ //avoid DbXrefs
+					JSONObject parent = new JSONObject();
+					JSONObject relation = new JSONObject();
+					JSONObject target = new JSONObject();
+					relation.put("id", relationId);
+					relation.put("name", relationName);
+					target.put("id", targetId);
+					target.put("name", targetName);
+					parent.put("relation", relation);
+					parent.put("target", target);
+					parents.add(parent);
 				}
-			}
-			String name = obdsql.getNode(termId).getLabel() != null?
-							obdsql.getNode(termId).getLabel() : resolveLabel(termId);
-			
-																		
-			jsonObj.put("name", name);
-			Collection<Node> synonymNodes;
-			try {
-				synonymNodes = obdsql.getSynonymsForTerm(name);
-				String synonym = "No name";
-				for(Node node : synonymNodes){
-					for(Statement stmt :	node.getStatements()){
-						if(stmt.getRelationId().equals("hasSynonym")){
-							synonym = stmt.getTargetId();
-							JSONObject synonymObj = new JSONObject();
-							synonymObj.put("name", synonym);
-							synonyms.add(synonymObj);
-						}
-					}
-				}
-			} catch (SQLException e) {
-                            log.error(e);
-                            throw e;
 			}
 			
-			jsonObj.put("synonyms", synonyms);
-			if (def.length() > 0)
-				jsonObj.put("definition", def);
-			for (Statement stmt : sourceStatements) {
-				String pred = stmt.getRelationId();
-				String obj = stmt.getTargetId();
-				if (pred != null && pred.length() > 0 &&
-						obdsql.getNode(pred) != null && obdsql.getNode(obj) != null) {
-						JSONObject parent = new JSONObject();
-						JSONObject relation = new JSONObject();
-						JSONObject target = new JSONObject();
-						relation.put("id", pred);
-						relation.put("name", obdsql.getNode(pred).getLabel());
-						target.put("id", obj);
-						target.put("name", obdsql.getNode(obj).getLabel());
-						parent.put("relation", relation);
-						parent.put("target", target);
-						parents.add(parent);
-				}
-			}
-			for(Statement tStmt : targetStatements){
-				String subj = tStmt.getNodeId();
-				String pred = tStmt.getRelationId();
-				if (pred != null && pred.length() > 0 &&
-						obdsql.getNode(pred) != null && obdsql.getNode(subj) != null) {
-						JSONObject child = new JSONObject();
-						JSONObject relation = new JSONObject();
-						JSONObject target = new JSONObject();
-						relation.put("id", pred);
-						relation.put("name", obdsql.getNode(pred).getLabel());
-						target.put("id", subj);
-						target.put("name", obdsql.getNode(subj).getLabel());
-						child.put("relation", relation);
-						child.put("target", target);
-						children.add(child);
+			PreparedStatement childrenOfTermStmt = conn.prepareStatement(queries.getChildrenOfTermQuery());
+			childrenOfTermStmt.setString(1, termId);
+			ResultSet rsForChildrenQuery = childrenOfTermStmt.executeQuery();
+			while(rsForChildrenQuery.next()){
+				subjectId = rsForChildrenQuery.getString(1);
+				subjectName = rsForChildrenQuery.getString(2);
+				relationId = rsForChildrenQuery.getString(3);
+				relationName = rsForChildrenQuery.getString(4);
+				if(!relationId.contains("DbXref")){ //avod DBXrefs
+					JSONObject child = new JSONObject();
+					JSONObject relation = new JSONObject();
+					JSONObject target = new JSONObject();
+					relation.put("id", relationId);
+					relation.put("name", relationName);
+					target.put("id", subjectId);
+					target.put("name", subjectName);
+					child.put("relation", relation);
+					child.put("target", target);
+					children.add(child);
 				}
 			}
 			jsonObj.put("parents", parents);
 			jsonObj.put("children", children);
 			
-			String commentQuery = 
-				"SELECT val " +
-				"FROM tagval " +
-				"WHERE " +
-				"tag_id = (SELECT node_id FROM node WHERE uid = 'oboInOwl:comment') AND " +
-				"node_id = (SELECT node_id FROM node WHERE uid = ?)";
-			
-			Connection conn = ((OBDSQLShard)obdsql).getConnection();
-			PreparedStatement pstmt = conn.prepareStatement(commentQuery);
-			pstmt.setString(1, termId);
-			ResultSet rs = pstmt.executeQuery();
-			String comment = "";
-			while(rs.next()){
-				comment = rs.getString(1);
+			PreparedStatement commentForTermStmt = conn.prepareStatement(queries.getCommentOnTermQuery());
+			commentForTermStmt.setString(1, termId);
+			ResultSet rsForCommentQuery = commentForTermStmt.executeQuery();
+			while(rsForCommentQuery.next()){
+				comment = rsForCommentQuery.getString(1);
 			}
 			jsonObj.put("comment", comment);
+			
+			PreparedStatement synonymOfTermStmt = conn.prepareStatement(queries.getSynonymOfTermQuery());
+			synonymOfTermStmt.setString(1, termId);
+			ResultSet rsForSynonymQuery = synonymOfTermStmt.executeQuery();
+			while(rsForSynonymQuery.next()){
+				synonym = rsForSynonymQuery.getString(1);
+				JSONObject synonymObj = new JSONObject();
+				synonymObj.put("name", synonym);
+				synonyms.add(synonymObj);
+			}
+			jsonObj.put("synonyms", synonyms);
+			
+			PreparedStatement definitionOfTermStmt = conn.prepareStatement(queries.getDefinitionOfTermQuery());
+			definitionOfTermStmt.setString(1, termId);
+			ResultSet rsForDefinitionQuery = definitionOfTermStmt.executeQuery();
+			while(rsForDefinitionQuery.next()){
+				definition = rsForDefinitionQuery.getString(1);
+			}
+			if (definition.length() > 0)
+				jsonObj.put("definition", definition);
+			
 		} else {
 			jsonObj = null;
 		}
 		return jsonObj;
-	}
-	
-    /**
-     * @PURPOSE: This method takes a post composition and creates a 
-     * legible label for it. Because the label field in the DB is null
-     * for post composed terms
-     * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
-     * TAO:0001173 with 'Dorsal fin'. Carets (^) and underscores are replaced 
-     * with white spaces.
-     * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
-     * @return label - is of the form (<entity_label> <rel_label> <entity_label>
-     */
-    /**
-     * FIXME Method and parameter documentation missing.
-     */
-    /* FIXME don't we have nearly or exactly the same method in
-     * OBDQuery? Please fix the duplication.
-     */
-	public String resolveLabel(String cd){
-		String label = cd;
-		label = label.replaceAll("\\^", " ");
-		String oldLabel = label;
-		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
-		Matcher m = pat.matcher(oldLabel);
-		while(m.find()){
-			String s2replace = oldLabel.substring(m.start(), m.end());
-			String replaceS = obdsql.getNode(s2replace).getLabel(); //DB consultation
-			if(replaceS == null)
-				replaceS = s2replace.substring(s2replace.indexOf(":") + 1);
-			label = label.replace(s2replace, replaceS);
-		}
-		label = label.replace("_", " ");
-		return label;
 	}
 }
