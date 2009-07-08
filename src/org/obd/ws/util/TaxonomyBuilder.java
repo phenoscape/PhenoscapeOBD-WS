@@ -152,6 +152,7 @@ public class TaxonomyBuilder {
 		for(PhenotypeDTO phenotype : phenotypeColl){
 			updateTreeNodesWithPhenotype(phenotype);
 			updateTreeNodesWithAnnotationCounts(phenotype);
+			updateTreeNodesWithSubsumedLeafTaxa(phenotype);
 			updateTreeBranches(phenotype);
 		}
 	}
@@ -288,6 +289,30 @@ public class TaxonomyBuilder {
 		}
 		tree.setNodeToAnnotationCountMap(taxonToAnnotationCountMap);
 	}
+
+	/**
+	 * This method updates every node in the tree with the set of leaf nodes
+	 * sp. the set of taxa with assertions, that are subsumed by it 
+	 * @param phenotype - the input taxon to phenotype assertion
+	 */
+	private void updateTreeNodesWithSubsumedLeafTaxa(PhenotypeDTO phenotype) {
+		Map<NodeDTO, Set<NodeDTO>> taxonToSubsumedTaxaMap = 
+			tree.getNodeToSubsumedLeafNodesMap();
+		
+		NodeDTO taxon = new NodeDTO(phenotype.getTaxonId());
+		taxon.setName(phenotype.getTaxon());
+		
+		List<NodeDTO> pathToMrca = getPathToMrca(taxon);
+		for(NodeDTO node : pathToMrca){
+			Set<NodeDTO> setOfSubsumedTaxa = taxonToSubsumedTaxaMap.get(node);
+			if(setOfSubsumedTaxa == null)
+				setOfSubsumedTaxa = new HashSet<NodeDTO>();
+			setOfSubsumedTaxa.add(taxon);
+			taxonToSubsumedTaxaMap.put(node, setOfSubsumedTaxa);
+		}
+		tree.setNodeToSubsumedLeafNodesMap(taxonToSubsumedTaxaMap);
+	}
+
 	
 	/**
 	 * This method creates a map of branching points to

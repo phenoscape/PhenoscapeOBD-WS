@@ -28,6 +28,8 @@ public class TaxonTree {
 	private Map<NodeDTO, Integer> nodeToAnnotationCountMap; 
 	/** This structure hold information about every branch and its children */
 	private Map<NodeDTO, Set<NodeDTO>> nodeToChildrenMap;
+	/** This structure maps every node to the set of leaf taxa under it */
+	private Map<NodeDTO, Set<NodeDTO>> nodeToSubsumedLeafNodesMap;
 
 	/*
 	 * GETTERs and SETTERs
@@ -69,6 +71,14 @@ public class TaxonTree {
 	public void setNodeToChildrenMap(Map<NodeDTO, Set<NodeDTO>> nodeToChildrenMap) {
 		this.nodeToChildrenMap = nodeToChildrenMap;
 	}
+	
+	public Map<NodeDTO, Set<NodeDTO>> getNodeToSubsumedLeafNodesMap() {
+		return nodeToSubsumedLeafNodesMap;
+	}
+	public void setNodeToSubsumedLeafNodesMap(
+			Map<NodeDTO, Set<NodeDTO>> nodeToSubsumedLeafNodesMap) {
+		this.nodeToSubsumedLeafNodesMap = nodeToSubsumedLeafNodesMap;
+	}
 	/**
 	 * The constructor simply initializes the branches, the leaves, the qualities to node
 	 * map and the node to annotation count map
@@ -78,5 +88,6 @@ public class TaxonTree {
 		nodeToListOfEQCRListsMap = new HashMap<NodeDTO,  List<List<String>>>();
 		nodeToAnnotationCountMap = new HashMap<NodeDTO, Integer>();
 		nodeToChildrenMap = new HashMap<NodeDTO, Set<NodeDTO>>();
+		nodeToSubsumedLeafNodesMap = new HashMap<NodeDTO, Set<NodeDTO>>();
 	}
 }

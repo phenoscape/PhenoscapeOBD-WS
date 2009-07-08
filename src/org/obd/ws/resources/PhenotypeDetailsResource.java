@@ -58,6 +58,7 @@ public class PhenotypeDetailsResource extends Resource {
 	
 	private TTOTaxonomy ttoTaxonomy;
 	private TaxonomyBuilder taxonomyBuilder;
+	private TaxonTree taxonTree;
     
 	private static final String SUBJECT_STRING = "subject";
 	private static final String ENTITY_STRING = "entity";
@@ -319,15 +320,20 @@ public class PhenotypeDetailsResource extends Resource {
 						rankObj.put("name", "");
 					}
 					subjectObj.put("rank", rankObj);
+					Integer subsumedTaxaCount = 
+						(taxonTree != null && taxonTree.getNodeToSubsumedLeafNodesMap().get(taxonDTO) != null)?
+						taxonTree.getNodeToSubsumedLeafNodesMap().get(taxonDTO).size() :
+						0;
+					if(annots.get(taxonDTO).get(0).get(5).length() > 0){
+						subjectObj.put("leaf", true);
+						subjectObj.put("annotated_taxa_count", subsumedTaxaCount + 1);
+					}
+					else{
+						subjectObj.put("leaf", false);
+						subjectObj.put("annotated_taxa_count", subsumedTaxaCount);
+					}
 				}
 				phenotypeObjs = new ArrayList<JSONObject>();
-				if(annots.get(taxonDTO).get(0).get(5).length() > 0){
-					subjectObj.put("leaf", true);
-				}
-				else{
-					subjectObj.put("leaf", false);
-				}
-				
 				for(List<String> phenotype : annots.get(taxonDTO)){
 					String count = phenotype.get(4);
 					if(count == null)
@@ -433,7 +439,7 @@ public class PhenotypeDetailsResource extends Resource {
 				Collection<PhenotypeDTO> phenotypeColl) 
 				throws IOException, DataAdapterException, PhenoscapeTreeAssemblyException{
 		taxonomyBuilder = new TaxonomyBuilder(ttoTaxonomy, phenotypeColl);
-		TaxonTree taxonTree = taxonomyBuilder.getTree();
+		taxonTree = taxonomyBuilder.getTree();
 		NodeDTO mrca = taxonTree.getMrca();
 		if(group.equals("root")){
 			List<List<String>> listOfEQCRLists = 
