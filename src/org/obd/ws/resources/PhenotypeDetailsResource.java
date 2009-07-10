@@ -397,7 +397,15 @@ public class PhenotypeDetailsResource extends Resource {
 	private List<String> assembleQueryAndSearchTerm(){
 		
 		String query, searchTerm;
-		if(subject_id != null){
+		if(subject_id != null && entity_id != null){
+			query = queries.getGenericPhenotypeQuery();
+			if(subject_id.contains("GENE"))
+				query += " AND p1.subject_nid = (SELECT node_id FROM node WHERE uid = '" + subject_id + "')";
+			else 
+				query += " AND taxon_node.uid = '" + subject_id + "'";
+			searchTerm = entity_id; 
+		}
+		else if(subject_id != null){
 			if(subject_id.contains("GENE"))
 				query = queries.getGeneQuery();
 			else

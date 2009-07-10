@@ -95,6 +95,26 @@ public class Queries {
 	 * These are the queries we are using now. 
 	 */
 	
+	private String genericPhenotypeQuery = 
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id, p1.count AS count " +
+		"FROM " +
+		"phenotype_by_entity_character AS p1 " +
+		"LEFT OUTER JOIN (link AS subtaxon_link " +
+		"JOIN node AS taxon_node " +
+		"ON (taxon_node.node_id = subtaxon_link.object_id AND " +
+		"	subtaxon_link.predicate_id= ___is_a)) " +
+		"ON (p1.subject_nid = subtaxon_link.node_id) " +
+		"JOIN phenotype_inheres_in_part_of_entity AS p2 " +
+		"ON (p1.phenotype_nid = p2.phenotype_nid) " +
+		"WHERE " +
+		"p2.entity_nid = (SELECT node_id FROM node WHERE uid = ?)" ;
+	
 	/**
 	 * @INPUT: An anatomical entity (E)
 	 * This query finds all the phenotypes (P) associated with a given anatomical entity. From the found phenotypes (P), 
@@ -558,6 +578,10 @@ public class Queries {
 
 	public String getDefinitionOfTermQuery() {
 		return definitionOfTermQuery;
+	}
+
+	public String getGenericPhenotypeQuery() {
+		return replacePatternsWithIds(genericPhenotypeQuery);
 	}
 
 	/**
