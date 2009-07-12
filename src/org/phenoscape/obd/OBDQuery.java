@@ -310,9 +310,6 @@ public class OBDQuery {
 						dto.setCharacterId(rs.getString(6));
 						entityLabel = rs.getString(9);
 						entityId = rs.getString(8);
-						if(entityLabel == null){
-							entityLabel = simpleLabel(entityId);
-						}	
 						dto.setEntity(entityLabel);
 						dto.setEntityId(entityId);
 						String reif = rs.getString(10);
