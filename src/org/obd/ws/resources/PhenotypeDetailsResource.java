@@ -15,7 +15,7 @@ import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.exceptions.PhenoscapeTreeAssemblyException;
 import org.obd.ws.util.Queries;
@@ -38,8 +38,7 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class PhenotypeDetailsResource extends Resource {
-
-	Logger log = Logger.getLogger(this.getClass());
+	private final String driverName = "jdbc:postgresql://"; 
 	
 	private String subject_id;
 	private String entity_id;
@@ -51,7 +50,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private Map<String, String> parameters;
 	Map<String, String> queryResultsFilterSpecs;
 	private JSONObject jObjs;
-	private Shard obdsql;
+	private OBDSQLShard obdsqlShard;
 	private OBDQuery obdq;
 	
 	private Queries queries;
@@ -75,11 +74,14 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @param response
 	 * @throws IOException
 	 * @throws DataAdapterException
+	 * @throws ClassNotFoundException 
+	 * @throws SQLException 
 	 */
-	public PhenotypeDetailsResource(Context context, Request request, Response response) throws IOException, DataAdapterException {
+	public PhenotypeDetailsResource(Context context, Request request, Response response) throws IOException, DataAdapterException, 
+								SQLException, ClassNotFoundException {
 		super(context, request, response);
 
-		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.obdsqlShard = new OBDSQLShard();
 		this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -106,14 +108,6 @@ public class PhenotypeDetailsResource extends Resource {
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
 		queryResultsFilterSpecs = new HashMap<String, String>();
-		 try{
-	        obdq = new OBDQuery(obdsql, queries);
-		 }
-	     catch(SQLException e){
-	      	this.jObjs = null;
-	      	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-	      		"[SQL EXCEPTION] Something broke server side. Consult server logs");
-	     }
 	}
 	
    /**
@@ -130,16 +124,17 @@ public class PhenotypeDetailsResource extends Resource {
 		Representation rep;
 		Map<NodeDTO, List<List<String>>> annots;
 
-		if(!checkInputFormParameters()){
-			this.jObjs = null;
-			return null;
-		}
-		
 		try{
+			this.connectShardToDatabase();
+			if(!inputFormParametersAreValid()){
+				this.jObjs = null;
+				this.disconnectShardFromDatabase();
+				return null;
+			}
+			obdq = new OBDQuery(obdsqlShard, queries);
 			annots = getAnnotations();
-		}
-		/* 'getAnnotations' method returns null in case of a server side exception*/
-		catch(SQLException sqle){
+			this.jObjs = this.assembleJSONObjectFromDataStructure(annots);
+		} catch(SQLException sqle){
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 					"[SQL EXCEPTION] Something broke server side. Consult server logs");
 			return null;
@@ -155,19 +150,48 @@ public class PhenotypeDetailsResource extends Resource {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 					"[TREE ASSEMBLY EXCEPTION] Something broke server side. Consult server logs");
 			return null;
-		}
-		try{
-			this.jObjs = this.assembleJSONObjectFromDataStructure(annots);
-		}
-		catch(ResourceException e){
+		} catch (ClassNotFoundException e) {
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
+			return null;
+		} catch(ResourceException e){
 			getResponse().setStatus(Status.CLIENT_ERROR_BAD_REQUEST, 
 					"[RESOURCE EXCEPTION] Something broke in the JSON Object. Consult server logs");
 			return null;
 		}
+		finally{
+			this.disconnectShardFromDatabase();
+		}
 		rep = new JsonRepresentation(this.jObjs);
+		this.disconnectShardFromDatabase();
 		return rep;
 	}
 
+	/**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log().trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
+    }
+	
 	/**
 	 * @PURPOSE: This method takes the nodes returned by OBDQuery class and packages them into a 
 	 * data structure, which will be processed by the caller {@link represent} method
@@ -187,7 +211,7 @@ public class PhenotypeDetailsResource extends Resource {
 		String query = queryAndSearchTerm.get(0);
 		String searchTerm = queryAndSearchTerm.get(1);
 		
-		log.trace("Search Term: " + searchTerm + " Query: " + query);
+		log().trace("Search Term: " + searchTerm + " Query: " + query);
 		try{
 			Collection<PhenotypeDTO> phenotypeColl = 
 				obdq.executeQueryAndAssembleResults(query, searchTerm, queryResultsFilterSpecs);
@@ -201,18 +225,17 @@ public class PhenotypeDetailsResource extends Resource {
 				taxonToAssertionsMap = 
 					generateSimpleDataStructureFromAssertions(taxonToAssertionsMap, phenotypeColl);
 			}
-		}
-		catch(SQLException e){
-			log.fatal(e);
+		} catch(SQLException e){
+			log().fatal(e);
 			throw e;
 		} catch (IOException e) {
-			log.fatal(e);
+			log().fatal(e);
 			throw e;
 		} catch (DataAdapterException e) {
-			log.fatal(e);
+			log().fatal(e);
 			throw e;
 		} catch(PhenoscapeTreeAssemblyException e){
-			log.fatal(e);
+			log().fatal(e);
 			throw e;
 		}
 		return taxonToAssertionsMap;
@@ -224,7 +247,7 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @return - a boolean to indicate validity of input
 	 * form parameters
 	 */
-	private boolean checkInputFormParameters(){
+	private boolean inputFormParametersAreValid(){
 		if (subject_id != null && !subject_id.startsWith("TTO:") && !subject_id.contains("GENE")) {
 			
 			getResponse().setStatus(
@@ -233,16 +256,6 @@ public class PhenotypeDetailsResource extends Resource {
 							+ "is not a recognized taxon or gene");
 			return false;
 		}
-		/*  Commenting out this section to let post compositions work - Cartik 06/03/09
-		if(entity_id != null && !entity_id.startsWith("TAO:") && !entity_id.startsWith("ZFA:")){
-			this.jObjs = null;
-			getResponse().setStatus(
-					Status.CLIENT_ERROR_BAD_REQUEST,
-					"ERROR: The input parameter for entity "
-							+ "is not a recognized anatomical entity");
-			return null;
-		} 
-		*/
 		if(character_id != null && !character_id.startsWith("PATO:")){
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
@@ -274,7 +287,7 @@ public class PhenotypeDetailsResource extends Resource {
 		
 		for(String key : parameters.keySet()){
 			if(parameters.get(key) != null){
-				if(obdsql.getNode(parameters.get(key)) == null){
+				if(obdsqlShard.getNode(parameters.get(key)) == null){
 					getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 					"No annotations were found with the specified search parameters");
 					return false;
@@ -358,11 +371,11 @@ public class PhenotypeDetailsResource extends Resource {
 				subjectObj.put("phenotypes", phenotypeObjs);
 				subjectObjs.add(subjectObj);
 			}
-			log.trace(annots.size() + " annotations returned");
+			log().trace(annots.size() + " annotations returned");
 			result.put("subjects", subjectObjs);
 		}
 		catch(JSONException jsone){
-                    log.error(jsone);
+                    log().error(jsone);
                     throw new ResourceException(jsone);
 		}
 		return result;
@@ -575,5 +588,9 @@ public class PhenotypeDetailsResource extends Resource {
 			}
 		}
 		return collectionToReturn;
+	}
+	
+	private Logger log() {
+		return Logger.getLogger(this.getClass());
 	}
 }

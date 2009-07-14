@@ -12,7 +12,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.PhenotypeDTO;
@@ -30,8 +30,7 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class PhenotypeSummaryResource extends Resource {
-	
-	protected Logger log = Logger.getLogger(this.getClass());
+	private final String driverName = "jdbc:postgresql://"; 
 	
 	private String subject_id;
 	private String entity_id;
@@ -42,7 +41,7 @@ public class PhenotypeSummaryResource extends Resource {
 	private Map<String, String> parameters;
 	
 	private JSONObject jObjs;
-	private Shard obdsql;
+	private OBDSQLShard obdsqlShard;
 	private OBDQuery obdq;
 	private Queries queries;
 	
@@ -58,11 +57,13 @@ public class PhenotypeSummaryResource extends Resource {
 	 * @param context - The context of the application
 	 * @param request - The request coming in to the REST service endpoint interface
 	 * @param response - The response going out from the REST service endpoint interface
+	 * @throws ClassNotFoundException 
+	 * @throws SQLException 
 	 */
-	public PhenotypeSummaryResource(Context context, Request request, Response response) {
+	public PhenotypeSummaryResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
 		super(context, request, response);
 
-		this.obdsql = (Shard) this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.obdsqlShard = new OBDSQLShard();
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue(SUBJECT_STRING) != null){
@@ -84,13 +85,6 @@ public class PhenotypeSummaryResource extends Resource {
 		
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
-		try{
-	       	obdq = new OBDQuery(obdsql, queries);
-		 }catch(SQLException e){
-	      	this.jObjs = null;
-	       	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-				"[SQL EXCEPTION] Something broke server side. Consult server logs");
-		 }
 	}
 
 	/**
@@ -105,31 +99,60 @@ public class PhenotypeSummaryResource extends Resource {
 		Representation rep;
 		Map<String, Map<String, List<Set<String>>>> ecAnnots;
 
+		try{
+			this.connectShardToDatabase();
+			if(!inputFormParametersAreValid()){
+				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
+				"No annotations were found with the specified search parameters");
+				this.disconnectShardFromDatabase();
+				return null;
+			}
+		 	obdq = new OBDQuery(obdsqlShard, queries);
+			ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id, publication_id);
+			this.assembleJsonObjectFromResults(ecAnnots);
+		} catch(SQLException sqle){
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+					"[SQL EXCEPTION] Something broke server side. Consult server logs");
+			return null;
+		} catch (ClassNotFoundException e) {
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
+			return null;
+		} catch(JSONException jsone){
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[RESOURCE EXCEPTION] Something broke server side. Consult server logs");
+            log().error(jsone);
+            throw new ResourceException(jsone);
+		} finally{
+			this.disconnectShardFromDatabase();
+		}
+		
+		rep = new JsonRepresentation(this.jObjs);
+		this.disconnectShardFromDatabase();
+		return rep;
+	}
+
+	/**
+	 * This method checks if the input parametesrs from the form are valid
+	 * @return
+	 */
+	private boolean inputFormParametersAreValid(){
+		
 		if (subject_id != null && !subject_id.startsWith("TTO:") && !subject_id.contains("GENE")) {
 			this.jObjs = null;
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
 					"ERROR: The input parameter for subject "
 							+ "is not a recognized taxon or gene");
-			return null;
+			return false;
 		}
-		/* Commenting out this section to let post compositions work - Cartik 06/03/09
-		if(entity_id != null && !entity_id.startsWith("TAO:") && !entity_id.startsWith("ZFA:")){
-			this.jObjs = null;
-			getResponse().setStatus(
-					Status.CLIENT_ERROR_BAD_REQUEST,
-					"ERROR: The input parameter for entity "
-							+ "is not a recognized anatomical entity");
-			return null;
-		}
-		*/
 		if(quality_id != null && !quality_id.startsWith("PATO:")){
 			this.jObjs = null;
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
 					"ERROR: The input parameter for quality "
 							+ "is not a recognized PATO quality");
-			return null;
+			return false;
 		}
 			
 		//TODO Publication ID check
@@ -141,106 +164,39 @@ public class PhenotypeSummaryResource extends Resource {
 		
 		for(String key : parameters.keySet()){
 			if(parameters.get(key) != null){
-				if(obdsql.getNode(parameters.get(key)) == null){
-					getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
-					"No annotations were found with the specified search parameters");
-					return null;
+				if(obdsqlShard.getNode(parameters.get(key)) == null){
+					return false;
 				}
 			}
 		}
-		try{
-			ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id, publication_id);
-		}
-		/* 'getAnnotationSummary' method returns null in case of a server side exception*/
-		catch(SQLException sqle){
-			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-					"[SQL EXCEPTION] Something broke server side. Consult server logs");
-			return null;
-		}
-		
-		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj; 
-		JSONObject ecObject, eObject, cObject;
-		List<JSONObject> gExampleObjs, tExampleObjs, qExampleObjs;
-		List<JSONObject> ecObjects = new ArrayList<JSONObject>();
-		
-		try{
-			for(String entityId : ecAnnots.keySet()){
-				Map<String, List<Set<String>>> cAnnots = ecAnnots.get(entityId); 
-				for(String charId : cAnnots.keySet()){
-					ecObject = new JSONObject();
-					eObject = new JSONObject();
-					cObject = new JSONObject();
-					String[] eComps = entityId.split("\\t");
-					String [] cComps = charId.split("\\t");
-					eObject.put("id", eComps[0]);
-					eObject.put("name", eComps[1]);
-					cObject.put("id", cComps[0]);
-					cObject.put("name", cComps[1]);
-					ecObject.put("entity", eObject);
-					ecObject.put("character_quality", cObject);
-					
-					genesObj= new JSONObject();
-					taxaObj = new JSONObject();
-					qualitiesObj = new JSONObject();
-					Set<String> genesSet = cAnnots.get(charId).get(0);
-					Set<String> taxaSet = cAnnots.get(charId).get(1);
-					Set<String> qualitiesSet = cAnnots.get(charId).get(2);
-					gExampleObjs = new ArrayList<JSONObject>();
-					tExampleObjs = new ArrayList<JSONObject>();
-					qExampleObjs = new ArrayList<JSONObject>();
-					genesObj.put("count", genesSet.size());
-					Iterator<String> git = genesSet.iterator();
-					for(int i = 0; i < (Math.min(examples_count, genesSet.size())); i++){
-						String gene = git.next();
-						String[] gComps = gene.split("\\t");
-						exampleObj = new JSONObject();
-						exampleObj.put("id", gComps[0]);
-						exampleObj.put("name", gComps[1]);
-						gExampleObjs.add(exampleObj);
-					}
-					genesObj.put("examples", gExampleObjs);
-					taxaObj.put("count", taxaSet.size());
-					Iterator<String> tit = taxaSet.iterator();
-					for(int i = 0; i < (Math.min(examples_count, taxaSet.size())); i++){
-						String taxon = tit.next();
-						String[] tComps = taxon.split("\\t");
-						exampleObj = new JSONObject();
-						exampleObj.put("id", tComps[0]);
-						exampleObj.put("name", tComps[1]);
-						tExampleObjs.add(exampleObj);
-					}
-					taxaObj.put("examples", tExampleObjs);
-					qualitiesObj.put("count", qualitiesSet.size());
-					Iterator<String> qit = qualitiesSet.iterator();
-					for(int i = 0; i < (Math.min(examples_count, qualitiesSet.size())); i++){
-						String quality = qit.next();
-						String[] qComps = quality.split("\\t");
-						exampleObj = new JSONObject();
-						exampleObj.put("id", qComps[0]);
-						exampleObj.put("name", qComps[1]);
-						qExampleObjs.add(exampleObj);
-					}
-					qualitiesObj.put("examples", qExampleObjs);
-					
-					ecObject.put("qualities", qualitiesObj);
-					ecObject.put("taxa", taxaObj);
-					ecObject.put("genes", genesObj);
-					ecObjects.add(ecObject);
-				}
-			}
-			this.jObjs.put("characters", ecObjects);
-		}
-		catch(JSONException jsone){
-                    /* FIXME Need to provide information to the
-                     * client, so add an appropriate message.
-                     */
-                    log.error(jsone);
-                    throw new ResourceException(jsone);
-		}
-		rep = new JsonRepresentation(this.jObjs);
-		return rep;
+		return true;
 	}
-
+	
+	/**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log().trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
+    }
+	
 	/**
 	 * This method takes the nodes returned by OBDQuery class and
 	 * packages them into a summary data structure. The summary
@@ -253,9 +209,6 @@ public class PhenotypeSummaryResource extends Resource {
 	 * @return 
 	 * @throws SQLException 
 	 */
-    /**
-     * FIXME Method documentation incomplete.
-     */
 	private Map<String, Map<String, List<Set<String>>>> 
 			getAnnotationSummary(String subject_id, String entity_id, String char_id, String pub_id) 
 			throws SQLException{
@@ -299,7 +252,7 @@ public class PhenotypeSummaryResource extends Resource {
 		filterOptions.put("character", char_id);
 		filterOptions.put("publication", null); //TODO pub_id goes here;
 		
-		log.debug("Search Term: " + searchTerm + " Query: " + query);
+		log().debug("Search Term: " + searchTerm + " Query: " + query);
 		try{
 			for(PhenotypeDTO node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
 
@@ -311,7 +264,7 @@ public class PhenotypeSummaryResource extends Resource {
 				entity = node.getEntity();
 				qualityId = node.getQualityId();
 				quality = node.getQuality();
-				log.trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
+				log().trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if(entityCharAnnots.keySet().contains(entityId + "\t" + entity)){
 					charAnnots = entityCharAnnots.get(entityId + "\t" + entity);
@@ -362,9 +315,91 @@ public class PhenotypeSummaryResource extends Resource {
 			}
 		}
 		catch(SQLException e){
-			log.fatal(e);
+			log().fatal(e);
 			throw e;
 		}
 		return entityCharAnnots;
+	}
+	
+	/**
+	 * This method assembles a JSON object from the input data structure
+	 * @param ecAnnots - this is the input data structure with the results of the phenotype summary query
+	 * @throws JSONException
+	 */
+	private void assembleJsonObjectFromResults(Map<String, Map<String, List<Set<String>>>> ecAnnots) throws JSONException{
+		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj; 
+		JSONObject ecObject, eObject, cObject;
+		List<JSONObject> gExampleObjs, tExampleObjs, qExampleObjs;
+		List<JSONObject> ecObjects = new ArrayList<JSONObject>();
+		
+		for(String entityId : ecAnnots.keySet()){
+			Map<String, List<Set<String>>> cAnnots = ecAnnots.get(entityId); 
+			for(String charId : cAnnots.keySet()){
+				ecObject = new JSONObject();
+				eObject = new JSONObject();
+				cObject = new JSONObject();
+				String[] eComps = entityId.split("\\t");
+				String [] cComps = charId.split("\\t");
+				eObject.put("id", eComps[0]);
+				eObject.put("name", eComps[1]);
+				cObject.put("id", cComps[0]);
+				cObject.put("name", cComps[1]);
+				ecObject.put("entity", eObject);
+				ecObject.put("character_quality", cObject);
+				
+				genesObj= new JSONObject();
+				taxaObj = new JSONObject();
+				qualitiesObj = new JSONObject();
+				Set<String> genesSet = cAnnots.get(charId).get(0);
+				Set<String> taxaSet = cAnnots.get(charId).get(1);
+				Set<String> qualitiesSet = cAnnots.get(charId).get(2);
+				gExampleObjs = new ArrayList<JSONObject>();
+				tExampleObjs = new ArrayList<JSONObject>();
+				qExampleObjs = new ArrayList<JSONObject>();
+				genesObj.put("count", genesSet.size());
+				Iterator<String> git = genesSet.iterator();
+				for(int i = 0; i < (Math.min(examples_count, genesSet.size())); i++){
+					String gene = git.next();
+					String[] gComps = gene.split("\\t");
+					exampleObj = new JSONObject();
+					exampleObj.put("id", gComps[0]);
+					exampleObj.put("name", gComps[1]);
+					gExampleObjs.add(exampleObj);
+				}
+				genesObj.put("examples", gExampleObjs);
+				taxaObj.put("count", taxaSet.size());
+				Iterator<String> tit = taxaSet.iterator();
+				for(int i = 0; i < (Math.min(examples_count, taxaSet.size())); i++){
+					String taxon = tit.next();
+					String[] tComps = taxon.split("\\t");
+					exampleObj = new JSONObject();
+					exampleObj.put("id", tComps[0]);
+					exampleObj.put("name", tComps[1]);
+					tExampleObjs.add(exampleObj);
+				}
+				taxaObj.put("examples", tExampleObjs);
+				qualitiesObj.put("count", qualitiesSet.size());
+				Iterator<String> qit = qualitiesSet.iterator();
+				for(int i = 0; i < (Math.min(examples_count, qualitiesSet.size())); i++){
+					String quality = qit.next();
+					String[] qComps = quality.split("\\t");
+					exampleObj = new JSONObject();
+					exampleObj.put("id", qComps[0]);
+					exampleObj.put("name", qComps[1]);
+					qExampleObjs.add(exampleObj);
+				}
+				qualitiesObj.put("examples", qExampleObjs);
+				
+				ecObject.put("qualities", qualitiesObj);
+				ecObject.put("taxa", taxaObj);
+				ecObject.put("genes", genesObj);
+				ecObjects.add(ecObject);
+			}
+		}
+		this.jObjs.put("characters", ecObjects);
+	}
+	
+	private Logger log() {
+		return Logger.getLogger(this.getClass());
 	}
 }

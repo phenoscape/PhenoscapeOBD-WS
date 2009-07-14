@@ -27,6 +27,8 @@ public class OBDApplication extends Application {
 
 	private Queries queries;
 	private OBDSQLShard obdsql;
+	/* Database connection parameters */
+	private String selectedDatabaseName,dbHost,uid,pwd;
 	
 	/** A structure which maps ontology prefixes to their 
 	 * default namespaces */
@@ -59,6 +61,10 @@ public class OBDApplication extends Application {
 	public static final String TTO_TAXONOMY_STRING = "ttoTaxonomy";
 	public static final String QUERIES_STRING = "queries";
 	public static final String SHARD_STRING = "shard";
+	public static final String SELECTED_DATABASE_NAME_STRING = "selectedDatabaseName";
+	public static final String DB_HOST_NAME_STRING = "dbHost";
+	public static final String UID_STRING = "uid";
+	public static final String PWD_STRING = "pwd";
     public OBDApplication(Context context){
         super(context);
     }
@@ -69,10 +75,19 @@ public class OBDApplication extends Application {
     	DatabaseToggler dbToggler = new DatabaseToggler();
     	this.prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
     	this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
-    	
-        obdsql = dbToggler.chooseDatabase();
-        if(obdsql != null){
+        
+    	obdsql = dbToggler.chooseDatabase();
+        selectedDatabaseName = dbToggler.getSelectedDatabaseName();
+        dbHost = dbToggler.getDbHost();
+        uid = dbToggler.getUid();
+        pwd = dbToggler.getPwd();
+        
+        if(obdsql != null && selectedDatabaseName != null && dbHost != null && uid != null && pwd != null){
         	this.getContext().getAttributes().put(SHARD_STRING, obdsql);
+        	this.getContext().getAttributes().put(SELECTED_DATABASE_NAME_STRING, selectedDatabaseName);
+        	this.getContext().getAttributes().put(DB_HOST_NAME_STRING, dbHost);
+        	this.getContext().getAttributes().put(UID_STRING, uid);
+        	this.getContext().getAttributes().put(PWD_STRING, pwd);
         	queries = new Queries(obdsql);
         	this.getContext().getAttributes().put(QUERIES_STRING, queries);
         	this.constructPrefixToDefaultNamespacesMap();

@@ -14,7 +14,7 @@ import java.util.Set;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.phenoscape.obd.OBDQuery;
@@ -32,22 +32,17 @@ import org.restlet.resource.Variant;
 
 public class AutoCompleteResource extends Resource {
 
-	/** The term to be searched for */
-	private String text;
-	/** The synonym option to be used in the search */
+	private final String driverName = "jdbc:postgresql://"; 
+	
+	private String searchTerm;
 	private String synonymOption;
-	/** The definition option to be used in the search */
 	private String definitionOption;
 	/** The list of ontologies whose terms are to be matched against */
 	private String ontologyOption;	
-	/** This indicates search for genes. Needs to be handled separately because these don't come from an ontology */ 
 	
 	private JSONObject jObjs;
-	/** The Shard object that connects to the database */
-	private Shard obdsql;
-	/** The SQL connection to be used */
+	private OBDSQLShard obdsqlShard;
 	private Logger log;
-	/** The Queries object to be used */
 	private Queries queries;
 	/** The map from default namespaces of the ontologies to their corr. node ids in the database */
 	private Map<String, String> nsToSourceIdMap;
@@ -99,10 +94,11 @@ public class AutoCompleteResource extends Resource {
 	 * @param request - the Rest request
 	 * @param response - the Rest response
 	 * @throws SQLException
+	 * @throws ClassNotFoundException 
 	 */
-	public AutoCompleteResource(Context context, Request request, Response response) throws SQLException {
+	public AutoCompleteResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
 		super(context, request, response);
-		this.obdsql = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+		this.obdsqlShard = new OBDSQLShard();
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.prefixToNSMap = 
 			(Map<String, Set<String>>)this.getContext().getAttributes().get(OBDApplication.PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING);
@@ -113,8 +109,8 @@ public class AutoCompleteResource extends Resource {
 		
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		
-        this.text = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_TEXT_STRING));
-        text = text.trim().toLowerCase();
+        this.searchTerm = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_TEXT_STRING));
+        searchTerm = searchTerm.trim().toLowerCase();
 		if(request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_SYN_STRING) != null)
 			synonymOption = Reference.decode((String) request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_SYN_STRING));
 		if(request.getResourceRef().getQueryAsForm().getFirstValue(INPUT_DEF_STRING ) != null)
@@ -138,7 +134,7 @@ public class AutoCompleteResource extends Resource {
 	 * @return
 	 */
 	private boolean inputFormParametersAreValid(){
-		if(text == null){
+		if(searchTerm == null){
 			getResponse().setStatus(
 					Status.CLIENT_ERROR_BAD_REQUEST,
 					"ERROR: Please specify a string to search for");
@@ -167,8 +163,8 @@ public class AutoCompleteResource extends Resource {
             throws ResourceException {
 
 		Representation rep = null;
-
 		try {
+			connectShardToDatabase();
 			this.jObjs = getTextMatches();
 		} catch (JSONException e) {
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
@@ -180,17 +176,49 @@ public class AutoCompleteResource extends Resource {
 				"[SQL EXCEPTION] Something broke on the SQL query. Consult server logs");
             	log.error(e);
             return null;
+		} catch (ClassNotFoundException e) {
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[CLASS NOT FOUND EXCEPTION] Something broke on the SQL query. Consult server logs");
+        	log.error(e);
+        	return null;
+		} finally{
+			disconnectShardFromDatabase();
 		}
 		
 		rep = new JsonRepresentation(this.jObjs);
-
+		disconnectShardFromDatabase();
 		return rep;
 	}
 
+    /**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log.trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
+    }
+    
 	/**
 	 * This method arranges the user defined options and invokes the OBDQuery method to find
 	 * label (default), synonym and definition (optional) matches for the search string. 
-	 * @param text - search string
+	 * @param searchTerm - search string
 	 * @param options - contains the definition, synonym, and ontology restriction options
 	 * @return
 	 * @throws IOException
@@ -202,9 +230,9 @@ public class AutoCompleteResource extends Resource {
             throws JSONException, SQLException {
 
 		JSONObject jObj = new JSONObject();
-		OBDQuery obdq = new OBDQuery(obdsql, this.queries, this.nsToSourceIdMap, this.prefixToNSMap);
+		OBDQuery obdq = new OBDQuery(obdsqlShard, this.queries, this.nsToSourceIdMap, this.prefixToNSMap);
 		//For search terms shorter than 3, only "begins with" searches are done  
-		String term = text.length() > 3 ? "%" + text + "%" : text + "%";
+		String term = searchTerm.length() > 3 ? "%" + searchTerm + "%" : searchTerm + "%";
 		Map<String, List<List<String>>> results = 
 			obdq.getAutocompletionsForSearchTerm(term, searchOptions);
 		
@@ -225,7 +253,7 @@ public class AutoCompleteResource extends Resource {
 				nameMatch.put(MATCH_TYPE_STRING, NAME_STRING);
 				nameMatch.put(MATCH_TEXT_STRING, label.get(1));
 				matches.add(nameMatch);
-				log.debug( ++i + ". Name matches for search term: " + text + "\tID: " + label.get(0) + "\tLABEL: " + label.get(1));
+				log.debug( ++i + ". Name matches for search term: " + searchTerm + "\tID: " + label.get(0) + "\tLABEL: " + label.get(1));
 			}
 		}
 		if(synonymMatches != null && synonymMatches.size() > 0){
@@ -236,7 +264,7 @@ public class AutoCompleteResource extends Resource {
 				synonymMatch.put(MATCH_TYPE_STRING, SYNONYM_STRING);
 				synonymMatch.put(MATCH_TEXT_STRING, synonym.get(2));
 				matches.add(synonymMatch);
-				log.debug(++j + ". Synonym matches for search term: " + text + "\tID: " + synonym.get(0) + "\tLABEL: " + 
+				log.debug(++j + ". Synonym matches for search term: " + searchTerm + "\tID: " + synonym.get(0) + "\tLABEL: " + 
 						synonym.get(1) + "\tSYNONYM: " + synonym.get(2));
 			}
 		}
@@ -248,13 +276,13 @@ public class AutoCompleteResource extends Resource {
 				definitionMatch.put(MATCH_TYPE_STRING, DEF_STRING);
 				definitionMatch.put(MATCH_TEXT_STRING, definition.get(3));
 				matches.add(definitionMatch);
-				log.debug(++k + ". Definition matches for search term: " + text + "\tID: " + definition.get(0) + "\tLABEL: " + 
+				log.debug(++k + ". Definition matches for search term: " + searchTerm + "\tID: " + definition.get(0) + "\tLABEL: " + 
 						definition.get(1) + "\tDefinition: " + definition.get(3));
 			}
 		}
-		jObj.put("search_term", text);
+		jObj.put("search_term", searchTerm);
 		try{
-			List<JSONObject> sortedMatches = sortJsonObjects(matches, text);
+			List<JSONObject> sortedMatches = sortJsonObjects(matches, searchTerm);
 			jObj.put(MATCHES_STRING, sortedMatches);
 		}
 		catch(JSONException e){

@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
@@ -36,9 +36,12 @@ public class AnnotationResource extends Resource {
 	 * into a JSON Object, which is returned to the REST
 	 * endpoint
 	 */
+	
+	private final String driverName = "jdbc:postgresql://"; 
+	
 	private JSONObject jObjs;
 	
-    private final Shard shard;
+    private OBDSQLShard obdsqlShard;
     private final String annotationId;
     
     private OBDQuery obdq;
@@ -53,34 +56,19 @@ public class AnnotationResource extends Resource {
      * @param context
      * @param request
      * @param response
+     * @throws ClassNotFoundException 
+     * @throws SQLException 
      */
-    public AnnotationResource(Context context, Request request, Response response) {
+    public AnnotationResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
         super(context, request, response);
-        this.shard = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+        this.obdsqlShard = new OBDSQLShard();
         this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
         this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
         this.annotationId = Reference.decode((String)(request.getAttributes().get("annotation_id")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
-        try{
-        	obdq = new OBDQuery(shard, queries);
-        }
-        catch(SQLException e){
-        	log().fatal("Error in the SQL query");
-        	this.jObjs = null;
-        	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-			"[SQL EXCEPTION] Something broke server side. Consult server logs");
-        }
     }
 
-    /**
-     * This method returns a logger (log4j)
-     * @return
-     */
-    private Logger log() {
-        return Logger.getLogger(this.getClass());
-    }
-    
     /**
      * The core method for this class. This method invokes
      * the 'getMetadata' method, which indirectly sets up
@@ -92,78 +80,54 @@ public class AnnotationResource extends Resource {
     	
     	List<List<String[]>> annots;
     	
-    	List<JSONObject> sourceObjs = new ArrayList<JSONObject>();
-    	JSONObject phenotypeObj, sourceObj;
-    	JSONObject entityObj, taxonObj, qualityObj, rankObj;
-    	
     	try{
+    		connectShardToDatabase();
+    		obdq = new OBDQuery(obdsqlShard, queries);
     		annots = getMetadata(annotationId);
-    	}
-    	catch(SQLException sqle){
+    		assembleJSONObjectFromAnnotations(annots);
+    	}catch(SQLException sqle){
     		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 			"[SQL EXCEPTION] Something broke server side. Consult server logs");
     		return null;
-    	}
-    	
-    	try{
-    		if(annots != null && annots.size() > 0){
-    			phenotypeObj = new JSONObject();
-    			for(List<String[]> annot : annots){
-    				entityObj = new JSONObject();
-    				taxonObj = new JSONObject();
-    				qualityObj = new JSONObject();
-    			
-    				sourceObj = new JSONObject();
-    			
-    				taxonObj.put("id", annot.get(0)[0]);
-    				taxonObj.put("name", annot.get(0)[1]);
-    				
-    				if(annot.get(0)[0].startsWith("TTO")){
-    					NodeDTO taxonDTO = new NodeDTO(annot.get(0)[0]);
-    					taxonDTO.setName(annot.get(0)[1]);
-    				   	rankObj = new JSONObject();			
-    					NodeDTO rankDTO = ttoTaxonomy.getTaxonToRankMap().get(taxonDTO);
-    					if(rankDTO != null){
-    						rankObj.put("id", rankDTO.getId());
-    						rankObj.put("name", rankDTO.getName());
-    					}
-    					else{
-    						rankObj.put("id", "");
-    						rankObj.put("name", "");
-    					}
-    					taxonObj.put("rank", rankObj);
-    				}
-    				
-    				entityObj.put("id", annot.get(1)[0]);
-    				entityObj.put("name", annot.get(1)[1]);
-    				qualityObj.put("id", annot.get(2)[0]);
-    				qualityObj.put("name", annot.get(2)[1]);
-    			
-    				phenotypeObj.put("subject", taxonObj);
-    				phenotypeObj.put("entity", entityObj);
-    				phenotypeObj.put("quality", qualityObj);
-    			
-    				sourceObj.put("publication", annot.get(3)[0]);
-    				sourceObj.put("curated_by", annot.get(4)[0]);
-    				sourceObj.put("character_text", annot.get(5)[0]);
-    				sourceObj.put("character_comment", annot.get(5)[1]);
-    				sourceObj.put("character_number", annot.get(5)[2]);
-    				sourceObj.put("state_text", annot.get(6)[0]);
-    				sourceObj.put("state_comment", annot.get(6)[1]);
-    			
-    				sourceObjs.add(sourceObj);
-    			}
-    			jObjs.put("phenotype", phenotypeObj);
-    			jObjs.put("sources", sourceObjs);
-    		}
-    	}
-    	catch(JSONException jsone){
+    	} catch (ClassNotFoundException e) {
+    		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
+    		return null;
+    	} catch(JSONException jsone){
     		getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,  
 			"[JSON EXCEPTION] JSON object error.");
     		log().error(jsone);
             return null;
+    	} finally{
+    		disconnectShardFromDatabase();
     	}
+    	disconnectShardFromDatabase();
     	return new JsonRepresentation(this.jObjs);
+    }
+    
+    /**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log().trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
     }
     
     /**
@@ -229,5 +193,76 @@ public class AnnotationResource extends Resource {
     		throw sqle;
     	}
     	return results;
+    }
+    
+    /**
+     * This method takes in a data structure of the annotations and 
+     * converts it into a formatted JSON object
+     * @param annots
+     * @throws JSONException
+     */
+    private void assembleJSONObjectFromAnnotations(List<List<String[]>> annots) throws JSONException{
+    	List<JSONObject> sourceObjs = new ArrayList<JSONObject>();
+    	JSONObject phenotypeObj, sourceObj;
+    	JSONObject entityObj, taxonObj, qualityObj, rankObj;
+    	
+    	if(annots != null && annots.size() > 0){
+			phenotypeObj = new JSONObject();
+			for(List<String[]> annot : annots){
+				entityObj = new JSONObject();
+				taxonObj = new JSONObject();
+				qualityObj = new JSONObject();
+			
+				sourceObj = new JSONObject();
+			
+				taxonObj.put("id", annot.get(0)[0]);
+				taxonObj.put("name", annot.get(0)[1]);
+				
+				if(annot.get(0)[0].startsWith("TTO")){
+					NodeDTO taxonDTO = new NodeDTO(annot.get(0)[0]);
+					taxonDTO.setName(annot.get(0)[1]);
+				   	rankObj = new JSONObject();			
+					NodeDTO rankDTO = ttoTaxonomy.getTaxonToRankMap().get(taxonDTO);
+					if(rankDTO != null){
+						rankObj.put("id", rankDTO.getId());
+						rankObj.put("name", rankDTO.getName());
+					}
+					else{
+						rankObj.put("id", "");
+						rankObj.put("name", "");
+					}
+					taxonObj.put("rank", rankObj);
+				}
+				
+				entityObj.put("id", annot.get(1)[0]);
+				entityObj.put("name", annot.get(1)[1]);
+				qualityObj.put("id", annot.get(2)[0]);
+				qualityObj.put("name", annot.get(2)[1]);
+			
+				phenotypeObj.put("subject", taxonObj);
+				phenotypeObj.put("entity", entityObj);
+				phenotypeObj.put("quality", qualityObj);
+			
+				sourceObj.put("publication", annot.get(3)[0]);
+				sourceObj.put("curated_by", annot.get(4)[0]);
+				sourceObj.put("character_text", annot.get(5)[0]);
+				sourceObj.put("character_comment", annot.get(5)[1]);
+				sourceObj.put("character_number", annot.get(5)[2]);
+				sourceObj.put("state_text", annot.get(6)[0]);
+				sourceObj.put("state_comment", annot.get(6)[1]);
+			
+				sourceObjs.add(sourceObj);
+			}
+			jObjs.put("phenotype", phenotypeObj);
+			jObjs.put("sources", sourceObjs);
+    	}
+    }
+    
+    /**
+     * This method returns a logger (log4j)
+     * @return
+     */
+    private Logger log() {
+        return Logger.getLogger(this.getClass());
     }
 }

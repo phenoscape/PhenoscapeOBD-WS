@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.obd.model.Node;
-import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
@@ -29,14 +28,13 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class TermResource extends Resource {
+	private final String driverName = "jdbc:postgresql://"; 
 
 	private final String termId;
 	private JSONObject jObjs;
-	private Shard obdsql;
-	private Logger log;
 	
+	private OBDSQLShard obdsqlShard;
 	private Queries queries;
-//	private TTOTaxonomy ttoTaxonomy;
 	private Connection conn;
 	
 	private OBDQuery obdq; 
@@ -47,19 +45,14 @@ public class TermResource extends Resource {
     * @param request - the request coming to the REST service endpoint interface
     * @param response - the response going out
  * @throws SQLException 
+ * @throws ClassNotFoundException 
     */
-	public TermResource(Context context, Request request, Response response) throws SQLException {
+	public TermResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
 		super(context, request, response);
-		this.obdsql = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
-		this.conn = ((OBDSQLShard)obdsql).getConnection();
-		this.obdq = new OBDQuery(obdsql);
+		this.obdsqlShard = new OBDSQLShard();
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
-	//	this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-		this.termId = Reference.decode((String) (request.getAttributes()
-				.get("termID")));
-		
-		this.log = Logger.getLogger(this.getClass());
+		this.termId = Reference.decode((String) (request.getAttributes().get("termID")));
 	}
 
 	/**
@@ -73,25 +66,61 @@ public class TermResource extends Resource {
             throws ResourceException {
 
 		try {
+			this.connectShardToDatabase();
+			this.conn = obdsqlShard.getConnection();
+			this.obdq = new OBDQuery(obdsqlShard);
 			this.jObjs = getTermInfo(this.termId);
 			if (this.jObjs == null) {
 				getResponse().setStatus(Status.CLIENT_ERROR_NOT_FOUND,
 						"The search term was not found");
+				disconnectShardFromDatabase();
 				return null;
 			}
 		} catch (JSONException e) {
-			log.fatal(e);
+			log().fatal(e);
 			getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,
 					"JSON EXCEPTION");
             return null;
 		} catch(SQLException e){
-			log.fatal(e);
+			log().fatal(e);
 			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "SQL Exception");
 			return null;
+		} catch (ClassNotFoundException e) {
+			log().fatal(e);
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Clas not found Exception");
+			return null;
+		} finally{
+			disconnectShardFromDatabase();
 		}
+		disconnectShardFromDatabase();
 		return new JsonRepresentation(this.jObjs);
 	}
 
+    /**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log().trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
+    }
+    
     /**
      * This method invokes the OBDQuery class and its methods
      * for finding term information. Returned results from the
@@ -114,9 +143,9 @@ public class TermResource extends Resource {
 		String comment = "", definition = "";
 		String synonym;
 		
-		if (obdsql.getNode(termId) != null) {
+		if (obdsqlShard.getNode(termId) != null) {
 			jsonObj.put("id", termId);
-			Node termNode = obdsql.getNode(termId);
+			Node termNode = obdsqlShard.getNode(termId);
 			String termLabel = termNode.getLabel();
 			if(termLabel == null)
 				termLabel = obdq.simpleLabel(termId);
@@ -200,5 +229,9 @@ public class TermResource extends Resource {
 			jsonObj = null;
 		}
 		return jsonObj;
+	}
+	
+	private Logger log() {
+		return Logger.getLogger(this.getClass());
 	}
 }

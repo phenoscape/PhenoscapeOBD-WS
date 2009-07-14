@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.query.Shard;
+import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
@@ -27,41 +27,29 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
 public class HomologyResource extends Resource {
-	
+	private final String driverName = "jdbc:postgresql://"; 
 	private JSONObject jObjs;
 	
-    private final Shard shard;
+    private OBDSQLShard obdsqlShard;
     private final String termID;
     
     private OBDQuery obdq;
     private Queries queries;
     private TTOTaxonomy ttoTaxonomy;
     
-    public HomologyResource(Context context, Request request, Response response) {
+    public HomologyResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
         super(context, request, response);
-        this.shard = (Shard)this.getContext().getAttributes().get(OBDApplication.SHARD_STRING);
+        this.obdsqlShard = new OBDSQLShard();
         this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
         this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
         this.termID = Reference.decode((String)(request.getAttributes().get("termID")));
         this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
         this.jObjs = new JSONObject();
-        try{
-        	obdq = new OBDQuery(shard, queries);
-        }
-        catch(SQLException e){
-        	this.jObjs = null;
-        	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-				"[SQL EXCEPTION] Something broke server side. Consult server logs");
-        }
     }
 
     public Representation represent(Variant variant) throws ResourceException {
 
     	List<List<String[]>> results;
-    	
-    	JSONObject lhEntityObj, lhTaxonObj, rhEntityObj, rhTaxonObj, sourceObj, lhRankObj, rhRankObj;
-    	JSONObject homologyObj, subjectObj, targetObj, evidenceObj;
-    	List<JSONObject> homologyObjs = new ArrayList<JSONObject>();
     	
     	if(termID != null && !termID.startsWith("TAO:") && !termID.startsWith("ZFA:")){
 			this.jObjs = null;
@@ -73,100 +61,54 @@ public class HomologyResource extends Resource {
 		}
     	
     	try{
+    		connectShardToDatabase();
+    		obdq = new OBDQuery(obdsqlShard, queries);
     		results = getHomologyData(termID);
-    	}
-    	catch(SQLException sqle){
+    		this.assembleJSONObjectFromResults(results);
+    	} catch(SQLException sqle){
     		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
 			"[SQL EXCEPTION] Something broke server side. Consult server logs");
     		return null;
-    	}
-    	
-    	try{
-        	for(List<String[]> row : results){
-        		lhEntityObj = new JSONObject();
-        		lhTaxonObj = new JSONObject();
-        		lhRankObj = new JSONObject();
-        		rhEntityObj = new JSONObject();
-        		rhTaxonObj = new JSONObject();
-        		rhRankObj = new JSONObject();
-        		sourceObj = new JSONObject();
-        		
-        		homologyObj = new JSONObject();
-        		subjectObj = new JSONObject();
-        		targetObj = new JSONObject();  		
-        		evidenceObj = new JSONObject();
-        		
-        		lhEntityObj.put("id", row.get(0)[0]);
-        		lhEntityObj.put("name", row.get(0)[1]);
-        		lhTaxonObj.put("id", row.get(1)[0]);
-        		lhTaxonObj.put("name", row.get(1)[1]);
-        		
-        		NodeDTO lhTaxon = new NodeDTO(row.get(1)[0]);
-        		lhTaxon.setName(row.get(1)[1]);
-        		
-        		NodeDTO lhRank = ttoTaxonomy.getTaxonToRankMap().get(lhTaxon);
-        		if(lhRank != null){
-        			lhRankObj.put("id", lhRank.getId());
-        			lhRankObj.put("name", lhRank.getName());
-        		}
-        		else{
-        			lhRankObj.put("id", "");
-        			lhRankObj.put("name", "");
-        		}
-        		lhTaxonObj.put("rank", lhRankObj);
-        		
-        		subjectObj.put("entity", lhEntityObj);
-        		subjectObj.put("taxon", lhTaxonObj);
-        		
-        		rhEntityObj.put("id", row.get(2)[0]);
-        		rhEntityObj.put("name", row.get(2)[1]);
-        		rhTaxonObj.put("id", row.get(3)[0]);
-        		rhTaxonObj.put("name", row.get(3)[1]);
-        		
-        		NodeDTO rhTaxon = new NodeDTO(row.get(3)[0]);
-        		rhTaxon.setName(row.get(3)[1]);
-        		
-        		NodeDTO rhRank = ttoTaxonomy.getTaxonToRankMap().get(rhTaxon);
-        		if(rhRank != null){
-        			rhRankObj.put("id", rhRank.getId());
-        			rhRankObj.put("name", rhRank.getName());
-        		}
-        		else{
-        			rhRankObj.put("id", "");
-        			rhRankObj.put("name", "");
-        		}
-        		rhTaxonObj.put("rank", rhRankObj);
-        		
-        		targetObj.put("entity", rhEntityObj);
-        		targetObj.put("taxon", rhTaxonObj);
-        		        		
-        		sourceObj.put("publication", row.get(4)[0]);
-        		
-        		evidenceObj.put("id", row.get(5)[0]);
-    			evidenceObj.put("name", row.get(5)[1]);
-           		sourceObj.put("evidence", evidenceObj);
-        		
-        		homologyObj.put("subject", subjectObj);
-        		homologyObj.put("target", targetObj);
-        		homologyObj.put("source", sourceObj);
-        		
-        		homologyObjs.add(homologyObj);
-        	}
-        	
-        	this.jObjs.put("homologies", homologyObjs);
-    	}
-    	catch(JSONException jsone){
+    	} catch (ClassNotFoundException e) {
+    		getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
+			"[CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
+    		return null;
+		} catch(JSONException jsone){
     		getResponse().setStatus(Status.CLIENT_ERROR_UNPROCESSABLE_ENTITY,  
 			"[JSON EXCEPTION] JSON object error.");
     		log().error(jsone);
             return null;
+    	} finally{
+    		disconnectShardFromDatabase();
     	}
     	
+    	disconnectShardFromDatabase();
     	return new JsonRepresentation(this.jObjs);
     }
     
-    private Logger log() {
-        return Logger.getLogger(this.getClass());
+    /**
+     * This method reads in db connection parameters from app context and connects the Shard to the
+     * database
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
+    private void connectShardToDatabase() throws SQLException, ClassNotFoundException{
+    	String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
+    	String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
+    	String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
+    	String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
+    	
+    	String dbConnString = driverName + dbHost + "/" + dbName;
+    	long connStartTime = System.currentTimeMillis();
+    	obdsqlShard.connect(dbConnString, uid, pwd);
+    	long connEndTime = System.currentTimeMillis();
+    	log().trace("It took " + (connEndTime - connStartTime) + " msecs to connect");
+    }
+    
+    private void disconnectShardFromDatabase(){
+    	if(obdsqlShard != null)
+    		obdsqlShard.disconnect();
+    	obdsqlShard = null;
     }
     
     /**
@@ -257,4 +199,91 @@ public class HomologyResource extends Resource {
     	return results;
     }
 
+    /**
+     * This method assembles a JSON object from the input data structure
+     * @param results - the results from the query execution in a data structure
+     * @throws JSONException
+     */
+    private void assembleJSONObjectFromResults(List<List<String[]>> results) throws JSONException{
+    	JSONObject lhEntityObj, lhTaxonObj, rhEntityObj, rhTaxonObj, sourceObj, lhRankObj, rhRankObj;
+    	JSONObject homologyObj, subjectObj, targetObj, evidenceObj;
+    	List<JSONObject> homologyObjs = new ArrayList<JSONObject>();
+    	
+    	for(List<String[]> row : results){
+    		lhEntityObj = new JSONObject();
+    		lhTaxonObj = new JSONObject();
+    		lhRankObj = new JSONObject();
+    		rhEntityObj = new JSONObject();
+    		rhTaxonObj = new JSONObject();
+    		rhRankObj = new JSONObject();
+    		sourceObj = new JSONObject();
+    		
+    		homologyObj = new JSONObject();
+    		subjectObj = new JSONObject();
+    		targetObj = new JSONObject();  		
+    		evidenceObj = new JSONObject();
+    		
+    		lhEntityObj.put("id", row.get(0)[0]);
+    		lhEntityObj.put("name", row.get(0)[1]);
+    		lhTaxonObj.put("id", row.get(1)[0]);
+    		lhTaxonObj.put("name", row.get(1)[1]);
+    		
+    		NodeDTO lhTaxon = new NodeDTO(row.get(1)[0]);
+    		lhTaxon.setName(row.get(1)[1]);
+    		
+    		NodeDTO lhRank = ttoTaxonomy.getTaxonToRankMap().get(lhTaxon);
+    		if(lhRank != null){
+    			lhRankObj.put("id", lhRank.getId());
+    			lhRankObj.put("name", lhRank.getName());
+    		}
+    		else{
+    			lhRankObj.put("id", "");
+    			lhRankObj.put("name", "");
+    		}
+    		lhTaxonObj.put("rank", lhRankObj);
+    		
+    		subjectObj.put("entity", lhEntityObj);
+    		subjectObj.put("taxon", lhTaxonObj);
+    		
+    		rhEntityObj.put("id", row.get(2)[0]);
+    		rhEntityObj.put("name", row.get(2)[1]);
+    		rhTaxonObj.put("id", row.get(3)[0]);
+    		rhTaxonObj.put("name", row.get(3)[1]);
+    		
+    		NodeDTO rhTaxon = new NodeDTO(row.get(3)[0]);
+    		rhTaxon.setName(row.get(3)[1]);
+    		
+    		NodeDTO rhRank = ttoTaxonomy.getTaxonToRankMap().get(rhTaxon);
+    		if(rhRank != null){
+    			rhRankObj.put("id", rhRank.getId());
+    			rhRankObj.put("name", rhRank.getName());
+    		}
+    		else{
+    			rhRankObj.put("id", "");
+    			rhRankObj.put("name", "");
+    		}
+    		rhTaxonObj.put("rank", rhRankObj);
+    		
+    		targetObj.put("entity", rhEntityObj);
+    		targetObj.put("taxon", rhTaxonObj);
+    		        		
+    		sourceObj.put("publication", row.get(4)[0]);
+    		
+    		evidenceObj.put("id", row.get(5)[0]);
+			evidenceObj.put("name", row.get(5)[1]);
+       		sourceObj.put("evidence", evidenceObj);
+    		
+    		homologyObj.put("subject", subjectObj);
+    		homologyObj.put("target", targetObj);
+    		homologyObj.put("source", sourceObj);
+    		
+    		homologyObjs.add(homologyObj);
+    	}
+    	
+    	this.jObjs.put("homologies", homologyObjs);
+    }
+    
+    private Logger log() {
+        return Logger.getLogger(this.getClass());
+    }
 }
