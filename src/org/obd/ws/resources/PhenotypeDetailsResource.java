@@ -307,7 +307,7 @@ public class PhenotypeDetailsResource extends Resource {
 	private JSONObject assembleJSONObjectFromDataStructure
 				(Map<NodeDTO, List<List<String>>> annots) 
 					throws ResourceException{
-		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, rankObj; 
+		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, rankObj, relatedEntityObj; 
 		List<JSONObject> phenotypeObjs;
 		List<JSONObject> subjectObjs = new ArrayList<JSONObject>();
 		Set<String> reifIdSet;
@@ -366,6 +366,10 @@ public class PhenotypeDetailsResource extends Resource {
 						phenotypeObj.put("id", reifIdSet);
 					else
 						phenotypeObj.put("id", "");
+					relatedEntityObj = new JSONObject();
+					relatedEntityObj.put("id", phenotype.get(6));
+					relatedEntityObj.put("name", phenotype.get(7));
+					phenotypeObj.put("related_entity", relatedEntityObj);
 					phenotypeObjs.add(phenotypeObj);
 				}
 				subjectObj.put("phenotypes", phenotypeObjs);
@@ -534,7 +538,9 @@ public class PhenotypeDetailsResource extends Resource {
 					phenotypeDTO.getQualityId(),
 					phenotypeDTO.getQuality(),
 					phenotypeDTO.getNumericalCount(),
-					phenotypeDTO.getReifId()
+					phenotypeDTO.getReifId(), 
+					phenotypeDTO.getRelatedEntityId(), 
+					phenotypeDTO.getRelatedEntity()
 				}));
 			taxonToAssertionsMap.put(taxonDTO, annotations);
 		}

@@ -231,11 +231,19 @@ public class TaxonomyBuilder {
 		String e = eqcrList.get(0);
 		String q = eqcrList.get(2);
 		String c = eqcrList.get(4);
+		String relEnt = eqcrList.get(6);
 		
 		String eFromPhenotype = phenotype.getEntityId();
 		String qFromPhenotype = phenotype.getQualityId();
 		String cFromPhenotype = phenotype.getNumericalCount();
+		String relEntFromPhenotype = phenotype.getRelatedEntityId();
 		if (e.equals(eFromPhenotype) && q.equals(qFromPhenotype) && ObjectUtil.equals(c, cFromPhenotype)) {
+			if(relEnt != null && relEntFromPhenotype != null){
+				if(relEnt.equals(relEntFromPhenotype))
+					return true;
+				else
+					return false;
+			}
 		    return true;
 		}
 		return false;
@@ -264,7 +272,8 @@ public class TaxonomyBuilder {
 		}else{
 			eqcrList.add("");
 		}
-			
+		eqcrList.add(phenotype.getRelatedEntityId());
+		eqcrList.add(phenotype.getRelatedEntity());	
 		listOfEQCRLists.add(eqcrList);
 		return listOfEQCRLists;
 	}

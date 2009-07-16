@@ -26,6 +26,9 @@ public class PhenotypeDTO {
 	private String characterId;
 	private String character;
 	
+	private String relatedEntityId;
+	private String relatedEntity;
+	
 	private String reifId;
 	
 	private String numericalCount;
@@ -122,6 +125,18 @@ public class PhenotypeDTO {
 		this.character = character;
 	}
 
+	public String getRelatedEntityId() {
+		return relatedEntityId;
+	}
+	public void setRelatedEntityId(String relatedEntityId) {
+		this.relatedEntityId = relatedEntityId;
+	}
+	public String getRelatedEntity() {
+		return relatedEntity;
+	}
+	public void setRelatedEntity(String relatedEntity) {
+		this.relatedEntity = relatedEntity;
+	}
 	public String getReifId() {
 		return reifId;
 	}
