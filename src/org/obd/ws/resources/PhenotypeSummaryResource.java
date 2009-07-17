@@ -225,7 +225,8 @@ public class PhenotypeSummaryResource extends Resource {
 		Map<String, String> filterOptions = new HashMap<String, String>();
 		
 		String characterId = null, taxonId = null, entityId = null, qualityId = null,
-					character = null, taxon = null, entity = null, quality = null;
+					character = null, taxon = null, entity = null, quality = null, 
+					relatedEntityId = null, relatedEntity = null, count = null;
 		String query, searchTerm;
 		/* 
 		 * This IF-ELSE decides which query to use. Ideally if subject is provided, we will use
@@ -264,6 +265,9 @@ public class PhenotypeSummaryResource extends Resource {
 				entity = node.getEntity();
 				qualityId = node.getQualityId();
 				quality = node.getQuality();
+				count = node.getNumericalCount();
+				relatedEntityId = node.getRelatedEntityId();
+				relatedEntity = node.getRelatedEntity();
 				log().trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
 						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
 				if(entityCharAnnots.keySet().contains(entityId + "\t" + entity)){
@@ -281,7 +285,12 @@ public class PhenotypeSummaryResource extends Resource {
 						tAnnots = new HashSet<String>();
 						qAnnots = new HashSet<String>();
 					}
-					qAnnots.add(qualityId + "\t" + quality);
+					if(relatedEntityId != null && relatedEntity != null)
+						qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
+					else if(count != null)
+						qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
+					else
+						qAnnots.add(qualityId + "\t" + quality);
 					if(taxonId.contains("GENE")){
 						gAnnots.add(taxonId + "\t" + taxon);
 					}
@@ -299,7 +308,13 @@ public class PhenotypeSummaryResource extends Resource {
 					gAnnots = new HashSet<String>();
 					tAnnots = new HashSet<String>();
 					qAnnots = new HashSet<String>();
-					qAnnots.add(qualityId + "\t" + quality);
+					
+					if(relatedEntityId != null && relatedEntity != null)
+						qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
+					else if(count != null)
+						qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
+					else
+						qAnnots.add(qualityId + "\t" + quality);
 					if(taxonId.contains("GENE")){
 						gAnnots.add(taxonId + "\t" + taxon);
 					}
