@@ -441,12 +441,20 @@ public class Queries {
 		"predicate_node.uid AS predicate_uid, " +
 		"predicate_node.label AS predicate_label, " +
 		"object_node.uid AS object_uid, " +
-		"object_node.label AS object_label " +
+		"object_node.label AS object_label, " +
+		"rank_node.uid AS rank_uid, " +
+		"rank_node.label AS rank_label " +
 		"FROM link " +
 		"JOIN node AS predicate_node ON (predicate_node.node_id = link.predicate_id) " +
 		"JOIN node AS object_node ON (object_node.node_id = link.object_id) " +
 		"JOIN node AS subject_node ON (subject_node.node_id = link.node_id AND " +
 		"	subject_node.node_id = (SELECT node_id FROM node WHERE uid = ?)) " +
+		"LEFT OUTER JOIN (link AS has_rank_link " +
+		"JOIN node AS rank_node ON " +
+		"(has_rank_link.object_id = rank_node.node_id AND " +
+		"		has_rank_link.predicate_id = (SELECT node_id FROM node WHERE uid = 'has_rank') AND 	" +
+		"		has_rank_link.is_inferred = 'f')) " +
+		"ON (has_rank_link.node_id = object_node.node_id) " +
 		"WHERE " +
 		"link.is_inferred = 'f' AND " +
 		"object_node.label IS NOT NULL AND " +
@@ -461,12 +469,20 @@ public class Queries {
 		"predicate_node.uid AS predicate_uid, " +
 		"predicate_node.label AS predicate_label, " +
 		"object_node.uid AS object_uid, " +
-		"object_node.label AS object_label " +
+		"object_node.label AS object_label, " +
+		"rank_node.uid AS rank_uid, " + 
+		"rank_node.label AS rank_label " + 
 		"FROM link " +
 		"JOIN node AS predicate_node ON (predicate_node.node_id = link.predicate_id) " +
 		"JOIN node AS subject_node ON (subject_node.node_id = link.node_id) " +
 		"JOIN node AS object_node ON (object_node.node_id = link.object_id AND " +
 		"	object_node.node_id = (SELECT node_id FROM node WHERE uid = ?)) " +
+		"LEFT OUTER JOIN (link AS has_rank_link " + 
+		"JOIN node AS rank_node " + 
+		"ON (rank_node.node_id = has_rank_link.object_id AND " +
+		"	has_rank_link.predicate_id = (SELECT node_id FROM node WHERE uid = 'has_rank') AND " +
+		"	has_rank_link.is_inferred = 'f')) " +
+		"ON (has_rank_link.node_id = subject_node.node_id) " +
 		"WHERE " +
 		"link.is_inferred = 'f' AND " +
 		"subject_node.label IS NOT NULL AND " +

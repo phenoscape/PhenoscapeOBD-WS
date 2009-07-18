@@ -140,6 +140,7 @@ public class TermResource extends Resource {
 		Set<JSONObject> synonyms = new HashSet<JSONObject>();
 		
 		String relationId, relationName, targetId, targetName, subjectId, subjectName;
+		String rankId, rank;
 		String comment = "", definition = "";
 		String synonym;
 		
@@ -159,6 +160,8 @@ public class TermResource extends Resource {
 				relationName = rsForParentQuery.getString(4);
 				targetId = rsForParentQuery.getString(5);
 				targetName = rsForParentQuery.getString(6);
+				rankId = rsForParentQuery.getString(7);
+				rank = rsForParentQuery.getString(8);
 				if(!relationId.contains("DbXref")){ //avoid DbXrefs
 					JSONObject parent = new JSONObject();
 					JSONObject relation = new JSONObject();
@@ -169,6 +172,14 @@ public class TermResource extends Resource {
 					target.put("name", targetName);
 					parent.put("relation", relation);
 					parent.put("target", target);
+					if(rankId != null){
+						JSONObject rankObj = new JSONObject();
+						rankObj.put("id", rankId);
+						rankObj.put("name", rank);
+						target.put("rank", rankObj);
+						rankId = null;
+						rank = null;
+					}
 					parents.add(parent);
 				}
 			}
@@ -181,6 +192,8 @@ public class TermResource extends Resource {
 				subjectName = rsForChildrenQuery.getString(2);
 				relationId = rsForChildrenQuery.getString(3);
 				relationName = rsForChildrenQuery.getString(4);
+				rankId = rsForChildrenQuery.getString("rank_uid");
+				rank = rsForChildrenQuery.getString("rank_label");
 				if(!relationId.contains("DbXref")){ //avod DBXrefs
 					JSONObject child = new JSONObject();
 					JSONObject relation = new JSONObject();
@@ -191,6 +204,14 @@ public class TermResource extends Resource {
 					target.put("name", subjectName);
 					child.put("relation", relation);
 					child.put("target", target);
+					if(rankId != null){
+						JSONObject rankObj = new JSONObject();
+						rankObj.put("id", rankId);
+						rankObj.put("name", rank);
+						target.put("rank", rankObj);
+						rankId = null;
+						rank = null;
+					}
 					children.add(child);
 				}
 			}
