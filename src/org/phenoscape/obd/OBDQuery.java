@@ -65,7 +65,19 @@ public class OBDQuery {
 	public Map<String, Set<String>> getPrefixToDefaultNamespacesMap() {
 		return prefixToDefaultNamespacesMap;
 	}
-
+	
+	/**
+	 * Mapping for how to represent relations used in post-comp differentia when generating a human-readable label.
+	 * If the relation is not in this map, use "of".
+	 */
+	private static final Map<String, String> POSTCOMP_RELATIONS = new HashMap<String, String>();
+    static {
+        POSTCOMP_RELATIONS.put("OBO_REL:connected_to", "on");
+        POSTCOMP_RELATIONS.put("connected_to", "on");
+        POSTCOMP_RELATIONS.put("anterior_to", "anterior to");
+        POSTCOMP_RELATIONS.put("posterior_to", "posterior to");
+        POSTCOMP_RELATIONS.put("adjacent_to", "adjacent to");
+    }
 
 	/**
 	 * This is the default constructor. 
@@ -372,40 +384,6 @@ public class OBDQuery {
 		}
 		return false;
 	}
-
-	 /**
-     * @PURPOSE: This method takes a post composition and creates a 
-     * legible label for it. Because the label field in the DB is null
-     * for post composed terms
-     * @PROCEDURE: This method substitutes all UIDs with approp. labels eg. 
-     * TAO:0001173 with 'Dorsal fin'. Carats (^) are replaced with the string 
-     * " that is " (Paula Mabee, Email Comm. 061209) and underscores are replaced 
-     * with white spaces.
-     * Note - this method uses regular expressions which make assumptions about the node identifer.
-     * Use the label() methods instead.
-     * @param cd - CompositionalDescription. is of the form (<entity_uid>^ <rel_uid>(<entity_uid>)
-     * @return label - is of the form (<entity_label> <rel_label> <entity_label>
-     */
-	@Deprecated
-	public String resolveLabel(String cd){
-		String label = cd.replaceAll("\\^", " that is ");
-		label = label.replaceAll("\\(", " ");
-		label = label.replaceAll("\\)", " ");
-		String oldLabel = label;
-		/* A PATTERN FOR UIDS */
-		Pattern pat = Pattern.compile("[A-Z]+_?[A-Z]*:[0-9a-zA-Z]+_?[0-9a-zA-Z]*");
-		Matcher m = pat.matcher(oldLabel);
-		while(m.find()){
-			String s2replace = oldLabel.substring(m.start(), m.end());
-			String replaceS = shard.getNode(s2replace).getLabel();
-			if(replaceS == null)
-				replaceS = s2replace.substring(s2replace.indexOf(":") + 1);
-			label = label.replace(s2replace, replaceS);
-		}
-		label = label.replace("_", " ");
-		label = label.trim();
-		return label;
-	}
 	
 	 /**
      * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
@@ -469,8 +447,17 @@ public class OBDQuery {
                 return node.getId();
             }
             for (CompositionalDescription differentium : differentiaArguments) {
+                final String relationID = differentium.getRestriction().getRelationId();
+                final String relationSubstitute;
+                if (POSTCOMP_RELATIONS.containsKey(relationID)) {
+                    relationSubstitute = POSTCOMP_RELATIONS.get(relationID);
+                } else {
+                    relationSubstitute = "of";
+                }
                 final StringBuffer buffer = new StringBuffer();
-                buffer.append(" of ");
+                buffer.append(" ");
+                buffer.append(relationSubstitute);
+                buffer.append(" ");
                 buffer.append(simpleLabel(differentium.getRestriction().getTargetId()));
                 differentia.add(buffer.toString());
             }
