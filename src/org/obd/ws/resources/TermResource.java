@@ -14,6 +14,8 @@ import org.obd.model.Node;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
+import org.obd.ws.util.TTOTaxonomy;
+import org.obd.ws.util.dto.NodeDTO;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -38,6 +40,8 @@ public class TermResource extends Resource {
 	private Connection conn;
 	
 	private OBDQuery obdq; 
+	private TTOTaxonomy ttoTaxonomy; 
+	
    /**
     * This constructor initializes and instantiates the instance parameters. It also gets the 
     * form input parameter
@@ -53,6 +57,7 @@ public class TermResource extends Resource {
 		this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
 		this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
 		this.termId = Reference.decode((String) (request.getAttributes().get("termID")));
+		this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
 	}
 
 	/**
@@ -151,7 +156,16 @@ public class TermResource extends Resource {
 			if(termLabel == null)
 				termLabel = obdq.simpleLabel(termId);
 			jsonObj.put("name", termLabel);
-						
+			
+			if(termId.startsWith("TTO")){
+				NodeDTO taxonDTO = new NodeDTO(termId);
+				taxonDTO.setName(termLabel);
+				if(ttoTaxonomy.getSetOfExtinctTaxa().contains(taxonDTO))
+					jsonObj.put("extinct", true);
+				else
+					jsonObj.put("extinct", false);
+			}
+			
 			PreparedStatement parentOfTermStmt = conn.prepareStatement(queries.getParentOfTermQuery());
 			parentOfTermStmt.setString(1, termId);
 			ResultSet rsForParentQuery = parentOfTermStmt.executeQuery();
