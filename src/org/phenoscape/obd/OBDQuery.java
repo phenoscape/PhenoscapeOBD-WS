@@ -202,6 +202,10 @@ public class OBDQuery {
 					throw ex;
 				}
 			}
+			if(conn != null){
+				conn.commit();
+				conn.close();
+			}
 		}
 		
 		return results;
@@ -261,6 +265,10 @@ public class OBDQuery {
 					log.error(ex);
                     // let's not worry further about the close() failing
 					throw ex;
+				}
+				if(conn != null){
+					conn.commit();
+					conn.close();
 				}
 			}
 		}
@@ -361,7 +369,11 @@ public class OBDQuery {
                 		log.error(ex);
                 		// let's not worry further about the close() failing
                             }
-                        }
+            }
+			if(conn != null){
+				conn.commit();
+				conn.close();
+			}
 		}
 		return results;
 	}
@@ -599,6 +611,11 @@ public class OBDQuery {
 								synonymMatches);
 		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), 
 								definitionMatches);
+		if(conn != null){
+			conn.commit();
+			conn.close();
+		}
+			
 		return resultsFromDifferentCategories;
 	}
 	
