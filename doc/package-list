@@ -1,0 +1,6 @@
+org.obd.ws.application
+org.obd.ws.exceptions
+org.obd.ws.resources
+org.obd.ws.util
+org.obd.ws.util.dto
+org.phenoscape.obd
