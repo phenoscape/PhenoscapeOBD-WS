@@ -15,7 +15,7 @@ import org.obd.ws.util.dto.PhenotypeDTO;
 
 /**
  * @author cartik
- * @PURPOSE The purpose of this class is to create a tree of annotations
+ * The purpose of this class is to create a tree of annotations
  * from an input of phenotypes. The tree is rooted at the MRCA of the 
  * taxa from the input phenotypes
  */
@@ -40,9 +40,9 @@ public class TaxonomyBuilder {
 		return tree;
 	}
 	/**
-	 * @PURPOSE This constructor takes in a list of phenotypes and 
+	 * This constructor takes in a list of phenotypes and 
 	 * generates a Taxon Tree, with annotations at each node 
-	 * of the tree. It uses the Teleost Taxonomy (TTOTaxonomy)
+	 * of the tree. It uses the Teleost Taxonomy {@link TTOTaxonomy} 
 	 * class for this purpose
 	 * @param ttoTaxonomy  taxonomically arranged TTO nodes
 	 * @param phenotypeColl input phenotypes
@@ -78,7 +78,7 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE This method takes in a list of taxa and returns their MRCA
+	 * This method takes in a list of taxa and returns their MRCA
 	 * @param taxa - the list of taxa whose MRCA is to be determined
 	 * @param mrca - the current MRCA
 	 * @return the MRCA of the entire list of taxa
@@ -92,8 +92,8 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE A helper method to find the MRCA of any two given taxa.
-	 * @NOTE this is an overloaded method and is private access only
+	 * A helper method to find the MRCA of any two given taxa.
+	 * this is an overloaded method
 	 * @param oClass - one of the two taxa
 	 * @param mrca - the other taxon
 	 * @return - the mrca of the two taxa
@@ -113,10 +113,10 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE A utility method to return the intersection of two paths
+	 * A utility method to return the intersection of two paths
 	 * @param pathFromOclass - path from one taxon to the root
 	 * @param pathFromMrca - path from the other txon to the root
-	 * @return - the intersection of the two paths
+	 * @return - the intersection node of the two paths
 	 */
 	private NodeDTO findBranchingPointInPaths(List<NodeDTO> pathFromOclass,
 			List<NodeDTO> pathFromMrca) {
@@ -131,7 +131,7 @@ public class TaxonomyBuilder {
 	 * A method to trace the path from the input node to
 	 * the MRCA of the tree
 	 * @param nodeDTO
-	 * @return
+	 * @return a path from the given node to the MRCA of the tree
 	 */
 	private List<NodeDTO> getPathToMrca(NodeDTO nodeDTO){
 		List<NodeDTO> pathToTTORoot = 
@@ -144,7 +144,6 @@ public class TaxonomyBuilder {
 	 * Constructs a taxon tree from the input list of 
 	 * phenotype DTOs, complete with EQ annotations for
 	 * every node, annotation count, and reif ids
-	 * @return
 	 * @throws IOException
 	 * @throws DataAdapterException
 	 */
@@ -158,7 +157,7 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE This method updates the phenotypes of all the ancestor nodes 
+	 * This method updates the phenotypes of all the ancestor nodes 
 	 * of the taxon of the input assertion
 	 * @param phenotype - the input taxon to phenotype assertion
 	 */
@@ -188,13 +187,13 @@ public class TaxonomyBuilder {
 		tree.setNodeToListOfEQCRListsMap(nodeToListOfEQCRListsMap);
 	}
 	/**
-	 * @PURPOSE This method is used to consolidate reif ids at nodes, which already have the
+	 * This method is used to consolidate reif ids at nodes, which already have the
 	 * input phenotype. 
 	 * @param phenotype - the input phenotype
 	 * @param listOfEqcrLists - the existing set of phenotype annotations for the node
 	 * @param isLeafNode - a boolean that tells if the node that is being handled has the phenotype
 	 * directly asserted to it if TRUE, or if FALSE, it is a higher node in the taxonomy 
-	 * @return
+	 * @return an EQCR list with the reif ids consolidated in a comma delimited list
 	 */
 	private List<List<String>> consolidateReifIds(PhenotypeDTO phenotype, List<List<String>> listOfEqcrLists, 
 			boolean isLeafNode){
@@ -220,12 +219,12 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE A method to check if the input phenotype matches an eqcr representation;
+	 * A method to check if the input phenotype matches an eqcr representation;
 	 * specifically, the Entity Quality Character of the EQCR. The R (Reif Id) is not
 	 * considered
 	 * @param phenotype - the input phenotype
 	 * @param eqcrList - the eqcr List against which the input phenotype is compared
-	 * @return
+	 * @return a boolean to indicate a match between the input phenotype and the eqcr List
 	 */
 	private boolean isPhenotypeSameAsEqcrList(PhenotypeDTO phenotype, List<String> eqcrList){
 		String e = eqcrList.get(0);
@@ -250,12 +249,12 @@ public class TaxonomyBuilder {
 	}
 	
 	/**
-	 * @PURPOSE This method adds the new phenotype to the existing loist of EQCRs associated with the node
+	 * This method adds the new phenotype to the existing loist of EQCRs associated with the node
 	 * @param phenotype - the input phenotype
 	 * @param listOfEQCRLists - the existing eqcr lists for the node
 	 * @param isLeafNode - a boolean that tells if the node that is being handled has the phenotype
 	 * directly asserted to it if TRUE, or if FALSE, it is a higher node in the taxonomy  
-	 * @return
+	 * @return a list of EQCR lists
 	 */
 	private List<List<String>> addPhenotypeToListOfEQCRLists(PhenotypeDTO phenotype, List<List<String>> listOfEQCRLists, 
 			boolean isLeafNode){

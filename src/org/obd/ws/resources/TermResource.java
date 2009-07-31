@@ -48,8 +48,8 @@ public class TermResource extends Resource {
     * @param context - the context of the application
     * @param request - the request coming to the REST service endpoint interface
     * @param response - the response going out
- * @throws SQLException 
- * @throws ClassNotFoundException 
+    * @throws SQLException 
+    * @throws ClassNotFoundException 
     */
 	public TermResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
 		super(context, request, response);
@@ -92,7 +92,7 @@ public class TermResource extends Resource {
 			return null;
 		} catch (ClassNotFoundException e) {
 			log().fatal(e);
-			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Clas not found Exception");
+			getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "Class not found Exception");
 			return null;
 		} finally{
 			disconnectShardFromDatabase();
@@ -208,7 +208,7 @@ public class TermResource extends Resource {
 				relationName = rsForChildrenQuery.getString(4);
 				rankId = rsForChildrenQuery.getString("rank_uid");
 				rank = rsForChildrenQuery.getString("rank_label");
-				if(!relationId.contains("DbXref")){ //avod DBXrefs
+				if(!relationId.contains("DbXref")){ //avoid DBXrefs
 					JSONObject child = new JSONObject();
 					JSONObject relation = new JSONObject();
 					JSONObject target = new JSONObject();

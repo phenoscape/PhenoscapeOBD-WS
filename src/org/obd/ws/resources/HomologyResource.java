@@ -37,6 +37,15 @@ public class HomologyResource extends Resource {
     private Queries queries;
     private TTOTaxonomy ttoTaxonomy;
     
+    /**
+     * Constructor method
+     * Instantiates all instance variables
+     * @param context
+     * @param request
+     * @param response
+     * @throws SQLException
+     * @throws ClassNotFoundException
+     */
     public HomologyResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
         super(context, request, response);
         this.obdsqlShard = new OBDSQLShard();
@@ -47,6 +56,14 @@ public class HomologyResource extends Resource {
         this.jObjs = new JSONObject();
     }
 
+    /**
+     * The most important method in this class. This method 
+     * - Checks for validity of input term
+     * - connects Shard to the database 
+     * - calls {@link #getHomologyData(String)} to execute query for homology data
+     * - calls {@link #assembleJSONObjectFromResults(List)} method to assemble
+     *  results of query execution into a JSON object
+     */
     public Representation represent(Variant variant) throws ResourceException {
 
     	List<List<String[]>> results;
@@ -112,10 +129,11 @@ public class HomologyResource extends Resource {
     }
     
     /**
-     * @PURPOSE This method returns homology statements associated with the input term Id as a data structure
-     * @INFO Data is retrieved in the form 
-     * <Left Hand Entity><Left Hand Taxon><Right Hand Entity><Right Hand Taxon><Publication><Evidence Code><Evidence>
+     * PURPOSE This method returns homology statements associated with the input term Id as a data structure
+     * Data is retrieved in the form\n 
+     * <Left Hand Entity><Left Hand Taxon><Right Hand Entity><Right Hand Taxon><Publication><Evidence Code><Evidence>\n
      * @param termId
+     * @return a data structure containing the results of the homology query execution
      * @throws SQLException
      */
     private List<List<String[]>> getHomologyData(String termId) throws SQLException{
@@ -137,8 +155,6 @@ public class HomologyResource extends Resource {
     	
     	try{
     		for(HomologDTO node: obdq.executeHomologyQueryAndAssembleResults(termId)){
-    			 //Node properties stores every attribute of the given node with its value
-				//extract all the attributes of the given node
 				lhEntityId = node.getLhEntityId();
 				lhEntity = node.getLhEntity();
 				lhTaxonId = node.getLhTaxonId();
@@ -201,7 +217,8 @@ public class HomologyResource extends Resource {
 
     /**
      * This method assembles a JSON object from the input data structure
-     * @param results - the results from the query execution in a data structure
+     * @param results - the data structure containing the results of the query execution. This
+     * data structure is obtained from the {@link #getHomologyData(String)} method
      * @throws JSONException
      */
     private void assembleJSONObjectFromResults(List<List<String[]>> results) throws JSONException{

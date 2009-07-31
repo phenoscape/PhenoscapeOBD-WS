@@ -7,12 +7,14 @@ import org.apache.log4j.Logger;
 import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
 
-public class Queries {
 /**
- * @PURPOSE: This class works with queries. Stores them as instance variables and processes them so they are
+ * PURPOSE: This class works with queries. Stores them as instance variables and processes them so they are
  * available for other classes which need to implement thesse queries
  * @author cartik 
  */
+
+public class Queries {
+
 	/*
 	 * relationNodeIds is a map of actual relation nodes ids that are used in links and the
 	 * node ids they are associated in the database. For example, a row from the NODE table 
@@ -51,7 +53,7 @@ public class Queries {
 	
 	private static final String OBO_COMMENT_TAG_ID = "oboInOwl:comment";
 	
-	/*
+	/**
 	 * An enumeration to keep track of the patterns to look for
 	 * in the raw query
 	 */
@@ -95,6 +97,10 @@ public class Queries {
 	 * These are the queries we are using now. 
 	 */
 	
+	/**
+	 * INPUT: An anatomical entity (E)
+	 * This is a variant of the {@link #anatomyQuery} 
+	 */
 	private String genericPhenotypeQuery = 
 		"SELECT " +
 		"p1.phenotype_uid AS phenotype_uid, " +
@@ -118,7 +124,7 @@ public class Queries {
 		"p2.entity_nid = (SELECT node_id FROM node WHERE uid = ?)" ;
 	
 	/**
-	 * @INPUT: An anatomical entity (E)
+	 * INPUT: An anatomical entity (E)
 	 * This query finds all the phenotypes (P) associated with a given anatomical entity. From the found phenotypes (P), 
 	 * this query finds the related taxa (T), genes (G), qualities (Q), and characters (C)that these qualities (Q) 
 	 * are attributes of 
@@ -147,7 +153,7 @@ public class Queries {
 		"p2.entity_uid = ?";
 	
 	/**
-	 * @INPUT: A gene (G)
+	 * INPUT: A gene (G)
 	 * This query finds the anatomical entity - quality (EQ) combinations expressed by the input gene.
 	 * Then it finds the characters (C) for the qualities (Q) directly associated with the gene to
 	 * find a list of entity-character (EC) combinations. 
@@ -185,7 +191,7 @@ public class Queries {
 		")";
 	
 	/**
-	 * @INPUT: A taxon (T)
+	 * INPUT: A taxon (T)
 	 * This query retrieves all the entities (E), qualities (Q), and characters (C)
 	 * that are associated with the input taxon (T) and its subtaxa (ST)
 	 */
@@ -215,7 +221,7 @@ public class Queries {
 		"search_node.uid = ?";
 	
 	/**
-	 * @INPUT: A gene (G)
+	 * INPUT: A gene (G)
 	 * This query retrieves all the Entities (E), Qualities (Q), and Characters (C) associated
 	 * with the given gene (G) through the expressed phenotypes (P)
 	 */
@@ -240,7 +246,7 @@ public class Queries {
 		"p1.subject_uid = ?";
 	
 	/**
-	 * @INPUT: A taxon (T)
+	 * INPUT: A taxon (T)\n
 	 * This query finds all the phenotypes (P) directly associated with input taxon (T)
 	 * and its subtaxa (ST). Then it retrieves the unique Entity-Character (EC) 
 	 * combinations from the phenotypes (P). Lastly, it finds all the genes (G) associated 
@@ -304,7 +310,7 @@ public class Queries {
 		")";
 	
 	/**
-	 * @INPUT - An anatomical entity (E)
+	 * INPUT - An anatomical entity (E)
 	 * This query finds all the homologous entities (E1) and associated taxa (T1) of
 	 * a given input entity (E). The referenced publications and 
 	 * evidence codes are also retrieved.  
@@ -354,7 +360,7 @@ public class Queries {
 	
 	
 	/**
-	 * @INPUT a reif_link_node_id that keeps track of metadata about the <TAXON><EXHIBITS><PHENOTYPE> assertion
+	 * INPUT a reif_link_node_id that keeps track of metadata about the <TAXON><EXHIBITS><PHENOTYPE> assertion\n
 	 * This query is used to retrieve metadata about a <TAXON><EXHIBITS><PHENOTYPE> assertion, such
 	 * as publications, text notes about the state and character, and the curators names as well. 
 	 * The <TAXON> <ENTITY> <QUALITY> triple is retrieved as well
@@ -380,7 +386,7 @@ public class Queries {
 		"WHERE " +
 		"reif_id = ?";
 
-	/** @GROUP Query part for auto completion  
+	/** GROUP Query part for auto completion  
 	 * The main query string for auto completion. */
 	private String autocompleteLabelQuery =
 		"SELECT " +
@@ -392,7 +398,7 @@ public class Queries {
 		"FROM node AS n " +
 		"WHERE " +
 		"lower(n.label) LIKE ";
-	/** @GROUP Query part for auto completion  
+	/** GROUP Query part for auto completion  
 	 * The synonym query string */
 	private String autocompleteSynonymQuery = 
 		"SELECT " +
@@ -405,7 +411,7 @@ public class Queries {
 		"WHERE " +
 		"a.node_id = n.node_id AND " +
 		"lower(a.label) LIKE ";
-	/** @GROUP Query part for auto completion  
+	/** GROUP Query part for auto completion  
 	 * The definition query string */
 	private String autocompleteDefinitionQuery = 
 		"SELECT " +
@@ -618,7 +624,7 @@ public class Queries {
 	 * This method cycles through the input query and replaces all the patterns from the enumeration 
 	 * that it finds in the query with the correct node id
 	 * @param query
-	 * @return
+	 * @return the raw query where the search patterns are replaced with actual node ids
 	 */
 	public String replacePatternsWithIds(String query){
 		String repQuery = query;
@@ -630,7 +636,6 @@ public class Queries {
 
 	/**
 	 * A getter method for the map
-	 * @return
 	 */
 	public Map<String, Integer> getRelationNodeIds(){
 		return relationNodeIds;

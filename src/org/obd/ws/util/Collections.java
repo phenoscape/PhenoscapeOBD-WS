@@ -1,5 +1,9 @@
 package org.obd.ws.util;
 
+/**
+ * @author jim balhoff
+ */
+
 import java.util.Collection;
 import java.util.Iterator;
 

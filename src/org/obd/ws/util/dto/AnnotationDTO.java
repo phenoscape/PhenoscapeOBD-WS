@@ -1,7 +1,7 @@
 package org.obd.ws.util.dto;
 
 /**
-* @PURPOSE This is a Data Transfer Object to be used for
+* This is a Data Transfer Object to be used for
 * ferrying the annotation data retrieved by SQL queries to the 
 * REST services in a defacto persistence layer
 * @author cartik

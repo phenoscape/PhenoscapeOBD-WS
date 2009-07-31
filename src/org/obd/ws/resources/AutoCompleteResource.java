@@ -37,7 +37,7 @@ public class AutoCompleteResource extends Resource {
 	private String searchTerm;
 	private String synonymOption;
 	private String definitionOption;
-	/** The list of ontologies whose terms are to be matched against */
+	/** The list of ontologies whose terms are to be searched */
 	private String ontologyOption;	
 	
 	private JSONObject jObjs;
@@ -77,6 +77,11 @@ public class AutoCompleteResource extends Resource {
 	private static final String INPUT_ONTOLOGY_STRING = "ontology";
 	private static final String INPUT_LIMIT_STRING = "limit";
 	
+	/**
+	 * This comparator is used to order collections of JSON objects. 
+	 * The property values for the {@literal #MATCH_TEXT_STRING} is used 
+	 * to compare the JSON objects 
+	 */
 	private static final Comparator<JSONObject> MATCHES_COMPARATOR = new Comparator<JSONObject>() {
 		public int compare(JSONObject o1, JSONObject o2) {
 			try {
@@ -88,8 +93,9 @@ public class AutoCompleteResource extends Resource {
 	};
 	
 	/**
-	 * @PURPOSE This construnctor instantiates all the instance variables and also
-	 * reads in the form parameters. It also does a little work towards seeting up the final query
+	 * PURPOSE This construnctor instantiates all the instance variables and also
+	 * reads in the form parameters. It also does a little work towards setting up the final query
+	 * to be executed\n
 	 * @param context - the application context
 	 * @param request - the Rest request
 	 * @param response - the Rest response
@@ -131,7 +137,7 @@ public class AutoCompleteResource extends Resource {
 	
 	/**
 	 * A method to check if input parameters from the form are valid
-	 * @return
+	 * @return a boolean to indicate if the input form parameters are valid
 	 */
 	private boolean inputFormParametersAreValid(){
 		if(searchTerm == null){
@@ -216,11 +222,10 @@ public class AutoCompleteResource extends Resource {
     }
     
 	/**
-	 * This method arranges the user defined options and invokes the OBDQuery method to find
+	 * This method arranges the user defined options and invokes the 
+	 * {@link OBDQuery#getAutocompletionsForSearchTerm(String, Map)}  method to find
 	 * label (default), synonym and definition (optional) matches for the search string. 
-	 * @param searchTerm - search string
-	 * @param options - contains the definition, synonym, and ontology restriction options
-	 * @return
+	 * @return JSON object to be sent to the UI
 	 * @throws IOException
 	 * @throws SQLException
 	 * @throws ClassNotFoundException
@@ -294,7 +299,7 @@ public class AutoCompleteResource extends Resource {
 	}
 
    /**
-    * @PURPOSE This method uses the {@link MATCHES_COMPARATOR} to sort
+    * PURPOSE This method uses the {@link #MATCHES_COMPARATOR} to sort
     * the input set of JSON Objects in such a way that:
     * + objects containing labels and synonyms, which start with the search term are
     *   sorted first

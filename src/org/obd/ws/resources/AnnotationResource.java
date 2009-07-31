@@ -26,17 +26,17 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 
+/**
+ * The purpose of this resource is to invoke a query
+ * for a given row, which retrieves all the metadata
+ * such as publications, curators, and notes in free text
+ * about the row. These retrieved results are packaged
+ * into a JSON Object, which is returned to the REST
+ * endpoint
+ */
+
 public class AnnotationResource extends Resource {
 
-	/**
-	 * The purpose of this resource is to invoke a query
-	 * for a given row, which retrieves all the metadata
-	 * such as publications, curators, and notes in free text
-	 * about the row. These retrieved results are packaged
-	 * into a JSON Object, which is returned to the REST
-	 * endpoint
-	 */
-	
 	private final String driverName = "jdbc:postgresql://"; 
 	
 	private JSONObject jObjs;
@@ -71,10 +71,9 @@ public class AnnotationResource extends Resource {
 
     /**
      * The core method for this class. This method invokes
-     * the 'getMetadata' method, which indirectly sets up
-     * the metadata query to be executed against the database. 
-     * The results from the 'getmetadata' method are 
-     * packaged into a JSON Object in this method
+     * the {@link #getMetadata(String)} method to execute the query. The results are 
+     * packaged into a JSON Object using the {@link #assembleJSONObjectFromAnnotations(List)}
+     * method
      */
     public Representation represent(Variant variant) throws ResourceException {
     	
@@ -106,8 +105,8 @@ public class AnnotationResource extends Resource {
     }
     
     /**
-     * This method reads in db connection parameters from app context and connects the Shard to the
-     * database
+     * This method reads in db connection parameters from app context before connecting
+     * the Shard to the database
      * @throws SQLException
      * @throws ClassNotFoundException
      */
@@ -131,17 +130,16 @@ public class AnnotationResource extends Resource {
     }
     
     /**
-     * @PURPOSE This method invokes the metadata query from
+     * PURPOSE This method invokes the metadata query from
      * the Queries object and loads it for execution by invoking
-     * the 'executeFreeTextQueryAndAssembleResults' method from the
-     * OBDQuery class. The results from this invocation are
-     * packaged into a data structure and returned to the 
-     * calling method
+     * the {@link OBDQuery#executeFreeTextQueryAndAssembleResults(Integer)} method. 
+     * The results from this invocation are packaged into a data 
+     * structure and returned to the calling {@link #represent(Variant)} method 
      * @param annotId - the id (INTEGER type) which connects the row
      * to all its metadata such as publications, curators names, 
      * character text, state text etc. This is cast into an Integer before the 
      * appropriate method from {@link OBDQuery} class is invoked
-     * @return
+     * @return - a data structure which is input to the {@link #assembleJSONObjectFromAnnotations(List)} method
      * @throws SQLException
      */
     private List<List<String[]>> getMetadata(String annotId) throws SQLException{
@@ -158,8 +156,6 @@ public class AnnotationResource extends Resource {
     	try{
     		for(String id : annotIds){
     			for(AnnotationDTO node : obdq.executeFreeTextQueryAndAssembleResults(Integer.parseInt(id))){
-   			 		//Node properties stores every attribute of the given node with its value
-				
     				taxonId = node.getTaxonId();
     				taxon = node.getTaxon();
     				entityId = node.getEntityId();
@@ -196,7 +192,8 @@ public class AnnotationResource extends Resource {
     }
     
     /**
-     * This method takes in a data structure of the annotations and 
+     * This method takes in a data structure of the annotations 
+     * obtained from the {@link #getMetadata(String)} method and 
      * converts it into a formatted JSON object
      * @param annots
      * @throws JSONException
@@ -260,7 +257,6 @@ public class AnnotationResource extends Resource {
     
     /**
      * This method returns a logger (log4j)
-     * @return
      */
     private Logger log() {
         return Logger.getLogger(this.getClass());

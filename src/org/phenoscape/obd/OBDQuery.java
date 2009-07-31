@@ -11,13 +11,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.obd.model.CompositionalDescription;
 import org.obd.model.Node;
-import org.obd.model.Statement;
 import org.obd.query.Shard;
 import org.obd.query.impl.AbstractSQLShard;
 import org.obd.ws.resources.AutoCompleteResource;
@@ -52,15 +49,14 @@ public class OBDQuery {
 	 * node ids in the database */
 	private Map<String, String> defaultNamespaceToNodeIdMap;
 	/** An enumeration of the possible match types for the 
-	 * {@link getAutocompletionsForSearchTerm} method	 */
+	 * {@see #getAutocompletionsForSearchTerm} method	 */
 	
-	/** @PURPOSE GETTER for the map from default namespaces of ontologies 
+	/** GETTER for the map from default namespaces of ontologies 
 	 * to their node ids in the database */
 	public Map<String, String> getDefaultNamespaceToNodeIdMap() {
 		return defaultNamespaceToNodeIdMap;
 	}
-	/** @PURPOSE  GETTER for the map from ontology prefixes to default namespaces
-	 * @return
+	/** GETTER for the map from ontology prefixes to default namespaces
 	 */
 	public Map<String, Set<String>> getPrefixToDefaultNamespacesMap() {
 		return prefixToDefaultNamespacesMap;
@@ -105,8 +101,8 @@ public class OBDQuery {
 	
 	/**
 	 * This constructor is meant for use by the auto completion and term info service. This is 
-	 * because this uses maps that are passed to it by the inovoking service. These services
-	 * obtain the maps from the application context level.  
+	 * because this uses maps that are passed to it by the invoking service. These services
+	 * obtain the maps from the application context  
 	 * @param shard
 	 * @param queries
 	 * @param nsToSourceIdMap 
@@ -121,12 +117,11 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @author cartik
 	 * @param reifLinkId - the search parameter for the SQL query. This is an INTEGER
 	 * which is provided by the invoking REST service. 
-	 * @return
+	 * @return a collection of DTOs, one for each row returned by the query
 	 * @throws SQLException
-	 * @PURPOSE The purpose of this query is to return all the free text data
+	 * The purpose of this query is to return all the free text data
 	 * (metadata) associated with a given <TAXON><EXHIBITS><PHENOTYPE> assertion
 	 * The metadata is packaged into a collection of Nodes which are then returned
 	 * back
@@ -212,13 +207,11 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @author cartik
-	 * @param queryString - the SQL query
 	 * @param searchTerm - the search parameter for the SQL query. This term comes from the REST 
 	 * service
 	 * @return a collection of nodes
 	 * @throws SQLException
-	 * @PURPOSE The purpose of this method is to retrieve all the homolog information from
+	 * The purpose of this method is to retrieve all the homolog information from
 	 * the database and package them into a collection of nodes. All the retrieved information
 	 * is added to these Nodes via links
 	 */
@@ -276,11 +269,11 @@ public class OBDQuery {
 	}
 	
 	/**@throws SQLException 
-	 * @PURPOSE The purpose of this method is to execute the given query with set search term and assemble the results into a 
-	 * makeshift persistence layer. The persistence layer is a collection of Nodes from the OBD model. Columns from each retrieved
-	 * row are packaged into a single Node object. The phenotype is the central entity in this querying procedure. 
+	 * The purpose of this method is to execute the given query with set search term and assemble the results into a 
+	 * makeshift persistence layer. The persistence layer is a collection of Data Transfer Objects. Each row is packaged into 
+	 * a single PhenotypeDTO object. The phenotype is the central entity in this querying procedure. 
 	 * Therefore, the IDs of the each node are set to be the retrieved phenotype. The method assembles
-	 * these nodes into a collection, which are returned
+	 * these DTOs into a collection, which are returned
 	 * @param queryStr - this is provided by the invoking REST service. This is the SQL query to be executed
 	 * @param searchTerm - the UID (eg: TAO:0000108) to search for. Also provided by the invoking REST service
 	 * @param filterOptions - the rows retrieved by the query execution are filtered through these values which are provided
@@ -314,7 +307,7 @@ public class OBDQuery {
 				/*
 				 * each retrieved row is filtered by passing the filterable values as arguments to a generic 
 				 * filtering method. if the filtering method returns a boolean true for a row, this row is
-				 * excluded from the results. if it returns false, then the row is packaged into a Node object
+				 * excluded from the results. if it returns false, then the row is packaged into a DTO
 				 * and added to the collection which is returned by this method
 				 */
 				
@@ -379,8 +372,8 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @param filterOptions. These are set by the calling method, they come directly from user input
-	 * @param filterableValues. These are the ids present in the various columns of the row that is being checked
+	 * @param filterOptions       These are set by the calling method, they come directly from user input
+	 * @param filterableValues    These are the ids present in the various columns of the row that is being checked
 	 * 
 	 * The purpose of this method is to check a row against the filter values. If the row contains ALL the filter values, 
 	 * ths method returns a false meaning the row is NOT to be filtered.
@@ -401,7 +394,6 @@ public class OBDQuery {
      * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
      * node's properties as a compositional descripton.
      * @param node The Node for which to return or generate a label.
-     * @author jim balhoff
      */
     public String semanticLabel(Node node) {
         if (node.getLabel() != null) {
@@ -430,7 +422,6 @@ public class OBDQuery {
      * Return a label for any node in a shard. If the node has no label, a label is generated recursively based on the 
      * node's properties as a compositional descripton.
      * @param id The identifier of a Node for which to return or generate a label.
-     * @author jim balhoff
      */
     public String semanticLabel(String id) {
         final Node node = this.shard.getNode(id);
@@ -443,9 +434,8 @@ public class OBDQuery {
     }
     
     /**
-     * @author jim balhoff
-     * @param node
-     * @return
+     * @param node - a post composition node
+     * @return - a human readable label generated from the post composition
      */
     public String simpleLabel(Node node) {
         if (node.getLabel() != null) {
@@ -483,28 +473,7 @@ public class OBDQuery {
     }
 	
 	/**
-	 * @PURPOSE: This method looks for information pertaining to a specific term
-	 * including parent and child nodes of the term
-	 * @author cartik
-	 * @param term
-	 * @return
-	 * THis method has been developed for generic term searches
-	 */
-	
-	public Set<Statement> genericTermSearch(String term, String source){
-		if(term == null){
-			throw new IllegalArgumentException("ERROR: Input parameter is null");
-		}
-		
-		Set<Statement> results = new HashSet<Statement>();
-                // search term first as subject, then as object of triples 
-		results.addAll(this.shard.getStatementsWithSearchTerm(term, null, null, source, false, false));
-		results.addAll(this.shard.getStatementsWithSearchTerm(null, null, term, source, false, false));
-		return results;
-	}
-	
-	/**
-	 * @PURPOSE This method uses the input search term from the form, and the 
+	 * This method uses the input search term from the form, and the 
 	 * specified search options to first construct an SQL query and then 
 	 * return the autocompletions returned by the query execution as a 
 	 * data structure to the {@link AutoCompleteResource}
@@ -524,9 +493,9 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @PURPOSE This method uses the input search term and input specified 
+	 * This method uses the input search term and input specified 
 	 * search options to construct an SQL query, which will be executed by the 
-	 * {@link executeAutocompletionQueryAndProcessResults} method
+	 * {@link #executeAutocompletionQueryAndProcessResults(String, List)} method
 	 * @param searchTerm - the input search term (comes from the form)
 	 * @param searchOptions - search options specified in the form
 	 * @return a SQL query string 
@@ -556,11 +525,11 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @PURPOSE This query executes the given query and iterates through the 
+	 * This query executes the given query and iterates through the 
 	 * returned result set to construct a data structure, which groups each
 	 * result under one of label match, synonym match or definition match
 	 * @param query - the SQL query, which is assembled by the 
-	 * {@link constructAutocompleteQueryFromSearchTermAndSearchOptions} method
+	 * {@link #constructAutocompleteQueryFromSearchTermAndSearchOptions(String, Map)} method
 	 * @return - a data structure which groups the autocompletions under
 	 * different categories viz. label match, synonym match and definition
 	 * match
@@ -620,7 +589,7 @@ public class OBDQuery {
 	}
 	
 	/**
-	 * @PURPOSE This method creates a list of source ids from the database
+	 * This method creates a list of source ids from the database
 	 * given the list of ontologies to be searched
 	 * @param searchOptions - the search options input from the 
 	 * form. This includes the list of ontologies to be searched 
@@ -643,9 +612,9 @@ public class OBDQuery {
 		return sourceIdList;
 	}
 	/**
-	 * @PURPOSE This method decides if a result is to be
+	 * This method decides if a result is to be
 	 * filtered given the source id.
-	 * @PROCEDURE The input source id is compared with the
+	 * The input source id is compared with the
 	 * list of source ids of the ontologies whose terms are
 	 * to be included in the results
 	 * @param sourceId - the source id of the result
@@ -669,7 +638,7 @@ public class OBDQuery {
 	
 	@Deprecated
 	/**
-     * @PURPOSE The purpose of this method is to return matching nodes for
+     * The purpose of this method is to return matching nodes for
      * autocompletion
 	 * @author cartik
 	 * @param term - search term

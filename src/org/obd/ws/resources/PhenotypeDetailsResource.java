@@ -115,7 +115,7 @@ public class PhenotypeDetailsResource extends Resource {
     * which is output at the endpoint interface. It calls methods
     * which check the input form data, execute the query and 
     * process the results into a JSON object for delivery to
-    * the client 
+    * the endpoint interface 
     * 
     */
 	public Representation represent(Variant variant) 
@@ -193,9 +193,9 @@ public class PhenotypeDetailsResource extends Resource {
     }
 	
 	/**
-	 * @PURPOSE: This method takes the nodes returned by OBDQuery class and packages them into a 
-	 * data structure, which will be processed by the caller {@link represent} method
-	 * @return 
+	 * PURPOSE: This method takes the nodes returned by OBDQuery class and packages them into a 
+	 * data structure, which will be processed by the caller {@link #represent()} method
+	 * @return a data structure containing the results of the query execution
 	 * @throws SQLException 
 	 * @throws IOException 
 	 * @throws DataAdapterException 
@@ -300,8 +300,10 @@ public class PhenotypeDetailsResource extends Resource {
 	/**
 	 * This method takes an input data structure and translates it
 	 * into a JSON Object
-	 * @param annots - the input data structure
-	 * @return
+	 * @param annots - data structure containing results of the phenotype
+	 * details query. This data structure is obtained from the {@link #getAnnotations()}
+	 * method 
+	 * @return a JSON object which is returned to the invoking {@link #represent(Variant)} method 
 	 * @throws ResourceException
 	 */
 	private JSONObject assembleJSONObjectFromDataStructure
@@ -389,7 +391,7 @@ public class PhenotypeDetailsResource extends Resource {
 	 * A helper method to handle reif ids coming through for the taxa. It 
 	 * parses a comma delimited list of reif ids and puts them into a set
 	 * @param oneOrMoreReifIds
-	 * @return
+	 * @return consolidated reif ids in a comma delimited set
 	 */
 	private Set<String> processReifIdsForTaxon(String oneOrMoreReifIds){
 		Set<String> reifIdSet = new HashSet<String>();
@@ -447,9 +449,9 @@ public class PhenotypeDetailsResource extends Resource {
 	}
 	
 	/**
-	 * @PURPOSE This method uses an input collection of taxon to 
+	 * PURPOSE This method uses an input collection of taxon to 
 	 * phenotype assertions to create a data structure, which is 
-	 * passed to the calling {@link getAnnotations} method
+	 * passed to the calling {@link #getAnnotations()} method
 	 * @param taxonToAssertionsMap - the data structure to be updated
 	 * @param phenotypeColl - the input set of taxon to phenotype assertions
 	 * @return - the input data structure after updates from the input set of 
@@ -478,7 +480,7 @@ public class PhenotypeDetailsResource extends Resource {
 	
 	/**
 	 * This is a helper method that processes the annotations from the tree and returns them to 
-	 * calling {@link generateTreeBasedDataStructureFromAssertions} method
+	 * calling {@link #generateTreeBasedDataStructureFromAssertions(Map, Collection)} method
 	 * @param taxonToAssertionsMap - the node to assertions map to be processed
 	 * @return the processed node to assertions map
 	 * @throws PhenoscapeTreeAssemblyException
@@ -516,10 +518,10 @@ public class PhenotypeDetailsResource extends Resource {
 	/**
 	 * This method generates a simple Taxon to List of Phenotypes
 	 * map from the input taxon to phenotype assertions, which is 
-	 * passed to the calling {@link getAnnotations} method
+	 * passed to the calling {@link #getAnnotations()} method
 	 * @param taxonToAssertionsMap - the map from taxa to phenotype assertions
 	 * @param phenotypeColl - the input collection of taxon to phenotype assertions
-	 * @return
+	 * @return a data structure containing all the assertions
 	 */
 	private Map<NodeDTO, List<List<String>>> 
 		generateSimpleDataStructureFromAssertions(

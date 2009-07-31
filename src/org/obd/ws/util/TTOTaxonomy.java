@@ -258,7 +258,7 @@ public class TTOTaxonomy {
 	 * of the taxonomy
 	 * @param node
 	 * @param path
-	 * @return
+	 * @return a path from the given node to the root of the tree
 	 */
 	private List<NodeDTO> tracePathToRootForNode(NodeDTO node, List<NodeDTO> path){
 		path.add(node);
@@ -304,8 +304,8 @@ public class TTOTaxonomy {
 	/**
 	 * A utility method to create a NodeDTO object from the 
 	 * input OBOClass
-	 * @param oboClass
-	 * @return
+	 * @param oboClass 
+	 * @return DTO object for the given oboClass
 	 */
 	private NodeDTO createNodeDTOFromOBOClass(OBOClass oboClass){
 		NodeDTO nodeDTO = new NodeDTO(oboClass.getID());

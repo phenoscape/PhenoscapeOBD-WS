@@ -1,5 +1,10 @@
 package org.obd.ws.util.dto;
 
+/**
+ * This is the most generic Data Transfer Object being used. It only
+ * comprises a label and an ID field 
+ *
+ */
 public class NodeDTO {
 	
 	private String id;

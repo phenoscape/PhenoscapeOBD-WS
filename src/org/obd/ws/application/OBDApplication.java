@@ -36,16 +36,13 @@ public class OBDApplication extends Application {
 	/** A structure to map default namespaces of ontologies to their
 	 * node ids in the database */
 	private Map<String, String> defaultNamespaceToNodeIdMap;
-	/** An enumeration of the possible match types for the 
-	 * {@link getAutocompletionsForSearchTerm} method	 */
 
-	/** @PURPOSE GETTER for the map from default namespaces of ontologies 
+	/** GETTER for the map from default namespaces of ontologies 
 	 * to their node ids in the database */
 	public Map<String, String> getDefaultNamespaceToNodeIdMap() {
 		return defaultNamespaceToNodeIdMap;
 	}
-	/** @PURPOSE  GETTER for the map from ontology prefixes to default namespaces
-	 * @return
+	/** GETTER for the map from ontology prefixes to default namespaces
 	 */
 	public Map<String, Set<String>> getPrefixToDefaultNamespacesMap() {
 		return prefixToDefaultNamespacesMap;
@@ -65,10 +62,26 @@ public class OBDApplication extends Application {
 	public static final String DB_HOST_NAME_STRING = "dbHost";
 	public static final String UID_STRING = "uid";
 	public static final String PWD_STRING = "pwd";
-    public OBDApplication(Context context){
+
+	/**
+	 * Constructor extends the default superclass constructor
+	 * @param context
+	 */
+	public OBDApplication(Context context){
         super(context);
     }
 
+	/**
+	 * Selects the Shard pointing to the most recently updated database to be used by the 
+	 * data services
+	 * Then this method sets a number of context level parameters
+	 * @throws SQLException
+	 * @throws ClassNotFoundException
+	 * @throws IOException
+	 * @throws ParseException
+	 * @throws PhenoscapeDbConnectionException
+	 * @throws DataAdapterException
+	 */
     private void connect() throws SQLException, ClassNotFoundException, IOException, ParseException, 
     				PhenoscapeDbConnectionException, DataAdapterException{
     	
@@ -102,6 +115,10 @@ public class OBDApplication extends Application {
         this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
 
+    /**
+     * The router method. 
+     * It holds mappings from URL patterns to the appropriate REST service to be invoked
+     */
     public Restlet createRoot() {
         try {
 				connect();
@@ -135,7 +152,7 @@ public class OBDApplication extends Application {
     }
 
     /**
-	 * @PURPOSE This method reads in the list of default namespaces from a file and
+	 * PURPOSE This method reads in the list of default namespaces from a file and
 	 * adds the corresponding node ids to a map
 	 * @throws IOException
 	 * @throws SQLException 
@@ -156,11 +173,11 @@ public class OBDApplication extends Application {
 	}
 	
 	/**
-	 * @PURPOSE This method constructs a mapping
+	 * PURPOSE This method constructs a mapping
 	 * from every prefix used in the autocompletion
 	 * service to the set of default namespaces of the
-	 * ontologies the prefix comes from
-	 * @PROCEDURE This method reads the allowed 
+	 * ontologies the prefix comes from\n
+	 * PROCEDURE This method reads the allowed 
 	 * prefix to namespace mappings from a static text 
 	 * file. This is converted into a map
 	 * @throws IOException

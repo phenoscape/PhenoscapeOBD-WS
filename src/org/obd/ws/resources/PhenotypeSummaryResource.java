@@ -53,7 +53,7 @@ public class PhenotypeSummaryResource extends Resource {
 	
 	/**
 	 * This is the contructor for this class. It reads in context paremeters and initializes local variables
-	 * It also reads in the 
+	 * It also reads in the form fields
 	 * @param context - The context of the application
 	 * @param request - The request coming in to the REST service endpoint interface
 	 * @param response - The response going out from the REST service endpoint interface
@@ -91,7 +91,9 @@ public class PhenotypeSummaryResource extends Resource {
 	 * The control method for the REST resource. 
 	 * All the checks for correct parameter values
 	 * are done here before the data processing methods
-	 * are invoked 
+	 * are invoked. Then the {@link #getAnnotationSummary(String, String, String, String)} method
+	 * is invoked to execute the query. The {@link #assembleJsonObjectFromResults(Map)}
+	 * is invoked to assemble the results of the query execution
 	 */
 	public Representation represent(Variant variant) 
             throws ResourceException {
@@ -134,7 +136,7 @@ public class PhenotypeSummaryResource extends Resource {
 
 	/**
 	 * This method checks if the input parametesrs from the form are valid
-	 * @return
+	 * @return a boolean to indicate if input form parameters are valid
 	 */
 	private boolean inputFormParametersAreValid(){
 		
@@ -206,7 +208,7 @@ public class PhenotypeSummaryResource extends Resource {
 	 * @param entity_id - can only be a TAO term (anatomical entity)
 	 * @param char_id - PATO character
 	 * @param pub_id - publication id or citation information
-	 * @return 
+	 * @return a data structure containing the results of the query execution
 	 * @throws SQLException 
 	 */
 	private Map<String, Map<String, List<Set<String>>>> 
