@@ -117,6 +117,49 @@ public class OBDQuery {
 	}
 	
 	/**
+	 * This query returns the timestamp when the database was refreshed
+	 * @return the timestamp
+	 * @throws SQLException
+	 */
+	public String executeTimestampQuery() throws SQLException{
+		String timestamp = "2009-07-24";
+		PreparedStatement pStmt = null;
+		
+		try{
+			pStmt = conn.prepareStatement(queries.getTimestampQuery());
+			log.trace(pStmt.toString());
+			long startTime = System.currentTimeMillis();
+			ResultSet rs = pStmt.executeQuery();
+			long endTime = System.currentTimeMillis();
+			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
+			if(rs.next()){
+				timestamp = rs.getString(1);
+			}
+			timestamp = timestamp.substring(0, timestamp.indexOf("_"));
+		}
+		catch(SQLException sqle){
+			log.error(sqle);
+			throw sqle;
+		}
+		finally {
+			if (pStmt != null) {
+				try { pStmt.close(); }
+				catch (SQLException ex) {
+					log.error(ex);
+                    // let's not worry further about the close() failing
+					throw ex;
+				}
+			}
+			if(conn != null){
+				conn.commit();
+				conn.close();
+			}
+		}
+		
+		return timestamp;
+	}
+	
+	/**
 	 * @param reifLinkId - the search parameter for the SQL query. This is an INTEGER
 	 * which is provided by the invoking REST service. 
 	 * @return a collection of DTOs, one for each row returned by the query

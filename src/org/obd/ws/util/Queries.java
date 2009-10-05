@@ -8,16 +8,18 @@ import org.obd.query.Shard;
 import org.obd.query.impl.OBDSQLShard;
 
 /**
- * PURPOSE: This class works with queries. Stores them as instance variables and processes them so they are
- * available for other classes which need to implement thesse queries
+ * This class contains queries (Strings), which are to be executed against the database
+ * to retrieve results for the different REST services 
+ * <p> Query Strings are processed before being accessed
+ * by methods from the {@link OBDQuery} class which executes them
  * @author cartik 
  */
 
 public class Queries {
 
-	/*
+	/**
 	 * relationNodeIds is a map of actual relation nodes ids that are used in links and the
-	 * node ids they are associated in the database. For example, a row from the NODE table 
+	 * node ids they are assigned by the database. For example, a row from the NODE table 
 	 * in the database would be
 	 * 
 	 * NODE_ID		UID				LABEL
@@ -54,7 +56,7 @@ public class Queries {
 	private static final String OBO_COMMENT_TAG_ID = "oboInOwl:comment";
 	
 	/**
-	 * An enumeration to keep track of the patterns to look for
+	 * An enumeration to keep track of the placeholder patterns to look for
 	 * in the raw query
 	 */
 	
@@ -96,6 +98,12 @@ public class Queries {
 	/*
 	 * These are the queries we are using now. 
 	 */
+	
+	/**
+	 * This query retrieves the database refresh timestamp
+	 */
+	private String timestampQuery = 
+		"SELECT notes FROM obd_schema_metadata";
 	
 	/**
 	 * INPUT: An anatomical entity (E)
@@ -552,6 +560,10 @@ public class Queries {
 	/*
 	 * These getter methods return the queries with all the node ids correctly inserted
 	 */
+	public String getTimestampQuery(){
+		return timestampQuery;
+	}
+	
 	public String getTaxonSummaryQuery(){
 		return replacePatternsWithIds(taxonSummaryQuery);
 	}
@@ -621,10 +633,10 @@ public class Queries {
 	}
 
 	/**
-	 * This method cycles through the input query and replaces all the patterns from the enumeration 
+	 * This method cycles through the input query and replaces all the placeholder patterns  
 	 * that it finds in the query with the correct node id
 	 * @param query
-	 * @return the raw query where the search patterns are replaced with actual node ids
+	 * @return the raw query where the placeholder patterns are replaced with actual node ids
 	 */
 	public String replacePatternsWithIds(String query){
 		String repQuery = query;
