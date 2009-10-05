@@ -108,8 +108,7 @@ public class KbRefreshTimestampResource extends Resource{
     }
     
     private void assembleJSONObjectFromTimestamp(String timestamp) throws JSONException{
-    	JSONObject jObj = new JSONObject();
-    	jObj.put("timestamp", timestamp);
+    	jObjs.put("timestamp", timestamp);
     }
     /**
      * This method returns a logger (log4j)

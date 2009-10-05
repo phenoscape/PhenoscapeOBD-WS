@@ -135,7 +135,8 @@ public class OBDQuery {
 			if(rs.next()){
 				timestamp = rs.getString(1);
 			}
-			timestamp = timestamp.substring(0, timestamp.indexOf("_"));
+			if(timestamp.contains("_"))
+				timestamp = timestamp.substring(0, timestamp.indexOf("_"));
 		}
 		catch(SQLException sqle){
 			log.error(sqle);
@@ -155,7 +156,6 @@ public class OBDQuery {
 				conn.close();
 			}
 		}
-		
 		return timestamp;
 	}
 	
