@@ -97,7 +97,6 @@ public class TermResource extends Resource {
 		} finally{
 			disconnectShardFromDatabase();
 		}
-		disconnectShardFromDatabase();
 		return new JsonRepresentation(this.jObjs);
 	}
 

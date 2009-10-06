@@ -163,7 +163,6 @@ public class PhenotypeDetailsResource extends Resource {
 			this.disconnectShardFromDatabase();
 		}
 		rep = new JsonRepresentation(this.jObjs);
-		this.disconnectShardFromDatabase();
 		return rep;
 	}
 

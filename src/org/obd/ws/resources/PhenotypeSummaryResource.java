@@ -128,9 +128,7 @@ public class PhenotypeSummaryResource extends Resource {
 		} finally{
 			this.disconnectShardFromDatabase();
 		}
-		
 		rep = new JsonRepresentation(this.jObjs);
-		this.disconnectShardFromDatabase();
 		return rep;
 	}
 

@@ -190,9 +190,7 @@ public class AutoCompleteResource extends Resource {
 		} finally{
 			disconnectShardFromDatabase();
 		}
-		
 		rep = new JsonRepresentation(this.jObjs);
-		disconnectShardFromDatabase();
 		return rep;
 	}
 

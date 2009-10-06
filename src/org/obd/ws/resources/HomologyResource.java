@@ -98,8 +98,6 @@ public class HomologyResource extends Resource {
     	} finally{
     		disconnectShardFromDatabase();
     	}
-    	
-    	disconnectShardFromDatabase();
     	return new JsonRepresentation(this.jObjs);
     }
     
