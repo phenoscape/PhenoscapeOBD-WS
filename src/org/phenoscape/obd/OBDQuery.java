@@ -144,12 +144,7 @@ public class OBDQuery {
 		}
 		finally {
 			if (pStmt != null) {
-				try { pStmt.close(); }
-				catch (SQLException ex) {
-					log.error(ex);
-                    // let's not worry further about the close() failing
-					throw ex;
-				}
+				pStmt.close();
 			}
 			if(conn != null){
 				conn.commit();
@@ -233,12 +228,7 @@ public class OBDQuery {
 		}
 		finally {
 			if (pStmt != null) {
-				try { pStmt.close(); }
-				catch (SQLException ex) {
-					log.error(ex);
-                    // let's not worry further about the close() failing
-					throw ex;
-				}
+				pStmt.close(); 
 			}
 			if(conn != null){
 				conn.commit();
@@ -296,12 +286,7 @@ public class OBDQuery {
 		}
 		finally {
 			if (pStmt != null) {
-				try { pStmt.close(); }
-				catch (SQLException ex) {
-					log.error(ex);
-                    // let's not worry further about the close() failing
-					throw ex;
-				}
+				pStmt.close(); 
 				if(conn != null){
 					conn.commit();
 					conn.close();
@@ -400,11 +385,7 @@ public class OBDQuery {
 		}
 		finally {
 			if (pstmt != null) {
-                            try { pstmt.close(); }
-                            catch (SQLException ex) {
-                		log.error(ex);
-                		// let's not worry further about the close() failing
-                            }
+				pstmt.close(); 
             }
 			if(conn != null){
 				conn.commit();

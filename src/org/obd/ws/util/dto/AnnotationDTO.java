@@ -4,11 +4,17 @@ package org.obd.ws.util.dto;
 * This is a Data Transfer Object to be used for
 * ferrying the annotation data retrieved by SQL queries to the 
 * REST services in a defacto persistence layer
+* <p>
+* Each of the fields in this DTO corresponds to the columns
+* returned by an SQL query, which retrieves metadata about 
+* an assertion. 
 * @author cartik
 */
 
 public class AnnotationDTO{
 	
+	/** This field is the unique identifier for the retrieved metadata information. 
+	 * It can be set only by the constructor */
 	private String annotationId; 
 	
 	/*
@@ -151,8 +157,8 @@ public class AnnotationDTO{
 	
 	/**
 	 * Constructor sets the annotation id
-	 * @param annotationId - this is set to the reif link id value
-	 * of the returned row
+	 * @param annotationId In the database, this is the unique identifier that links the actual Taxon-Phenotype annotation
+	 * to the metadata. It serves a similar purpose in the DTO
 	 */
 	public AnnotationDTO(String annotationId){
 		this.annotationId = annotationId;	

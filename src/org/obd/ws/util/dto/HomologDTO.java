@@ -4,6 +4,8 @@ package org.obd.ws.util.dto;
  * This is a Data Transfer Object to be used for
  * ferrying the homology data retrieved by SQL queries to the 
  * REST services in a defacto persistence layer
+ * <p> Each of the fields in this DTO corresponds to a column
+ * of a result set retrieved by a database query for homology information
  * @author cartik
  *
  */
@@ -110,7 +112,7 @@ public class HomologDTO {
 	}
 	
 	/**
-	 * Constructor
+	 * Constructor sets the unique identifier for the DTO instance
 	 * @param homologId - this is the identifier for the homolog DTO. It is set arbitrarily
 	 * by convention 
 	 */
