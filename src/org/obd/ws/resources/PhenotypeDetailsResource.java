@@ -419,8 +419,14 @@ public class PhenotypeDetailsResource extends Resource {
 			query = queries.getGenericPhenotypeQuery();
 			if(subject_id.contains("GENE"))
 				query += " AND p1.subject_nid = (SELECT node_id FROM node WHERE uid = '" + subject_id + "')";
-			else 
+			else {
 				query += " AND taxon_node.uid = '" + subject_id + "'";
+				if(character_id != null)
+					query += " AND p1.character_uid = '" + character_id + "'";
+				query += " UNION ";
+				query += queries.getGenericPhenotypeQueryForSpecificTaxon();
+				query += " AND p1.subject_uid = '" + subject_id + "'";
+			}
 			searchTerm = entity_id; 
 		}
 		else if(subject_id != null){
