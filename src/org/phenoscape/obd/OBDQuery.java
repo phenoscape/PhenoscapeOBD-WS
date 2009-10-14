@@ -174,8 +174,7 @@ public class OBDQuery {
 		
 		try{
 			pStmt = conn.prepareStatement(queries.getFreeTextDataQuery());
-			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
-				pStmt.setInt(i, reifLinkId);
+			pStmt.setInt(1, reifLinkId);
 			log.trace(pStmt.toString());
 			long startTime = System.currentTimeMillis();
 			ResultSet rs = pStmt.executeQuery();
@@ -229,10 +228,6 @@ public class OBDQuery {
 		finally {
 			if (pStmt != null) {
 				pStmt.close(); 
-			}
-			if(conn != null){
-				conn.commit();
-				conn.close();
 			}
 		}
 		
