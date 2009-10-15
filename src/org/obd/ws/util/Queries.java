@@ -258,6 +258,7 @@ public class Queries {
 	
 	private String geneQuery = 
 		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
 		"p1.subject_uid, " +
 		"p1.subject_label, " +
 		"p1.entity_uid, " +
