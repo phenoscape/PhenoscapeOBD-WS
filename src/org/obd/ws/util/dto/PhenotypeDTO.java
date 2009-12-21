@@ -37,9 +37,18 @@ public class PhenotypeDTO {
 	private String measurement;
 	private String unit; 
 	
+	private String publication; 
+	
 	/*
 	 * GETTERs and SETTERs
 	 */
+	
+	public String getPublication(){
+		return publication;
+	}
+	public void setPublication(){
+		this.publication = publication;
+	}
 	
 	public String getNumericalCount() {
 		return numericalCount;
