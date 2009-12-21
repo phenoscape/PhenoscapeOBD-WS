@@ -46,7 +46,7 @@ public class PhenotypeDTO {
 	public String getPublication(){
 		return publication;
 	}
-	public void setPublication(){
+	public void setPublication(String publication){
 		this.publication = publication;
 	}
 	
