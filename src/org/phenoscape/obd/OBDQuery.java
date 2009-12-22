@@ -352,6 +352,7 @@ public class OBDQuery {
 						dto.setNumericalCount(rs.getString(11));
 						dto.setRelatedEntityId(rs.getString(12));
 						dto.setRelatedEntity(rs.getString(13));
+						dto.setPublication(rs.getString(14));
 						
 						//we collect all the reif ids associated with each DTO object
 						Set<String> reifs = annotationToReifsMap.get(dto);

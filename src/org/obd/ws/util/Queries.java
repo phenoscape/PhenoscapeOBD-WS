@@ -118,7 +118,8 @@ public class Queries {
 		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
 		"p1.reif_id AS reif_id, p1.count AS count,  " +
 		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"LEFT OUTER JOIN (link AS subtaxon_link " +
@@ -128,6 +129,8 @@ public class Queries {
 		"ON (p1.subject_nid = subtaxon_link.node_id) " +
 		"JOIN phenotype_inheres_in_part_of_entity AS p2 " +
 		"ON (p1.phenotype_nid = p2.phenotype_nid) " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif " + 
+		"ON (pub_reif.reif_id = p1.reif_id) " + 
 		"WHERE " +
 		"p2.entity_nid = (SELECT node_id FROM node WHERE uid = ?)" ;
 	
@@ -145,11 +148,14 @@ public class Queries {
 		"p1.reif_id AS reif_id, " +
 		"p1.count AS count, " +
 		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"JOIN phenotype_inheres_in_part_of_entity AS p2 " +
 		"ON (p1.phenotype_nid = p2.phenotype_nid) " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif " + 
+		"ON (pub_reif.reif_id = p1.reif_id) " + 
 		"WHERE " +
 		"p2.entity_nid = (SELECT node_id FROM node WHERE uid = ?)";
 	
@@ -174,11 +180,14 @@ public class Queries {
 		"p1.reif_id AS reif_id, " +
 		"p1.count AS count,  " +
 		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"JOIN phenotype_inheres_in_part_of_entity AS p2 " +
-		"ON (p1.phenotype_nid = p2.phenotype_nid) " +
+		"ON (p1.phenotype_nid = p2.phenotype_nid) " + 
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif " + 
+		"ON (pub_reif.reif_id = p1.reif_id) " + 
 		"WHERE " +
 		"p2.entity_uid = ?";
 	
@@ -241,12 +250,15 @@ public class Queries {
 		"p1.reif_id AS reif_id, " +
 		"p1.count AS count,  " +
 		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
 		"FROM " +
 		"node AS search_node " +
 		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
 		"	subtaxon_link.predicate_id = ___is_a) " +
 		"JOIN phenotype_by_entity_character AS p1 ON (p1.subject_nid = subtaxon_link.node_id) " +
+		"JOIN dw_publication_reif_id_table AS pub_reif " + 
+		"ON (pub_reif.reif_id = p1.reif_id) " + 
 		"WHERE " +
 		"search_node.uid = ?";
 	
@@ -267,10 +279,11 @@ public class Queries {
 		"p1.quality_label, " +
 		"p1.character_uid, " +
 		"p1.character_label, " +
-		"p1.reif_id AS reif_id, " +
+		"NULL AS reif_id, " +
 		"p1.count AS count,  " +
 		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"NULL AS publication " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
 		"WHERE " +

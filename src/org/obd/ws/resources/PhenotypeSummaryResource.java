@@ -2,6 +2,7 @@ package org.obd.ws.resources;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -16,6 +17,7 @@ import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.PhenotypeDTO;
+import org.phenoscape.dw.queries.StoredProceduresForPhenotypeSummaries;
 import org.phenoscape.obd.OBDQuery;
 import org.restlet.Context;
 import org.restlet.data.MediaType;
@@ -44,6 +46,7 @@ public class PhenotypeSummaryResource extends Resource {
 	private OBDSQLShard obdsqlShard;
 	private OBDQuery obdq;
 	private Queries queries;
+	private StoredProceduresForPhenotypeSummaries spps; 
 	
 	private static final String SUBJECT_STRING = "subject";
 	private static final String ENTITY_STRING = "entity";
@@ -110,6 +113,7 @@ public class PhenotypeSummaryResource extends Resource {
 				return null;
 			}
 		 	obdq = new OBDQuery(obdsqlShard, queries);
+		 	spps = new StoredProceduresForPhenotypeSummaries(obdsqlShard);
 			ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id, publication_id);
 			this.assembleJsonObjectFromResults(ecAnnots);
 		} catch(SQLException sqle){
@@ -212,139 +216,134 @@ public class PhenotypeSummaryResource extends Resource {
 	private Map<String, Map<String, List<Set<String>>>> 
 			getAnnotationSummary(String subject_id, String entity_id, String char_id, String pub_id) 
 			throws SQLException{
+
+		/* This is a data structure to keep track of user specified filter options. */
+		Map<String, String> filterOptions = new HashMap<String, String>();
+		Collection<PhenotypeDTO> nodes; 
+		String query, searchTerm;
 		
+		String geneSummaryStoredProc = StoredProceduresForPhenotypeSummaries.invokeStoredProcedureForGeneSummary;
+		String taxonSummaryStoredProc = StoredProceduresForPhenotypeSummaries.invokeStoredProcedureForTaxonSummary;
+
+		if(subject_id != null){
+			searchTerm = subject_id;
+			if(subject_id.contains("GENE"))
+				nodes = spps.executeStoredProcedureAndAssembleResults(geneSummaryStoredProc, searchTerm);
+			else
+				nodes = spps.executeStoredProcedureAndAssembleResults(taxonSummaryStoredProc, searchTerm);
+		}
+		else{
+			query = queries.getAnatomyQuery();
+			searchTerm = (entity_id != null ? entity_id : "TAO:0100000"); //use root  of TAO if no params are specified
+			nodes = obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions);
+		}
+		return this.summarizeResultsByEntityCharacter(nodes);
+	}
+	
+	private Map<String, Map<String, List<Set<String>>>> summarizeResultsByEntityCharacter(Collection<PhenotypeDTO> nodes){
 		Map<String, Map<String, List<Set<String>>>> entityCharAnnots = 
 			new HashMap<String, Map<String, List<Set<String>>>>(); 
 		Map<String, List<Set<String>>> charAnnots;
 		List<Set<String>> annots;
-		Set<String> gAnnots, tAnnots, qAnnots;
 		
-		/* This is a data structure to keep track of user specified filter options. 
-		 * Four filtering options can be specified viz. entity, character, subject, and 
-		 * publication  */
-		Map<String, String> filterOptions = new HashMap<String, String>();
-		
-		String characterId = null, taxonId = null, entityId = null, qualityId = null,
-					character = null, taxon = null, entity = null, quality = null, 
-					relatedEntityId = null, relatedEntity = null, count = null;
-		String query, searchTerm;
-		/* 
-		 * This IF-ELSE decides which query to use. Ideally if subject is provided, we will use
-		 * gene or taxon query. Otherwise, we use entity query
-		 */
-		if(subject_id != null){
-			if(subject_id.contains("GENE"))
-				query = queries.getGeneSummaryQuery();
-			else
-				query = queries.getTaxonSummaryQuery();
-			searchTerm = subject_id;
-			filterOptions.put("subject", null);
-			filterOptions.put("entity", entity_id);
-		}
-		else{
-			/*	neither subject or entity are provided. so we use the root TAO term
-			 * which returns every phenotype in the database
-			 */
-			query = queries.getAnatomyQuery();
-			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
-			filterOptions.put("subject", subject_id);
-			filterOptions.put("entity", null);
-		}
-		filterOptions.put("character", char_id);
-		filterOptions.put("publication", null); //TODO pub_id goes here;
-		
-		log().debug("Search Term: " + searchTerm + " Query: " + query);
-		try{
-			for(PhenotypeDTO node : obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions)){
+		String characterId = null, entityId = null, character = null, entity = null;
 
-				characterId = node.getCharacterId();
-				character = node.getCharacter();
-				taxonId = node.getTaxonId();
-				taxon = node.getTaxon();
-				entityId = node.getEntityId();
-				entity = node.getEntity();
-				qualityId = node.getQualityId();
-				quality = node.getQuality();
-				count = node.getNumericalCount();
-				relatedEntityId = node.getRelatedEntityId();
-				relatedEntity = node.getRelatedEntity();
-				log().trace("Char: " + characterId + " [" + character + "] Taxon: " + taxonId + "[" + taxon + "] Entity: " +
-						entityId + "[" + entity + "] Quality: " + qualityId + "[" + quality + "]");
-				if(entityCharAnnots.keySet().contains(entityId + "\t" + entity)){
-					charAnnots = entityCharAnnots.get(entityId + "\t" + entity);
+		for(PhenotypeDTO node : nodes){
 
-					if(charAnnots.keySet().contains(characterId + "\t" + character)){
-						annots = charAnnots.get(characterId + "\t" + character);
-						gAnnots = annots.get(0);
-						tAnnots = annots.get(1);
-						qAnnots = annots.get(2);
-					}
-					else{
-						annots = new ArrayList<Set<String>>();
-						gAnnots = new HashSet<String>();
-						tAnnots = new HashSet<String>();
-						qAnnots = new HashSet<String>();
-					}
-					if(relatedEntityId != null && relatedEntity != null)
-						qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
-					else if(count != null)
-						qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
-					else
-						qAnnots.add(qualityId + "\t" + quality);
-					if(taxonId.contains("GENE")){
-						gAnnots.add(taxonId + "\t" + taxon);
-					}
-					else{
-						tAnnots.add(taxonId + "\t" + taxon);
-					}
-					annots.add(0, gAnnots);
-					annots.add(1, tAnnots);
-					annots.add(2, qAnnots);
-					charAnnots.put(characterId + "\t" + character, annots);
+			characterId = node.getCharacterId();
+			character = node.getCharacter();
+	
+			entityId = node.getEntityId();
+			entity = node.getEntity();
+			
+			if(entityCharAnnots.keySet().contains(entityId + "\t" + entity)){
+				charAnnots = entityCharAnnots.get(entityId + "\t" + entity);
+				if(charAnnots.keySet().contains(characterId + "\t" + character)){
+					annots = charAnnots.get(characterId + "\t" + character);
 				}
 				else{
-					charAnnots = new HashMap<String, List<Set<String>>>();
-					annots = new ArrayList<Set<String>>();
-					gAnnots = new HashSet<String>();
-					tAnnots = new HashSet<String>();
-					qAnnots = new HashSet<String>();
-					
-					if(relatedEntityId != null && relatedEntity != null)
-						qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
-					else if(count != null)
-						qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
-					else
-						qAnnots.add(qualityId + "\t" + quality);
-					if(taxonId.contains("GENE")){
-						gAnnots.add(taxonId + "\t" + taxon);
-					}
-					else{
-						tAnnots.add(taxonId + "\t" + taxon);
-					}
-					annots.add(0, gAnnots);
-					annots.add(1, tAnnots);
-					annots.add(2, qAnnots);
-					charAnnots.put(characterId + "\t" + character, annots);
+					annots = this.createDataStructure();
 				}
-				entityCharAnnots.put(entityId + "\t" + entity, charAnnots);
+				
+				annots = this.populateDataStructure(node, annots);
+				charAnnots.put(characterId + "\t" + character, annots);
 			}
-		}
-		catch(SQLException e){
-			log().fatal(e);
-			throw e;
+			else{
+				charAnnots = new HashMap<String, List<Set<String>>>();
+				annots = this.createDataStructure();
+				
+				annots = this.populateDataStructure(node, annots);
+				charAnnots.put(characterId + "\t" + character, annots);
+			}
+			entityCharAnnots.put(entityId + "\t" + entity, charAnnots);
 		}
 		return entityCharAnnots;
 	}
 	
+	private List<Set<String>> createDataStructure(){
+		List<Set<String>> annots = new ArrayList<Set<String>>();
+		Set<String> gAnnots = new HashSet<String>();
+		Set<String> tAnnots = new HashSet<String>();
+		Set<String> qAnnots = new HashSet<String>();
+		Set<String> pAnnots = new HashSet<String>();
+		
+		annots.add(0, gAnnots);
+		annots.add(1, tAnnots);
+		annots.add(2, qAnnots);
+		annots.add(3, pAnnots);
+		
+		return annots;
+	}
+	
+	private List<Set<String>> populateDataStructure(PhenotypeDTO node, List<Set<String>> annots){
+		String quality = node.getQuality();
+		String qualityId = node.getQualityId();
+		
+		String relatedEntity = node.getRelatedEntity();
+		String relatedEntityId = node.getRelatedEntityId();
+		
+		String taxonId = node.getTaxonId();
+		String taxon = node.getTaxon();
+		
+		String count = node.getNumericalCount();
+		String publication = node.getPublication();
+		
+		Set<String> gAnnots = annots.get(0);
+		Set<String> tAnnots = annots.get(1);
+		Set<String> qAnnots = annots.get(2);
+		Set<String> pAnnots = annots.get(3);
+		
+		if(relatedEntityId != null && relatedEntity != null)
+			qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
+		else if(count != null)
+			qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
+		else
+			qAnnots.add(qualityId + "\t" + quality);
+		if(taxonId.contains("GENE")){
+			gAnnots.add(taxonId + "\t" + taxon);
+		}
+		else{
+			tAnnots.add(taxonId + "\t" + taxon);
+		}
+		if(publication != null){
+			pAnnots.add(publication);
+		}
+		annots.add(0, gAnnots);
+		annots.add(1, tAnnots);
+		annots.add(2, qAnnots);
+		annots.add(3, pAnnots);
+		
+		return annots;
+	}
 	/**
 	 * This method assembles a JSON object from the input data structure
 	 * @param ecAnnots - this is the input data structure with the results of the phenotype summary query
 	 * @throws JSONException
 	 */
 	private void assembleJsonObjectFromResults(Map<String, Map<String, List<Set<String>>>> ecAnnots) throws JSONException{
-		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj; 
+		JSONObject genesObj, taxaObj, qualitiesObj, exampleObj, publicationsObj; 
 		JSONObject ecObject, eObject, cObject;
-		List<JSONObject> gExampleObjs, tExampleObjs, qExampleObjs;
+		List<JSONObject> gExampleObjs, tExampleObjs, qExampleObjs, pExampleObjs;
 		List<JSONObject> ecObjects = new ArrayList<JSONObject>();
 		
 		for(String entityId : ecAnnots.keySet()){
@@ -365,12 +364,15 @@ public class PhenotypeSummaryResource extends Resource {
 				genesObj= new JSONObject();
 				taxaObj = new JSONObject();
 				qualitiesObj = new JSONObject();
+				publicationsObj = new JSONObject();
 				Set<String> genesSet = cAnnots.get(charId).get(0);
 				Set<String> taxaSet = cAnnots.get(charId).get(1);
 				Set<String> qualitiesSet = cAnnots.get(charId).get(2);
+				Set<String> publicationsSet = cAnnots.get(charId).get(3);
 				gExampleObjs = new ArrayList<JSONObject>();
 				tExampleObjs = new ArrayList<JSONObject>();
 				qExampleObjs = new ArrayList<JSONObject>();
+				pExampleObjs = new ArrayList<JSONObject>();
 				genesObj.put("count", genesSet.size());
 				Iterator<String> git = genesSet.iterator();
 				for(int i = 0; i < (Math.min(examples_count, genesSet.size())); i++){
@@ -404,10 +406,19 @@ public class PhenotypeSummaryResource extends Resource {
 					qExampleObjs.add(exampleObj);
 				}
 				qualitiesObj.put("examples", qExampleObjs);
-				
+				publicationsObj.put("count", publicationsSet.size());
+				Iterator<String> pit = publicationsSet.iterator();
+				for(int i = 0; i < (Math.min(examples_count, publicationsSet.size())); i++){
+					String publication = pit.next();
+					exampleObj = new JSONObject();
+					exampleObj.put("title", publication);
+					pExampleObjs.add(exampleObj);
+				}
+				publicationsObj.put("examples", pExampleObjs);
 				ecObject.put("qualities", qualitiesObj);
 				ecObject.put("taxa", taxaObj);
 				ecObject.put("genes", genesObj);
+				ecObject.put("publications", publicationsObj);
 				ecObjects.add(ecObject);
 			}
 		}
