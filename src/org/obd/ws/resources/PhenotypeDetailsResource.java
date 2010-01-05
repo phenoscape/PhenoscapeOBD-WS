@@ -415,39 +415,24 @@ public class PhenotypeDetailsResource extends Resource {
 	private List<String> assembleQueryAndSearchTerm(){
 		
 		String query, searchTerm;
-		if(subject_id != null && entity_id != null){
-			query = queries.getGenericPhenotypeQuery();
+		if(subject_id != null){
 			if(subject_id.contains("GENE"))
-				query += " AND p1.subject_nid = (SELECT node_id FROM node WHERE uid = '" + subject_id + "')";
-			else {
-				query += " AND taxon_node.uid = '" + subject_id + "'";
-				if(character_id != null)
-					query += " AND p1.character_uid = '" + character_id + "'";
-				query += " UNION ";
-				query += queries.getGenericPhenotypeQueryForSpecificTaxon();
-				query += " AND p1.subject_uid = '" + subject_id + "'";
-			}
-			searchTerm = entity_id; 
-		}
-		else if(subject_id != null){
-			if(subject_id.contains("GENE"))
-				query = queries.getGeneQuery();
-			else
+				query = queries.getGeneQuery(); 
+			else 
 				query = queries.getTaxonQuery();
 			searchTerm = subject_id;
-			if(entity_id != null){
-				query += " AND entity_uid = '" + entity_id + "'";
-			}
+			if(entity_id != null)
+				query += " AND dw.superentity_nid = (SELECT node_id FROM node WHERE uid = '" + entity_id + "')";
 		}
 		else{
-			query = queries.getAnatomyQuery();
+			query = queries.getAnatomyDetailsQuery();
 			/*	neither subject or entity are provided. so we use the root TAO term
 			 * which returns every phenotype in the database
 			 */
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000");
 		}
 		if(character_id != null){
-			query += " AND character_uid = '" + character_id + "'";
+			query += " AND p1.character_uid = '" + character_id + "'";
 		}
 		queryResultsFilterSpecs.put("publication", null); //TODO pub_id goes here;
 		return Arrays.asList(new String[]{query, searchTerm});

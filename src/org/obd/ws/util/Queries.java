@@ -134,6 +134,26 @@ public class Queries {
 		"WHERE " +
 		"p2.entity_nid = (SELECT node_id FROM node WHERE uid = ?)" ;
 	
+	private String genericPhenotypeQueryForTaxon = 
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id, p1.count AS count, " +
+		"p1.related_entity_uid AS related_entity_uid, " +
+		"p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
+		"FROM " +
+		"phenotype_by_entity_character AS p1 " +
+		"JOIN dw_taxon_is_a_taxon_table AS is_a " +
+		"ON (is_a.subtaxon_nid = p1.subject_nid) " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif " +
+		"ON (pub_reif.reif_id = p1.reif_id) " +
+		"WHERE " +
+		"is_a.supertaxon_nid = (SELECT node_id FROM node WHERE uid = ?)";
+	
 	private String genericPhenotypeQueryForSpecificTaxon = 
 		"SELECT " +
 		"p1.phenotype_uid AS phenotype_uid, " +
@@ -191,6 +211,23 @@ public class Queries {
 		"WHERE " +
 		"p2.entity_uid = ?";
 	
+	private String anatomyDetailsQuery = 
+		"SELECT " +
+		"p1.phenotype_uid AS phenotype_uid, " +
+		"p1.subject_uid AS subject_uid, p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id, p1.count AS count, " +
+		"p1.related_entity_uid AS related_entity_uid, p1.related_entity_label AS related_entity_label, " +
+		"pub_reif.publication AS publication " +
+		"FROM " +
+		"phenotype_by_entity_character AS p1 " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif ON (pub_reif.reif_id = p1.reif_id) " +
+		"JOIN dw_entity_is_a_entity_table AS dw ON (dw.subentity_nid = p1.entity_nid) " +
+		"WHERE " +
+		"dw.superentity_nid = (SELECT node_id FROM node WHERE uid = ?)";
+	
 	/**
 	 * INPUT: A gene (G)
 	 * This query finds the anatomical entity - quality (EQ) combinations expressed by the input gene.
@@ -239,28 +276,20 @@ public class Queries {
 	private String taxonQuery = 
 		"SELECT " +
 		"p1.phenotype_uid AS phenotype_uid, " +
-		"p1.subject_uid AS subject_uid, " +
-		"p1.subject_label AS subject_Label, " +
-		"p1.quality_uid AS quality_uid, " +
-		"p1.quality_label AS quality_label, " +
-		"p1.character_uid AS character_uid, " +
-		"p1.character_label AS character_label, " +
-		"p1.entity_uid AS entity_uid, " +
-		"p1.entity_label AS entity_label, " +
-		"p1.reif_id AS reif_id, " +
-		"p1.count AS count,  " +
-		"p1.related_entity_uid AS related_entity_uid, " +
-		"p1.related_entity_label AS related_entity_label, " +
+		"p1.subject_uid AS subject_uid, p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id, p1.count AS count, " +
+		"p1.related_entity_uid AS related_entity_uid, p1.related_entity_label AS related_entity_label, " +
 		"pub_reif.publication AS publication " +
 		"FROM " +
-		"node AS search_node " +
-		"JOIN link AS subtaxon_link ON (subtaxon_link.object_id = search_node.node_id AND " +
-		"	subtaxon_link.predicate_id = ___is_a) " +
-		"JOIN phenotype_by_entity_character AS p1 ON (p1.subject_nid = subtaxon_link.node_id) " +
-		"JOIN dw_publication_reif_id_table AS pub_reif " + 
-		"ON (pub_reif.reif_id = p1.reif_id) " + 
+		"phenotype_by_entity_character AS p1 " +
+		"JOIN dw_taxon_is_a_taxon_table AS is_a ON (is_a.subtaxon_nid = p1.subject_nid) " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif ON (pub_reif.reif_id = p1.reif_id) " +
+		"JOIN dw_entity_is_a_entity_table AS dw ON (dw.subentity_nid = p1.entity_nid) " +
 		"WHERE " +
-		"search_node.uid = ?";
+		"is_a.supertaxon_nid = (SELECT node_id FROM node WHERE uid = ?)";
 	
 	/**
 	 * INPUT: A gene (G)
@@ -271,21 +300,18 @@ public class Queries {
 	private String geneQuery = 
 		"SELECT " +
 		"p1.phenotype_uid AS phenotype_uid, " +
-		"p1.subject_uid, " +
-		"p1.subject_label, " +
-		"p1.entity_uid, " +
-		"p1.entity_label, " +
-		"p1.quality_uid, " +
-		"p1.quality_label, " +
-		"p1.character_uid, " +
-		"p1.character_label, " +
-		"NULL AS reif_id, " +
-		"p1.count AS count,  " +
+		"p1.subject_uid AS subject_uid, p1.subject_label AS subject_Label, " +
+		"p1.quality_uid AS quality_uid, p1.quality_label AS quality_label, " +
+		"p1.character_uid AS character_uid, p1.character_label AS character_label, " +
+		"p1.entity_uid AS entity_uid, p1.entity_label AS entity_label, " +
+		"p1.reif_id AS reif_id, p1.count AS count, " +
 		"p1.related_entity_uid AS related_entity_uid, " +
 		"p1.related_entity_label AS related_entity_label, " +
-		"NULL AS publication " +
+		"pub_reif.publication AS publication " +
 		"FROM " +
 		"phenotype_by_entity_character AS p1 " +
+		"LEFT OUTER JOIN dw_publication_reif_id_table AS pub_reif ON (pub_reif.reif_id = p1.reif_id) " +
+		"JOIN dw_entity_is_a_entity_table AS dw ON (dw.subentity_nid = p1.entity_nid) " +
 		"WHERE " +
 		"p1.subject_uid = ?";
 	
@@ -634,6 +660,10 @@ public class Queries {
 		return replacePatternsWithIds(anatomyQuery);
 	}
 
+	public String getAnatomyDetailsQuery() {
+		return replacePatternsWithIds(anatomyDetailsQuery);
+	}
+
 	public String getGeneSummaryQuery() {
 		return replacePatternsWithIds(geneSummaryQuery);
 	}
@@ -696,6 +726,10 @@ public class Queries {
 
 	public String getGenericPhenotypeQueryForSpecificTaxon(){
 		return this.genericPhenotypeQueryForSpecificTaxon;
+	}
+	
+	public String getGenericPhenotypeQueryForTaxon(){
+		return this.genericPhenotypeQueryForTaxon;
 	}
 	
 	/**
