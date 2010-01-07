@@ -71,7 +71,9 @@ public class OBDQuery {
         POSTCOMP_RELATIONS.put("OBO_REL:connected_to", "on");
         POSTCOMP_RELATIONS.put("connected_to", "on");
         POSTCOMP_RELATIONS.put("anterior_to", "anterior to");
+        POSTCOMP_RELATIONS.put("BSPO:0000096", "anterior to");
         POSTCOMP_RELATIONS.put("posterior_to", "posterior to");
+        POSTCOMP_RELATIONS.put("BSPO:0000099", "posterior to");
         POSTCOMP_RELATIONS.put("adjacent_to", "adjacent to");
     }
 
@@ -170,7 +172,7 @@ public class OBDQuery {
 		Collection<AnnotationDTO> results = new ArrayList<AnnotationDTO>();
 		PreparedStatement pStmt = null;
 		
-		String entityId, entity, qualityId, quality;
+		String entityId, entity, qualityId, quality, relEntityId, relEntity;
 		
 		try{
 			pStmt = conn.prepareStatement(queries.getFreeTextDataQuery());
@@ -189,6 +191,9 @@ public class OBDQuery {
 				entityId = rs.getString(4);
 				entity = rs.getString(5);
 				
+				relEntityId = rs.getString(15);
+				relEntity = rs.getString(16);
+				
 				//Handling post compositions. TODO THis has to be streamlined
 				if(entity == null || entity.length() == 0){
 					entity = simpleLabel(entityId);
@@ -201,6 +206,8 @@ public class OBDQuery {
 				if(quality == null || quality.length() == 0){
 					quality = semanticLabel(qualityId);
 				}
+				if(relEntity != null)
+					quality += " towards " + relEntity; 
 				
 				dto.setEntityId(entityId);
 				dto.setEntity(entity);

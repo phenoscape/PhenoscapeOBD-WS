@@ -463,24 +463,24 @@ public class Queries {
 	 */
 	private String freeTextDataQuery = 
 		"SELECT " +
-		"reif_id, " +
-		"taxon_uid, " +
-		"taxon_label, " +
-		"entity_uid, " +
-		"entity_label, " +
-		"quality_uid, " +
-		"quality_label, " +
-		"publication, " +
-		"character_text, " +
-		"character_comment, " +
-		"character_number, " +
-		"state_text, " +
-		"state_comment, " +
-		"curators " +
+		"tpm.reif_id, " +
+		"tpm.taxon_uid, tpm.taxon_label, " +
+		"tpm.entity_uid, tpm.entity_label, " +
+		"tpm.quality_uid, tpm.quality_label, " +
+		"tpm.publication, " +
+		"tpm.character_text, tpm.character_comment, tpm.character_number, " +
+		"tpm.state_text, tpm.state_comment, tpm.curators, " + 
+		"rel.entity_uid, rel.entity_label " +
 		"FROM " +
-		"taxon_phenotype_metadata " +
+		"taxon_phenotype_metadata AS tpm " +
+		"LEFT OUTER JOIN (dw_taxon_phenotype_table AS tp " +
+		"JOIN (dw_phenotype_table AS phen " +
+		"JOIN dw_entity_table AS rel " +
+		"ON (rel.entity_nid = phen.towards_entity_nid)) " +
+		"ON (phen.phenotype_nid = tp.phenotype_nid)) " +
+		"ON (tp.reif_id = tpm.reif_id) " +
 		"WHERE " +
-		"reif_id = ?";
+		"tpm.reif_id = ?";
 
 	/** GROUP Query part for auto completion  
 	 * The main query string for auto completion. */

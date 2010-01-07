@@ -356,8 +356,18 @@ public class PhenotypeDetailsResource extends Resource {
 					entityObj.put("id", phenotype.get(0));
 					entityObj.put("name", phenotype.get(1));
 					qualityObj = new JSONObject();
-					qualityObj.put("id", phenotype.get(2));
-					qualityObj.put("name", phenotype.get(3));
+					String qualityId = phenotype.get(2);
+					String quality = phenotype.get(3);
+					String relatedEntityId = phenotype.get(6);
+					String relatedEntity = phenotype.get(7);
+					if(relatedEntityId != null && relatedEntity != null){
+						qualityObj.put("id", qualityId + "^OBO_REL:towards(" + relatedEntityId + ")");
+						qualityObj.put("name", quality + " towards " + relatedEntity);
+					}
+					else{
+						qualityObj.put("id", qualityId);
+						qualityObj.put("name", quality);
+					}
 					phenotypeObj = new JSONObject();
 					phenotypeObj.put("entity", entityObj);
 					phenotypeObj.put("quality", qualityObj);
@@ -368,8 +378,8 @@ public class PhenotypeDetailsResource extends Resource {
 					else
 						phenotypeObj.put("id", "");
 					relatedEntityObj = new JSONObject();
-					relatedEntityObj.put("id", phenotype.get(6));
-					relatedEntityObj.put("name", phenotype.get(7));
+					relatedEntityObj.put("id", relatedEntityId);
+					relatedEntityObj.put("name", relatedEntity);
 					phenotypeObj.put("related_entity", relatedEntityObj);
 					phenotypeObjs.add(phenotypeObj);
 				}
