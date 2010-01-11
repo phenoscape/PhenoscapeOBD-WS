@@ -1,6 +1,7 @@
 package org.obd.ws.util;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -205,7 +206,11 @@ public class TaxonomyBuilder {
 				}
 				else {
 				    // this code may do what old code intended, but may not be needed
+				    final List<String> toRemove = new ArrayList<String>();
 				    for (String id : otherPhenotype.getReifIds()) {
+				        toRemove.add(id);
+				    }
+				    for (String id: toRemove) {
 				        otherPhenotype.removeReifId(id);
 				    }
 				}
@@ -256,10 +261,14 @@ public class TaxonomyBuilder {
 	private List<PhenotypeDTO> addPhenotypeToListOfEQCRLists(PhenotypeDTO phenotype, List<PhenotypeDTO> listOfEQCRLists, 
 			boolean isLeafNode){
 		if(listOfEQCRLists == null) listOfEQCRLists = new LinkedList<PhenotypeDTO>();
+		final List<String> toRemove = new ArrayList<String>();
 		if (!isLeafNode) {
-			for (String id : phenotype.getReifIds()) {
-			    phenotype.removeReifId(id);
-			}
+		    for (String id : phenotype.getReifIds()) {
+		        toRemove.add(id);
+		    }
+		    for (String id : toRemove) {
+		        phenotype.removeReifId(id);
+		    }
 		}
 		listOfEQCRLists.add(phenotype);
 		return listOfEQCRLists;
