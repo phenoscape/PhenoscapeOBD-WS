@@ -1,5 +1,9 @@
 package org.obd.ws.util.dto;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * This is a Data Transfer Object to be used for
  * ferrying the phenotype data retrieved by SQL queries to the 
@@ -30,7 +34,7 @@ public class PhenotypeDTO {
 	private String relatedEntityId;
 	private String relatedEntity;
 	
-	private String reifId;
+	private final Set<String> reifIds = new HashSet<String>();
 	
 	private String numericalCount;
 	
@@ -147,12 +151,21 @@ public class PhenotypeDTO {
 	public void setRelatedEntity(String relatedEntity) {
 		this.relatedEntity = relatedEntity;
 	}
-	public String getReifId() {
-		return reifId;
+	
+	/**
+	 * The returned Set is read-only. Do not try to add or remove IDs using this set.
+	 * @return unmodifiable view of this objects set of reifIDs
+	 */
+	public Set<String> getReifIds() {
+		return Collections.unmodifiableSet(this.reifIds);
 	}
 
-	public void setReifId(String reifId) {
-		this.reifId = reifId;
+	public void addReifId(String id) {
+	    this.reifIds.add(id);
+	}
+	
+	public void removeReifId(String id) {
+	    this.reifIds.remove(id);
 	}
 	
 	// Only a GETTER for PhenotypeId

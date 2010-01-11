@@ -122,7 +122,7 @@ public class PhenotypeDetailsResource extends Resource {
             throws ResourceException {
 
 		Representation rep;
-		Map<NodeDTO, List<List<String>>> annots;
+		Map<NodeDTO, List<PhenotypeDTO>> annots;
 
 		try{
 			this.connectShardToDatabase();
@@ -200,11 +200,11 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @throws DataAdapterException 
 	 * @throws PhenoscapeTreeAssemblyException 
 	 */
-	private Map<NodeDTO, List<List<String>>> 
+	private Map<NodeDTO, List<PhenotypeDTO>> 
 			getAnnotations() 
 			throws SQLException, IOException, DataAdapterException, PhenoscapeTreeAssemblyException{
 		
-		Map<NodeDTO, List<List<String>>> taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
+		Map<NodeDTO, List<PhenotypeDTO>> taxonToAssertionsMap = new HashMap<NodeDTO, List<PhenotypeDTO>>();
 
 		List<String> queryAndSearchTerm = assembleQueryAndSearchTerm();
 		String query = queryAndSearchTerm.get(0);
@@ -306,7 +306,7 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @throws ResourceException
 	 */
 	private JSONObject assembleJSONObjectFromDataStructure
-				(Map<NodeDTO, List<List<String>>> annots) 
+				(Map<NodeDTO, List<PhenotypeDTO>> annots) 
 					throws ResourceException{
 		JSONObject subjectObj, qualityObj, entityObj, phenotypeObj, rankObj, relatedEntityObj; 
 		List<JSONObject> phenotypeObjs;
@@ -338,7 +338,7 @@ public class PhenotypeDetailsResource extends Resource {
 						(taxonTree != null && taxonTree.getNodeToSubsumedLeafNodesMap().get(taxonDTO) != null)?
 						taxonTree.getNodeToSubsumedLeafNodesMap().get(taxonDTO).size() :
 						0;
-					if(annots.get(taxonDTO).get(0).get(5).length() > 0){
+					if(annots.get(taxonDTO).get(0).getReifIds().size() > 0) {
 						subjectObj.put("leaf", true);
 						subjectObj.put("annotated_taxa_count", subsumedTaxaCount + 1);
 					}
@@ -348,18 +348,18 @@ public class PhenotypeDetailsResource extends Resource {
 					}
 				}
 				phenotypeObjs = new ArrayList<JSONObject>();
-				for(List<String> phenotype : annots.get(taxonDTO)){
-					String count = phenotype.get(4);
+				for(PhenotypeDTO phenotype : annots.get(taxonDTO)){
+					String count = phenotype.getNumericalCount();
 					if(count == null)
 						count = "";
 					entityObj = new JSONObject();
-					entityObj.put("id", phenotype.get(0));
-					entityObj.put("name", phenotype.get(1));
+					entityObj.put("id", phenotype.getEntityId());
+					entityObj.put("name", phenotype.getEntity());
 					qualityObj = new JSONObject();
-					String qualityId = phenotype.get(2);
-					String quality = phenotype.get(3);
-					String relatedEntityId = phenotype.get(6);
-					String relatedEntity = phenotype.get(7);
+					String qualityId = phenotype.getQualityId();
+					String quality = phenotype.getQuality();
+					String relatedEntityId = phenotype.getRelatedEntityId();
+					String relatedEntity = phenotype.getRelatedEntity();
 					if(relatedEntityId != null && relatedEntity != null){
 						qualityObj.put("id", qualityId + "^OBO_REL:towards(" + relatedEntityId + ")");
 						qualityObj.put("name", quality + " towards " + relatedEntity);
@@ -372,7 +372,7 @@ public class PhenotypeDetailsResource extends Resource {
 					phenotypeObj.put("entity", entityObj);
 					phenotypeObj.put("quality", qualityObj);
 					phenotypeObj.put("count", count);
-					reifIdSet = processReifIdsForTaxon(phenotype.get(5));
+					reifIdSet = phenotype.getReifIds();
 					if(reifIdSet.size() > 0)
 						phenotypeObj.put("id", reifIdSet);
 					else
@@ -460,16 +460,15 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @throws DataAdapterException
 	 * @throws PhenoscapeTreeAssemblyException
 	 */
-	private Map<NodeDTO, List<List<String>>> 
-		generateTreeBasedDataStructureFromAssertions(
-				Map<NodeDTO, List<List<String>>> taxonToAssertionsMap, 
+	private Map<NodeDTO, List<PhenotypeDTO>> generateTreeBasedDataStructureFromAssertions (
+				Map<NodeDTO, List<PhenotypeDTO>> taxonToAssertionsMap, 
 				Collection<PhenotypeDTO> phenotypeColl) 
 				throws IOException, DataAdapterException, PhenoscapeTreeAssemblyException{
 		taxonomyBuilder = new TaxonomyBuilder(ttoTaxonomy, phenotypeColl);
 		taxonTree = taxonomyBuilder.getTree();
 		NodeDTO mrca = taxonTree.getMrca();
 		if(group.equals("root")){
-			List<List<String>> listOfEQCRLists = 
+			List<PhenotypeDTO> listOfEQCRLists = 
 				taxonTree.getNodeToListOfEQCRListsMap().get(mrca);
 			taxonToAssertionsMap.put(mrca, listOfEQCRLists);
 		}else{
@@ -485,21 +484,21 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @return the processed node to assertions map
 	 * @throws PhenoscapeTreeAssemblyException
 	 */
-	private Map<NodeDTO, List<List<String>>> processChildrenOfGroupNodeFromInput(
-			Map<NodeDTO,List<List<String>>> taxonToAssertionsMap) throws PhenoscapeTreeAssemblyException{
+	private Map<NodeDTO, List<PhenotypeDTO>> processChildrenOfGroupNodeFromInput(
+			Map<NodeDTO,List<PhenotypeDTO>> taxonToAssertionsMap) throws PhenoscapeTreeAssemblyException{
 		NodeDTO groupNodeFromInput = ttoTaxonomy.getIdToNodeMap().get(group);
 		TaxonTree tree = taxonomyBuilder.getTree();
 		Set<NodeDTO> children = tree.getNodeToChildrenMap().get(groupNodeFromInput);
 		
 		if(children != null){
 			for(NodeDTO child : children){
-				List<List<String>> listOfEQCRLists = 
+				List<PhenotypeDTO> listOfEQCRLists = 
 					tree.getNodeToListOfEQCRListsMap().get(child);
 				taxonToAssertionsMap.put(child, listOfEQCRLists);
 			}
 		}
 		else if(tree.getLeaves().contains(groupNodeFromInput)){
-			taxonToAssertionsMap = new HashMap<NodeDTO, List<List<String>>>();
+			taxonToAssertionsMap = new HashMap<NodeDTO, List<PhenotypeDTO>>();
 		}
 		else if(tree.getNodeToChildrenMap().get(tree.getMrca()) == null){ //mrca does not have children
 			NodeDTO mrcaNode = tree.getMrca();
@@ -523,27 +522,15 @@ public class PhenotypeDetailsResource extends Resource {
 	 * @param phenotypeColl - the input collection of taxon to phenotype assertions
 	 * @return a data structure containing all the assertions
 	 */
-	private Map<NodeDTO, List<List<String>>> 
-		generateSimpleDataStructureFromAssertions(
-			Map<NodeDTO, List<List<String>>> taxonToAssertionsMap, 
-			Collection<PhenotypeDTO> phenotypeColl){
+	private Map<NodeDTO, List<PhenotypeDTO>> generateSimpleDataStructureFromAssertions(Map<NodeDTO, List<PhenotypeDTO>> taxonToAssertionsMap, Collection<PhenotypeDTO> phenotypeColl){
 		for(PhenotypeDTO phenotypeDTO : phenotypeColl){
 			NodeDTO taxonDTO = new NodeDTO(phenotypeDTO.getTaxonId());
 			taxonDTO.setName(phenotypeDTO.getTaxon());
 			
-			List<List<String>> annotations = taxonToAssertionsMap.get(taxonDTO);
+			List<PhenotypeDTO> annotations = taxonToAssertionsMap.get(taxonDTO);
 			if(annotations == null)
-				annotations = new ArrayList<List<String>>();
-			annotations.add(Arrays.asList(new String[]{
-					phenotypeDTO.getEntityId(), 
-					phenotypeDTO.getEntity(),
-					phenotypeDTO.getQualityId(),
-					phenotypeDTO.getQuality(),
-					phenotypeDTO.getNumericalCount(),
-					phenotypeDTO.getReifId(), 
-					phenotypeDTO.getRelatedEntityId(), 
-					phenotypeDTO.getRelatedEntity()
-				}));
+				annotations = new ArrayList<PhenotypeDTO>();
+			    annotations.add(phenotypeDTO);
 			taxonToAssertionsMap.put(taxonDTO, annotations);
 		}
 		return taxonToAssertionsMap;

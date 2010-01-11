@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.obd.ws.util.dto.NodeDTO;
+import org.obd.ws.util.dto.PhenotypeDTO;
 
 /**
  * This is a tree order for a group on taxa, with a root
@@ -23,7 +24,7 @@ public class TaxonTree {
 	private Set<NodeDTO> leaves;
 	/** This structure maps a taxon to the EQC combinations it is associated with. We also track the
 	 * reif ids associated with each EQC combination */
-	private Map<NodeDTO,  List<List<String>>> nodeToListOfEQCRListsMap;
+	private Map<NodeDTO,  List<PhenotypeDTO>> nodeToListOfEQCRListsMap;
 	/** This structure maps a taxon to the number of annotations associated with it */
 	private Map<NodeDTO, Integer> nodeToAnnotationCountMap; 
 	/** This structure hold information about every branch and its children */
@@ -49,11 +50,11 @@ public class TaxonTree {
 		this.leaves = leaves;
 	}
 	
-	public Map<NodeDTO, List<List<String>>> getNodeToListOfEQCRListsMap() {
+	public Map<NodeDTO, List<PhenotypeDTO>> getNodeToListOfEQCRListsMap() {
 		return nodeToListOfEQCRListsMap;
 	}
 	public void setNodeToListOfEQCRListsMap(
-			Map<NodeDTO,  List<List<String>>> nodeToListOfEQCRListsMap) {
+			Map<NodeDTO,  List<PhenotypeDTO>> nodeToListOfEQCRListsMap) {
 		this.nodeToListOfEQCRListsMap = nodeToListOfEQCRListsMap;
 	}
 	
@@ -85,7 +86,7 @@ public class TaxonTree {
 	 */
 	public TaxonTree(){
 		leaves = new HashSet<NodeDTO>();
-		nodeToListOfEQCRListsMap = new HashMap<NodeDTO,  List<List<String>>>();
+		nodeToListOfEQCRListsMap = new HashMap<NodeDTO,  List<PhenotypeDTO>>();
 		nodeToAnnotationCountMap = new HashMap<NodeDTO, Integer>();
 		nodeToChildrenMap = new HashMap<NodeDTO, Set<NodeDTO>>();
 		nodeToSubsumedLeafNodesMap = new HashMap<NodeDTO, Set<NodeDTO>>();

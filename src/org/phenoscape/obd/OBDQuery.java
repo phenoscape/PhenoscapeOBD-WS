@@ -316,7 +316,6 @@ public class OBDQuery {
 		 * This new map has been added tp consolidate reif ids for a TAXON to PHENOTYPE assertion*/
 		Map<PhenotypeDTO, Set<String>> annotationToReifsMap = new HashMap<PhenotypeDTO, Set<String>>();
 		
-		Collection<PhenotypeDTO> results = new ArrayList<PhenotypeDTO>();
 		String entityLabel, entityId;
 		PreparedStatement pstmt = null;
 		Map<String, String> filterableValues; 
@@ -372,14 +371,9 @@ public class OBDQuery {
 			}
 			for(PhenotypeDTO dto : annotationToReifsMap.keySet()){
 				//here we reassign the reif ids to the DTO
-				String reifString = "";
 				for(String reif : annotationToReifsMap.get(dto)){
-					reifString += reif + ",";
-				}
-				//we trim out the last comma
-				reifString = reifString.substring(0, reifString.lastIndexOf(","));
-				dto.setReifId(reifString);
-				results.add(dto);
+				    dto.addReifId(reif);
+				}				
 			}
 		}
 		catch(SQLException sqle){
@@ -395,7 +389,7 @@ public class OBDQuery {
 				conn.close();
 			}
 		}
-		return results;
+		return annotationToReifsMap.keySet();
 	}
 	
 	/**
