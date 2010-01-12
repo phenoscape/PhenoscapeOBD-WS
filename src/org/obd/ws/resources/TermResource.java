@@ -192,6 +192,14 @@ public class TermResource extends Resource {
 						target.put("rank", rankObj);
 						rankId = null;
 						rank = null;
+						
+						NodeDTO tdto = new NodeDTO(targetId);
+						tdto.setName(targetName);
+						if(ttoTaxonomy.getSetOfExtinctTaxa().contains(tdto))
+							target.put("extinct", true);
+						else
+							target.put("extinct", false);
+						
 					}
 					parents.add(parent);
 				}
@@ -224,6 +232,13 @@ public class TermResource extends Resource {
 						target.put("rank", rankObj);
 						rankId = null;
 						rank = null;
+						
+						NodeDTO tdto = new NodeDTO(subjectId);
+						tdto.setName(subjectName);
+						if(ttoTaxonomy.getSetOfExtinctTaxa().contains(tdto))
+							target.put("extinct", true);
+						else
+							target.put("extinct", false);
 					}
 					children.add(child);
 				}

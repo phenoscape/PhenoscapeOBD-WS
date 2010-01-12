@@ -218,7 +218,6 @@ public class PhenotypeSummaryResource extends Resource {
 			throws SQLException{
 
 		/* This is a data structure to keep track of user specified filter options. */
-		Map<String, String> filterOptions = new HashMap<String, String>();
 		Collection<PhenotypeDTO> nodes; 
 		String query, searchTerm;
 		
@@ -235,7 +234,7 @@ public class PhenotypeSummaryResource extends Resource {
 		else{
 			query = queries.getAnatomyQuery();
 			searchTerm = (entity_id != null ? entity_id : "TAO:0100000"); //use root  of TAO if no params are specified
-			nodes = obdq.executeQueryAndAssembleResults(query, searchTerm, filterOptions);
+			nodes = obdq.executeQueryAndAssembleResults(query, searchTerm);
 		}
 		return this.summarizeResultsByEntityCharacter(nodes);
 	}

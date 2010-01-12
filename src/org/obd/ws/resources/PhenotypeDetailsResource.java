@@ -48,7 +48,6 @@ public class PhenotypeDetailsResource extends Resource {
 	private String group;
 	
 	private Map<String, String> parameters;
-	Map<String, String> queryResultsFilterSpecs;
 	private JSONObject jObjs;
 	private OBDSQLShard obdsqlShard;
 	private OBDQuery obdq;
@@ -107,7 +106,6 @@ public class PhenotypeDetailsResource extends Resource {
 
 		jObjs = new JSONObject();
 		parameters = new HashMap<String, String>();
-		queryResultsFilterSpecs = new HashMap<String, String>();
 	}
 	
    /**
@@ -213,7 +211,7 @@ public class PhenotypeDetailsResource extends Resource {
 		log().trace("Search Term: " + searchTerm + " Query: " + query);
 		try{
 			Collection<PhenotypeDTO> phenotypeColl = 
-				obdq.executeQueryAndAssembleResults(query, searchTerm, queryResultsFilterSpecs);
+				obdq.executeQueryAndAssembleResults(query, searchTerm);
 			if(type != null)
 				phenotypeColl = filterCollectionByType(phenotypeColl, type);
 			if(type != null && type.equals("evo") && group != null){
@@ -444,7 +442,6 @@ public class PhenotypeDetailsResource extends Resource {
 		if(character_id != null){
 			query += " AND p1.character_uid = '" + character_id + "'";
 		}
-		queryResultsFilterSpecs.put("publication", null); //TODO pub_id goes here;
 		return Arrays.asList(new String[]{query, searchTerm});
 	}
 	

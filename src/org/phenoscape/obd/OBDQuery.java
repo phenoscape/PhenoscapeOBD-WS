@@ -310,7 +310,7 @@ public class OBDQuery {
 	 * by the invoking REST service
 	 */
 
-	public Collection<PhenotypeDTO> executeQueryAndAssembleResults(String queryStr, String searchTerm, Map<String, String> filterOptions) 
+	public Collection<PhenotypeDTO> executeQueryAndAssembleResults(String queryStr, String searchTerm) 
 		throws SQLException{
 		/** <a> annotationToReifsMap </a> 
 		 * This new map has been added tp consolidate reif ids for a TAXON to PHENOTYPE assertion*/
@@ -318,7 +318,6 @@ public class OBDQuery {
 		
 		String entityLabel, entityId;
 		PreparedStatement pstmt = null;
-		Map<String, String> filterableValues; 
 		try{
 			pstmt = conn.prepareStatement(queryStr);
 			for(int i = 1; i <= pstmt.getParameterMetaData().getParameterCount(); i++)
@@ -329,45 +328,30 @@ public class OBDQuery {
 			long endTime = System.currentTimeMillis();
 			log.trace("Query execution took  " + (endTime -startTime) + " milliseconds");
 			while(rs.next()){
-                 filterableValues = new HashMap<String, String>();
-                 filterableValues.put("subject", rs.getString(2));
-                 filterableValues.put("entity", rs.getString(8));
-                 filterableValues.put("character", rs.getString(6));
-				/*
-				 * each retrieved row is filtered by passing the filterable values as arguments to a generic 
-				 * filtering method. if the filtering method returns a boolean true for a row, this row is
-				 * excluded from the results. if it returns false, then the row is packaged into a DTO
-				 * and added to the collection which is returned by this method
-				 */
+				PhenotypeDTO dto = new PhenotypeDTO(rs.getString(1));
 				
-				if(!isFilterableRow(filterOptions, filterableValues)){
-					if(!rs.getString(2).contains("GENO")){ //sometimes, genotypes are returned and we don;t want these
-						PhenotypeDTO dto = new PhenotypeDTO(rs.getString(1));
-						
-						dto.setTaxon(rs.getString(3));
-						dto.setTaxonId(rs.getString(2));
-						dto.setQuality(rs.getString(5));
-						dto.setQualityId(rs.getString(4));
-						dto.setCharacter(rs.getString(7));
-						dto.setCharacterId(rs.getString(6));
-						entityLabel = rs.getString(9);
-						entityId = rs.getString(8);
-						dto.setEntity(entityLabel);
-						dto.setEntityId(entityId);
-						String reif = rs.getString(10);
-						dto.setNumericalCount(rs.getString(11));
-						dto.setRelatedEntityId(rs.getString(12));
-						dto.setRelatedEntity(rs.getString(13));
-						dto.setPublication(rs.getString(14));
-						
-						//we collect all the reif ids associated with each DTO object
-						Set<String> reifs = annotationToReifsMap.get(dto);
-						if(reifs == null)
-							reifs = new HashSet<String>();
-						reifs.add(reif);
-						annotationToReifsMap.put(dto, reifs);
-					}
-				}
+				dto.setTaxon(rs.getString(3));
+				dto.setTaxonId(rs.getString(2));
+				dto.setQuality(rs.getString(5));
+				dto.setQualityId(rs.getString(4));
+				dto.setCharacter(rs.getString(7));
+				dto.setCharacterId(rs.getString(6));
+				entityLabel = rs.getString(9);
+				entityId = rs.getString(8);
+				dto.setEntity(entityLabel);
+				dto.setEntityId(entityId);
+				String reif = rs.getString(10);
+				dto.setNumericalCount(rs.getString(11));
+				dto.setRelatedEntityId(rs.getString(12));
+				dto.setRelatedEntity(rs.getString(13));
+				dto.setPublication(rs.getString(14));
+				
+				//we collect all the reif ids associated with each DTO object
+				Set<String> reifs = annotationToReifsMap.get(dto);
+				if(reifs == null)
+					reifs = new HashSet<String>();
+				reifs.add(reif);
+				annotationToReifsMap.put(dto, reifs);
 			}
 			for(PhenotypeDTO dto : annotationToReifsMap.keySet()){
 				//here we reassign the reif ids to the DTO
@@ -390,25 +374,6 @@ public class OBDQuery {
 			}
 		}
 		return annotationToReifsMap.keySet();
-	}
-	
-	/**
-	 * @param filterOptions       These are set by the calling method, they come directly from user input
-	 * @param filterableValues    These are the ids present in the various columns of the row that is being checked
-	 * 
-	 * The purpose of this method is to check a row against the filter values. If the row contains ALL the filter values, 
-	 * ths method returns a false meaning the row is NOT to be filtered.
-	 */
-    
-	private boolean isFilterableRow(Map<String, String> filterOptions, Map<String, String> filterableValues) {
-		for(String key : filterOptions.keySet()){
-			String filterValue = filterOptions.get(key);
-			String valueFromQueryResult = filterableValues.get(key);
-			if(filterValue != null && valueFromQueryResult != null && !filterValue.equals(valueFromQueryResult)){
-					return true;
-			}
-		}
-		return false;
 	}
 	
 	 /**
