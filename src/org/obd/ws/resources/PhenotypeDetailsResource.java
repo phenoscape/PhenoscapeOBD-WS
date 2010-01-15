@@ -360,7 +360,10 @@ public class PhenotypeDetailsResource extends Resource {
 					String relatedEntity = phenotype.getRelatedEntity();
 					if(relatedEntityId != null && relatedEntity != null){
 						qualityObj.put("id", qualityId + "^OBO_REL:towards(" + relatedEntityId + ")");
-						qualityObj.put("name", quality + " towards " + relatedEntity);
+						if(quality.trim().endsWith("from") || quality.trim().endsWith("to") || quality.trim().endsWith("with"))
+							qualityObj.put("name", quality + " " + relatedEntity);
+						else
+							qualityObj.put("name", quality + " towards " + relatedEntity);
 					}
 					else{
 						qualityObj.put("id", qualityId);

@@ -199,6 +199,7 @@ public class TaxonomyBuilder {
 	private List<PhenotypeDTO> consolidateReifIds(PhenotypeDTO phenotype, List<PhenotypeDTO> listOfEqcrLists, boolean isLeafNode) {
 		    for (PhenotypeDTO otherPhenotype : listOfEqcrLists) {
 			if(isPhenotypeSameAsEqcrList(phenotype, otherPhenotype)){
+				int index = listOfEqcrLists.indexOf(otherPhenotype);
 				if(isLeafNode){
 					for (String id : phenotype.getReifIds()) {
 					    otherPhenotype.addReifId(id);
@@ -214,6 +215,8 @@ public class TaxonomyBuilder {
 				        otherPhenotype.removeReifId(id);
 				    }
 				}
+				listOfEqcrLists.remove(index);
+				listOfEqcrLists.add(index, otherPhenotype);
 				return listOfEqcrLists;
 			}
 		}

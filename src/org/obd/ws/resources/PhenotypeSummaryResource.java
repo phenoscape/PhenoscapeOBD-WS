@@ -312,8 +312,12 @@ public class PhenotypeSummaryResource extends Resource {
 		Set<String> qAnnots = annots.get(2);
 		Set<String> pAnnots = annots.get(3);
 		
-		if(relatedEntityId != null && relatedEntity != null)
-			qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
+		if(relatedEntityId != null && relatedEntity != null){
+			if(quality.trim().endsWith("from") || quality.trim().endsWith("to") || quality.trim().endsWith("with"))
+				qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " " + relatedEntity);
+			else
+				qAnnots.add(qualityId + "^OBO_REL:towards(" + relatedEntityId + ")\t" + quality + " towards " + relatedEntity);
+		}
 		else if(count != null)
 			qAnnots.add(qualityId + "^PHENOSCAPE:has_count(" + count + ")\t" + quality + " of " + count);
 		else

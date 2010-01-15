@@ -75,6 +75,7 @@ public class OBDQuery {
         POSTCOMP_RELATIONS.put("posterior_to", "posterior to");
         POSTCOMP_RELATIONS.put("BSPO:0000099", "posterior to");
         POSTCOMP_RELATIONS.put("adjacent_to", "adjacent to");
+        POSTCOMP_RELATIONS.put("OBO_REL:adjacent_to", "adjacent to");
     }
 
 	/**
@@ -206,9 +207,12 @@ public class OBDQuery {
 				if(quality == null || quality.length() == 0){
 					quality = semanticLabel(qualityId);
 				}
-				if(relEntity != null)
-					quality += " towards " + relEntity; 
-				
+				if(relEntityId != null && relEntity != null){
+					if(quality.trim().endsWith("from") || quality.trim().endsWith("to") || quality.trim().endsWith("with"))
+						quality += " " + relEntity;
+					else
+						quality += " towards " + relEntity;
+				}
 				dto.setEntityId(entityId);
 				dto.setEntity(entity);
 				dto.setQualityId(qualityId);
