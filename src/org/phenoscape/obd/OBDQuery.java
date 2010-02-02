@@ -207,7 +207,9 @@ public class OBDQuery {
 				if(quality == null || quality.length() == 0){
 					quality = semanticLabel(qualityId);
 				}
-				if(relEntityId != null && relEntity != null){
+				if(relEntityId != null){
+					if(relEntity == null)
+						relEntity = simpleLabel(relEntityId);
 					if(quality.trim().endsWith("from") || quality.trim().endsWith("to") || quality.trim().endsWith("with"))
 						quality += " " + relEntity;
 					else

@@ -470,17 +470,14 @@ public class Queries {
 		"tpm.publication, " +
 		"tpm.character_text, tpm.character_comment, tpm.character_number, " +
 		"tpm.state_text, tpm.state_comment, tpm.curators, " + 
-		"rel.entity_uid, rel.entity_label " +
+		"rel.uid, rel.label " +
 		"FROM " +
-		"taxon_phenotype_metadata AS tpm " +
-		"LEFT OUTER JOIN (dw_taxon_phenotype_table AS tp " +
-		"JOIN (dw_phenotype_table AS phen " +
-		"JOIN dw_entity_table AS rel " +
-		"ON (rel.entity_nid = phen.towards_entity_nid)) " +
-		"ON (phen.phenotype_nid = tp.phenotype_nid)) " +
-		"ON (tp.reif_id = tpm.reif_id) " +
+		"dw_taxon_phenotype_table AS tp " +
+		"JOIN taxon_phenotype_metadata AS tpm ON (tpm.reif_id = tp.reif_id) " +
+		"JOIN dw_phenotype_table AS phen ON (tp.phenotype_nid = phen.phenotype_nid) " +
+		"JOIN node AS rel ON (rel.node_id = phen.towards_entity_nid) " +
 		"WHERE " +
-		"tpm.reif_id = ?";
+		"tp.reif_id = ?";
 
 	/** GROUP Query part for auto completion  
 	 * The main query string for auto completion. */
