@@ -86,54 +86,52 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
     }
     
     protected JSONObject  assembleJSONObject(String taxonUID) throws SQLException, JSONException {
-    	
-    	JSONObject searchObj, dataObj, childObj;
-    	List<JSONObject> childObjs = new ArrayList<JSONObject>();
-    	List<JSONObject> childrenOfChildObj = new ArrayList<JSONObject>();
-    	String id, name, phenotypeCount, subtaxonCount;
-    	
-    	List<PhenotypeAndAnnotatedSubtaxonCountDTO> results =
-    						obdq.executeQueryForSquarifiedTaxonMapResource(taxonID);
-    	
-    	PhenotypeAndAnnotatedSubtaxonCountDTO searchTaxonObject = results.remove(0);
-    	id = searchTaxonObject.getId();
-    	name = searchTaxonObject.getName();
-    	phenotypeCount = searchTaxonObject.getPhenotypeCount() + "";
-    	subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount()) + "";
-    	    	
-    	searchObj = new JSONObject();
-    	searchObj.put("id", id);
-    	searchObj.put("name", name);
-    	
-    	dataObj = new JSONObject();
-		dataObj.put("$area", subtaxonCount);
-		dataObj.put("annotations", phenotypeCount);
-    	
-    	searchObj.put("data", dataObj);
-    	
-    	for(PhenotypeAndAnnotatedSubtaxonCountDTO child : results){
-    		childObj = new JSONObject();
-    		
-    		id = child.getId();
-    		name = child.getName();
-    		phenotypeCount = child.getPhenotypeCount() + ""; 
-    		subtaxonCount = Math.log(child.getSubtaxonCount()) + "";//getting log values to reduce scales of comparison
-    		
-    		childObj.put("id", id);
-    		childObj.put("name", name);
-    		
-    		dataObj = new JSONObject();
-    		dataObj.put("$area", subtaxonCount);
-    		dataObj.put("annotations", phenotypeCount);
-    		
-    		childObj.put("data", dataObj);
-    		childObj.put("children", childrenOfChildObj);
-    		childObjs.add(childObj);
-    	}
-    	
-    	searchObj.put("children", childObjs);
-    	
-    	return searchObj;
+
+        JSONObject searchObj, dataObj, childObj;
+        List<JSONObject> childObjs = new ArrayList<JSONObject>();
+        List<JSONObject> childrenOfChildObj = new ArrayList<JSONObject>();
+
+        List<PhenotypeAndAnnotatedSubtaxonCountDTO> results = obdq.executeQueryForSquarifiedTaxonMapResource(taxonID);
+
+        PhenotypeAndAnnotatedSubtaxonCountDTO searchTaxonObject = results.remove(0);
+        final String id = searchTaxonObject.getId();
+        final String name = searchTaxonObject.getName();
+        final int phenotypeCount = searchTaxonObject.getPhenotypeCount();
+        final double subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount());
+
+        searchObj = new JSONObject();
+        searchObj.put("id", id);
+        searchObj.put("name", name);
+
+        dataObj = new JSONObject();
+        dataObj.put("$area", subtaxonCount);
+        dataObj.put("$color", phenotypeCount);
+
+        searchObj.put("data", dataObj);
+
+        for (PhenotypeAndAnnotatedSubtaxonCountDTO child : results) {
+            childObj = new JSONObject();
+
+            final String childID = child.getId();
+            final String childName = child.getName();
+            final int childPhenotypeCount = child.getPhenotypeCount(); 
+            final double childSubtaxonCount = Math.log(child.getSubtaxonCount());//getting log values to reduce scales of comparison
+
+            childObj.put("id", childID);
+            childObj.put("name", childName);
+
+            dataObj = new JSONObject();
+            dataObj.put("$area", childSubtaxonCount);
+            dataObj.put("$color", (((childPhenotypeCount*1.0)/phenotypeCount)*100));
+
+            childObj.put("data", dataObj);
+            childObj.put("children", childrenOfChildObj);
+            childObjs.add(childObj);
+        }
+
+        searchObj.put("children", childObjs);
+
+        return searchObj;
     }
 
 }
