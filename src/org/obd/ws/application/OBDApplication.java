@@ -145,6 +145,7 @@ public class OBDApplication extends Application {
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);
         router.attach("/timestamp", org.obd.ws.resources.KbRefreshTimestampResource.class);
+        router.attach("/taxon/{taxonID}/treemap/",org.obd.ws.resources.SquarifiedTaxonMapResource.class);
         return router;
     }
     

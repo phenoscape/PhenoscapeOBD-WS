@@ -22,6 +22,7 @@ import org.obd.ws.util.Collections;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.AnnotationDTO;
 import org.obd.ws.util.dto.HomologDTO;
+import org.obd.ws.util.dto.PhenotypeAndAnnotatedSubtaxonCountDTO;
 import org.obd.ws.util.dto.PhenotypeDTO;
 
 /**
@@ -86,7 +87,7 @@ public class OBDQuery {
 	 */
 	public OBDQuery(Shard shard) throws SQLException{
 		this.shard = shard;
-		this.conn = ((AbstractSQLShard)shard).getConnection();
+		this.conn = ((AbstractSQLShard)this.shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
 	}
 
@@ -117,6 +118,65 @@ public class OBDQuery {
 		this(shard, queries);
 		this.defaultNamespaceToNodeIdMap = nsToSourceIdMap;
 		this.prefixToDefaultNamespacesMap = prefixToNSMap;
+	}
+	
+	public List<PhenotypeAndAnnotatedSubtaxonCountDTO> 
+			executeQueryForSquarifiedTaxonMapResource(String taxonUID) throws SQLException{
+		
+		List<PhenotypeAndAnnotatedSubtaxonCountDTO> results = 
+					new ArrayList<PhenotypeAndAnnotatedSubtaxonCountDTO>();
+		PhenotypeAndAnnotatedSubtaxonCountDTO pascDTO;
+		String id, name;
+		int phenotypeCount, subtaxonCount;
+		PreparedStatement ps1 = null, ps2 = null;
+		try {
+			ps1 = conn.prepareStatement(queries.getQueryForSquarifiedTaxonMapResource2());
+			ps1.setString(1, taxonUID);
+			ResultSet rs1 = ps1.executeQuery();
+			while(rs1.next()){
+				id = rs1.getString(1);
+				name = rs1.getString(2);
+				phenotypeCount = rs1.getInt(3);
+				subtaxonCount = rs1.getInt(4);
+				
+				pascDTO = new PhenotypeAndAnnotatedSubtaxonCountDTO(id, name);
+				pascDTO.setPhenotypeCount(phenotypeCount);
+				pascDTO.setSubtaxonCount(subtaxonCount);
+				results.add(pascDTO);
+			}
+			
+			ps2 = conn.prepareStatement(queries.getQueryForSquarifiedTaxonMapResource1());
+			ps2.setString(1, taxonUID);
+			ResultSet rs2 = ps2.executeQuery();
+			while(rs2.next()){
+				id = rs2.getString(1);
+				name = rs2.getString(2);
+				phenotypeCount = rs2.getInt(3);
+				subtaxonCount = rs2.getInt(4);
+				
+				pascDTO = new PhenotypeAndAnnotatedSubtaxonCountDTO(id, name);
+				pascDTO.setPhenotypeCount(phenotypeCount);
+				pascDTO.setSubtaxonCount(subtaxonCount);
+				results.add(pascDTO);
+			}
+		} catch (SQLException sqle) {
+			log.error(sqle);
+			throw sqle;
+		}
+		finally {
+			if (ps1 != null) {
+				ps1.close();
+			}
+			if(ps2 != null){
+				ps2.close();
+			}
+			if(conn != null){
+				conn.commit();
+				conn.close();
+			}
+		}
+		
+		return results;
 	}
 	
 	/**

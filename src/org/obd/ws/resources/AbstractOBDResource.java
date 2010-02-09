@@ -10,10 +10,10 @@ import org.restlet.data.Request;
 import org.restlet.data.Response;
 import org.restlet.resource.Resource;
 
-public class AbstractOBDResource extends Resource {
+public abstract class AbstractOBDResource extends Resource {
 
     private static final String DRIVER_NAME = "jdbc:postgresql://";
-    private OBDSQLShard shard;
+    protected OBDSQLShard shard;
 
     public AbstractOBDResource(Context context, Request request, Response response) {
         super(context, request, response);

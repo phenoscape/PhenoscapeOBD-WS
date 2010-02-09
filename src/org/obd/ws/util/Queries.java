@@ -609,6 +609,50 @@ public class Queries {
 		"SELECT label AS definition FROM description " +
 		"WHERE node_id = (SELECT node_id FROM node WHERE uid = ?)";
 	
+	private String queryForSquarifiedTaxonMapResource1 = 
+	    	"SELECT " +
+	    	"subtaxon.uid, subtaxon.label, COUNT(DISTINCT tp.phenotype_nid), COUNT(DISTINCT tp.taxon_nid) " +
+	    	"FROM " +
+	    	"node AS taxon " +
+	    	"JOIN (link AS is_a_link " +
+	    	"JOIN (node AS subtaxon " +
+	    	"JOIN (dw_taxon_is_a_taxon_table AS is_a " +
+	    	"JOIN dw_taxon_phenotype_table AS tp " +
+	    	"ON (tp.taxon_nid = is_a.subtaxon_nid)) " +
+	    	"ON (is_a.supertaxon_nid = subtaxon.node_id)) " +
+	    	"ON (subtaxon.node_id = is_a_link.node_id AND " +
+	    	"	is_a_link.predicate_id = ___is_a AND " +
+	    	"	is_a_link.is_inferred = 'f')) " +
+	    	"ON (is_a_link.object_id = taxon.node_id) " +
+	    	"JOIN link AS rank_link " +
+	    	"ON (rank_link.node_id = tp.taxon_nid AND " +
+	    	"	rank_link.predicate_id = (SELECT node_id FROM node WHERE uid = 'has_rank') AND " +
+	    	"	rank_link.is_inferred = 'f') " +
+	    	"WHERE " +
+	    	"taxon.uid = ? AND " +
+	    	"rank_link.object_id = (SELECT node_id FROM node WHERE uid = 'TTO:species') " +
+	    	"GROUP BY subtaxon.uid, subtaxon.label";
+	
+	private String queryForSquarifiedRaxonMapResource2 = 
+		"SELECT " +
+		"taxon.taxon_uid, taxon.taxon_label, " +
+		"COUNT(DISTINCT tp.phenotype_nid) AS phenotype_count, " +
+		"COUNT(DISTINCT is_a.subtaxon_nid) AS taxon_count " +
+		"FROM " +
+		"dw_taxon_table AS taxon " +
+		"JOIN (dw_taxon_is_a_taxon_table AS is_a " +
+		"JOIN dw_taxon_phenotype_table AS tp " +
+		"ON (is_a.subtaxon_nid = tp.taxon_nid)) " +
+		"ON (is_a.supertaxon_nid = taxon.taxon_nid) " +
+		"JOIN link AS rank_link " +
+		"ON (is_a.subtaxon_nid = rank_link.node_id AND " +
+		"	rank_link.predicate_id = (SELECT node_id FROM node WHERE uid = 'has_rank') AND " +
+		"	rank_link.is_inferred = 'f') " +
+		"WHERE " +
+		"taxon.taxon_uid = ? AND " +
+		"rank_link.object_id = (SELECT node_id FROM node WHERE uid = 'TTO:species') " +
+		"GROUP BY taxon.taxon_uid, taxon.taxon_label";
+	
 	/**
 	 * This constructor sets up the shard and uses it to find node ids for all the relations used
 	 * @param shard
@@ -727,6 +771,14 @@ public class Queries {
 	
 	public String getGenericPhenotypeQueryForTaxon(){
 		return this.genericPhenotypeQueryForTaxon;
+	}
+	
+	public String getQueryForSquarifiedTaxonMapResource1(){
+		return this.replacePatternsWithIds(this.queryForSquarifiedTaxonMapResource1);
+	}
+	
+	public String getQueryForSquarifiedTaxonMapResource2(){
+		return this.queryForSquarifiedRaxonMapResource2;
 	}
 	
 	/**
