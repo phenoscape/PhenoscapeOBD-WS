@@ -97,7 +97,12 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
         final String id = searchTaxonObject.getId();
         final String name = searchTaxonObject.getName();
         final int phenotypeCount = searchTaxonObject.getPhenotypeCount();
-        final double subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount());
+        final double subtaxonCount;
+        
+        if(searchTaxonObject.getSubtaxonCount() > 1)
+        	subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount());//getting log values to reduce scales of comparison
+        else
+        	subtaxonCount = searchTaxonObject.getSubtaxonCount();
 
         searchObj = new JSONObject();
         searchObj.put("id", id);
@@ -115,8 +120,13 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
             final String childID = child.getId();
             final String childName = child.getName();
             final int childPhenotypeCount = child.getPhenotypeCount(); 
-            final double childSubtaxonCount = Math.log(child.getSubtaxonCount());//getting log values to reduce scales of comparison
-
+            final double childSubtaxonCount;
+            
+            if(child.getSubtaxonCount() > 1)
+            	childSubtaxonCount = Math.log(child.getSubtaxonCount());//getting log values to reduce scales of comparison
+            else
+            	childSubtaxonCount = child.getSubtaxonCount();
+            
             childObj.put("id", childID);
             childObj.put("name", childName);
 
