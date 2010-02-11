@@ -146,6 +146,15 @@ public class OBDApplication extends Application {
         router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);
         router.attach("/timestamp", org.obd.ws.resources.KbRefreshTimestampResource.class);
         router.attach("/taxon/{taxonID}/treemap/",org.obd.ws.resources.SquarifiedTaxonMapResource.class);
+        /** These resources generate data consistency reports*/
+        router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",
+        		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion21A.class);
+        router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities",
+        		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion21B.class);
+        router.attach("/statistics/consistencyreports/characterswithonlyoneannotatedstate",
+        		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion9.class);
+        router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations",
+        		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion13.class);
         return router;
     }
     
