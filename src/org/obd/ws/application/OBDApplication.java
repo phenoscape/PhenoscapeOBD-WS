@@ -146,7 +146,7 @@ public class OBDApplication extends Application {
         router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);
         router.attach("/timestamp", org.obd.ws.resources.KbRefreshTimestampResource.class);
         router.attach("/taxon/{taxonID}/treemap/",org.obd.ws.resources.SquarifiedTaxonMapResource.class);
-        /** These resources generate data consistency reports*/
+        /* These resources generate data consistency reports*/
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",
         		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion21A.class);
         router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities",
@@ -155,6 +155,17 @@ public class OBDApplication extends Application {
         		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion9.class);
         router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations",
         		org.obd.ws.statistics.reports.resources.DataConsistencyReportGeneratorForQuestion13.class);
+        /* These resources generate summary statistics of the data */
+        router.attach("/statistics/phenotypeannotationcount",
+        		org.obd.ws.statistics.resources.PhenotypeAnnotationCounts.class);
+        router.attach("/statistics/countsofgenesandcharactersbyattribute",
+        		org.obd.ws.statistics.resources.CharactersAndGenesByAttribute.class);
+        router.attach("/statistics/countsofgenesandcharactersbysystem",
+        		org.obd.ws.statistics.resources.CharactersAndGenesBySystem.class);
+        router.attach("/statistics/countsofgenesandcharactersbysystemandclade",
+        		org.obd.ws.statistics.resources.CharactersAndGenesBySystemAndClade.class);
+        router.attach("/statistics/countsofcharactersdatasetsandtaxabyclade",
+        		org.obd.ws.statistics.resources.CharactersDatasetsAndTaxaByClade.class);
         return router;
     }
     
