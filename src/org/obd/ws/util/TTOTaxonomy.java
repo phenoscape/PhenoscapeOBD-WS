@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,8 +48,14 @@ public class TTOTaxonomy {
 	
 	private static final String TTO_URL_STRING = 
 			"http://obo.cvs.sourceforge.net/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo";
+	private static final String TAXONOMIC_RANK_URL_STRING = 
+			"http://phenoscape.svn.sourceforge.net/viewvc/phenoscape/trunk/vocab/taxonomic_rank.obo";
+	
 	private static final String TTO_FILE_NAME = "/tmp/teleost_taxonomy.obo";
-
+	private static final String TAXONOMIC_RANK_FILE_NAME = "/tmp/taxonomic_rank.obo";
+	
+	private static final String RANK_NAMESPACE = "taxonomic_rank";
+	
 	private static final String HAS_RANK_RELATION_STRING = "has_rank";
 	private static final String IS_EXTINCT_RELATION_STRING = "is_extinct";
 	/* GETTERS and SETTERs */
@@ -103,7 +110,7 @@ public class TTOTaxonomy {
 	public Set<NodeDTO> getSetOfExtinctTaxa() {
 		return setOfExtinctTaxa;
 	}
-
+	
 	/**
 	 * Constructor initializes instance variables and calls the methods to
 	 * update all of them with information from the ontology
@@ -122,6 +129,7 @@ public class TTOTaxonomy {
 		
 		readOntologyIntoLocalFile();
 		createSessionFromOntology();
+		populateRankObjectsFromSession();
 		createTaxonomyFromSession();
 		tracePathsToRootForAllNodes();
 	}
@@ -132,13 +140,19 @@ public class TTOTaxonomy {
 	 * @throws IOException
 	 */
 	private void readOntologyIntoLocalFile() throws IOException{
-		URL ttoURL = new URL(TTO_URL_STRING);
-		BufferedReader reader = new BufferedReader(new InputStreamReader(ttoURL.openStream()));
-		File ttoFile = new File(TTO_FILE_NAME);
+		readOntologyIntoLocalFile(TTO_URL_STRING, TTO_FILE_NAME);
+		readOntologyIntoLocalFile(TAXONOMIC_RANK_URL_STRING, TAXONOMIC_RANK_FILE_NAME);
+	}
+
+	private void readOntologyIntoLocalFile(String urlString, String fileLocationString) throws IOException{
+		URL url = new URL(urlString);
+		BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+		File file = new File(fileLocationString);
 		
+
 		String lineFromWebPage;
 		
-		BufferedWriter writer = new BufferedWriter(new FileWriter(ttoFile));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(file));
 		
 		while((lineFromWebPage = reader.readLine()) != null){
 			writer.write(lineFromWebPage + "\n");
@@ -147,7 +161,6 @@ public class TTOTaxonomy {
 		writer.flush();
 		writer.close();
 	}
-
 	/**
 	 * This method reads the local ontology file and 
 	 * creates an OBOSession instance to store this ontology
@@ -156,6 +169,7 @@ public class TTOTaxonomy {
 	private void createSessionFromOntology() throws DataAdapterException{
 		List<String> paths = new ArrayList<String>();
 		paths.add(TTO_FILE_NAME);
+		paths.add(TAXONOMIC_RANK_FILE_NAME);
 		
 		//setting up the file adapter and its configuration
 		final OBOFileAdapter fileAdapter = new OBOFileAdapter();
@@ -200,8 +214,18 @@ public class TTOTaxonomy {
 		}
 	}
 	
+	private void populateRankObjectsFromSession(){
+		for(OBOClass oboClass : TermUtil.getTerms(oboSession)){
+	    	if(oboClass.getNamespace() != null && !oboClass.isObsolete() &&
+	    			(oboClass.getNamespace().toString().trim().equals(RANK_NAMESPACE))){
+	    		NodeDTO rankDTO = createNodeDTOFromOBOClass(oboClass);
+	    		idToNodeMap.put(oboClass.getID(), rankDTO);
+	    	}
+		}
+	}
+	
 	/**
-	 * This method extracts the rank information for a taxon and adds it to a 
+	 * These two methods extract the rank information for a taxon and adds it to a 
 	 * map 
 	 * @param oboClass - the input taxon
 	 */
@@ -209,22 +233,25 @@ public class TTOTaxonomy {
 		for(PropertyValue propertyValue : oboClass.getPropertyValues()){
 			if(propertyValue.getValue().contains(HAS_RANK_RELATION_STRING)){
 				String propValue = propertyValue.getValue();
-				 if(propValue != null && propValue != ""){
-					 String[] propValueComponents = propValue.split("\\s");
-					 if(propValueComponents.length == 2){
-						 NodeDTO taxon = new NodeDTO(oboClass.getID());
-						 taxon.setName(oboClass.getName());
-						 NodeDTO rank  = new NodeDTO(propValueComponents[1]);
-						 String rankLabel = 
-							 propValueComponents[1].substring(propValueComponents[1].indexOf(":") + 1);
-						 rank.setName(rankLabel);
-						 taxonToRankMap.put(taxon, rank);					 
-					 }
+				 if(propValue != null && propValue.trim() != ""){
+					 assignRankToTaxon(propValue, oboClass);
 				 }
 			}
 		}
 	}
 	
+	private void assignRankToTaxon(String propValue, OBOClass oboClass) {
+		String[] propValueComponents = propValue.split("\\s");
+		if(propValueComponents.length == 2){
+			NodeDTO taxonDTO = new NodeDTO(oboClass.getID());
+			taxonDTO.setName(oboClass.getName());
+			NodeDTO rankDTO = new NodeDTO(propValueComponents[1]);
+			String rankLabel = idToNodeMap.get(propValueComponents[1]).getName();
+			rankDTO.setName(rankLabel);
+			taxonToRankMap.put(taxonDTO, rankDTO);
+		}
+	}
+
 	/**
 	 * This method checks if the input taxon is extinct. If it is, this is 
 	 * added to a set of extinct taxa
