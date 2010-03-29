@@ -5,25 +5,28 @@ import java.sql.SQLException;
 import org.apache.log4j.Logger;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
-import org.restlet.Context;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Resource;
+import org.restlet.resource.ResourceException;
+import org.restlet.resource.ServerResource;
 
-public abstract class AbstractOBDResource extends Resource {
+public abstract class AbstractOBDResource extends ServerResource {
 
     private static final String DRIVER_NAME = "jdbc:postgresql://";
-    protected OBDSQLShard shard;
+    private OBDSQLShard shard;
 
-    public AbstractOBDResource(Context context, Request request, Response response) {
-        super(context, request, response);
+    /* (non-Javadoc)
+     * @see org.restlet.resource.UniformResource#doInit()
+     * If a subclass overrides this method, it should call super's before its own implementation.
+     */
+    @Override
+    protected void doInit() throws ResourceException {
+        super.doInit();
         try {
             this.shard = new OBDSQLShard();
         } catch (SQLException e) {
             log().fatal("Failed to create shard", e);
         } catch (ClassNotFoundException e) {
             log().fatal("Failed to create shard", e);
-        }
+        }        
     }
 
     protected OBDSQLShard getShard() {

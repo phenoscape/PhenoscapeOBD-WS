@@ -10,7 +10,7 @@
         <!-- Restlet adapter -->
         <servlet>
                 <servlet-name>ServerServlet</servlet-name>
-                <servlet-class>com.noelios.restlet.ext.servlet.ServerServlet</servlet-class>                
+                <servlet-class>org.restlet.ext.servlet.ServerServlet</servlet-class>                
         </servlet>
         
         <servlet-mapping>

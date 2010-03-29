@@ -10,40 +10,35 @@ import org.obd.ws.application.OBDApplication;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.dto.PhenotypeAndAnnotatedSubtaxonCountDTO;
 import org.phenoscape.obd.OBDQuery;
-import org.restlet.Context;
-import org.restlet.data.MediaType;
 import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
-import org.restlet.resource.Representation;
+import org.restlet.representation.Representation;
+import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
-import org.restlet.resource.Variant;
 
 public class SquarifiedTaxonMapResource extends AbstractOBDResource {
-    
-    private final String taxonID;
+
+    private String taxonID;
     private OBDQuery obdq;
-  
     private Queries queries;
-    
-    public SquarifiedTaxonMapResource(Context context, Request request, Response response) throws SQLException, ClassNotFoundException {
-        super(context, request, response);
-        this.getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-        this.taxonID = Reference.decode((String)(request.getAttributes().get("taxonID")));
+
+    @Override
+    protected void doInit() throws ResourceException {
+        super.doInit();
+        this.taxonID = Reference.decode((String)(this.getRequestAttributes().get("taxonID")));
         this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
     }
 
-    @Override
-    public Representation represent(Variant variant) throws ResourceException {
+    @Get("json")
+    public Representation getJSONRepresentation() throws ResourceException {
         try {
             this.connectShardToDatabase();
             if(!inputFormParametersAreValid()){
-				this.disconnectShardFromDatabase();
-				return null;
-			}
-            obdq = new OBDQuery(shard, queries);
+                this.disconnectShardFromDatabase();
+                return null;
+            }
+            obdq = new OBDQuery(this.getShard(), queries);
             final JSONObject json = this.assembleJSONObject(taxonID);
             // the value for the "$area" key should be the 
             // result of getCountOfAnnotationsWithinTaxon(), instead of 42
@@ -52,14 +47,14 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
             //
             // return children only one level deep - all children have an empty
             // children list
-            
-//            {id: "TTO:151", name: "Halecostomi", data:{"$area": 42, species: 1234}, children: [
-//{"id":"TTO:10000323","name":"Pachycormidae", data:{"$area": 42, species: 1234}, children: []},
-//{"id":"TTO:1220", "name":"Amiiformes", data:{"$area": 42, species: 1234}, children: []},
-//{"id":"TTO:10000305","name":"Aspidorhynchiformes", data:{"$area": 42, species: 1234}, children: []},
-//{"id":"TTO:201","name":"Teleostei", data:{"$area": 42, species: 1234}, children: []},
-// {"id":"TTO:10000290","name":"Parasemionotidae", data:{"$area": 42, species: 1234}, children: []}
-//]}
+
+            //            {id: "TTO:151", name: "Halecostomi", data:{"$area": 42, species: 1234}, children: [
+            //{"id":"TTO:10000323","name":"Pachycormidae", data:{"$area": 42, species: 1234}, children: []},
+            //{"id":"TTO:1220", "name":"Amiiformes", data:{"$area": 42, species: 1234}, children: []},
+            //{"id":"TTO:10000305","name":"Aspidorhynchiformes", data:{"$area": 42, species: 1234}, children: []},
+            //{"id":"TTO:201","name":"Teleostei", data:{"$area": 42, species: 1234}, children: []},
+            // {"id":"TTO:10000290","name":"Parasemionotidae", data:{"$area": 42, species: 1234}, children: []}
+            //]}
 
             return new JsonRepresentation(json);
         } catch (SQLException sqle) {
@@ -67,24 +62,24 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
         } catch (ClassNotFoundException e) {
             getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "[CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
         } catch (JSONException e) {
-        	getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "[JSON EXCEPTION] Error with JSON Object");
-		} finally {
+            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, "[JSON EXCEPTION] Error with JSON Object");
+        } finally {
             disconnectShardFromDatabase();
         }
         return null;
     }
-    
+
     private boolean inputFormParametersAreValid(){
-		if (taxonID == null) {
-			getResponse().setStatus(
-					Status.CLIENT_ERROR_BAD_REQUEST,
-					"ERROR: The input parameter for taxon "
-							+ "is null");
-			return false;
-		}
-		return true;
+        if (taxonID == null) {
+            getResponse().setStatus(
+                    Status.CLIENT_ERROR_BAD_REQUEST,
+                    "ERROR: The input parameter for taxon "
+                    + "is null");
+            return false;
+        }
+        return true;
     }
-    
+
     protected JSONObject  assembleJSONObject(String taxonUID) throws SQLException, JSONException {
 
         JSONObject searchObj, dataObj, childObj;
@@ -98,11 +93,11 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
         final String name = searchTaxonObject.getName();
         final int phenotypeCount = searchTaxonObject.getPhenotypeCount();
         final double subtaxonCount;
-        
+
         if(searchTaxonObject.getSubtaxonCount() > 1)
-        	subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount());//getting log values to reduce scales of comparison
+            subtaxonCount = Math.log(searchTaxonObject.getSubtaxonCount());//getting log values to reduce scales of comparison
         else
-        	subtaxonCount = searchTaxonObject.getSubtaxonCount();
+            subtaxonCount = searchTaxonObject.getSubtaxonCount();
 
         searchObj = new JSONObject();
         searchObj.put("id", id);
@@ -121,12 +116,12 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
             final String childName = child.getName();
             final int childPhenotypeCount = child.getPhenotypeCount(); 
             final double childSubtaxonCount;
-            
+
             if(child.getSubtaxonCount() > 1)
-            	childSubtaxonCount = Math.log(child.getSubtaxonCount());//getting log values to reduce scales of comparison
+                childSubtaxonCount = Math.log(child.getSubtaxonCount());//getting log values to reduce scales of comparison
             else
-            	childSubtaxonCount = child.getSubtaxonCount();
-            
+                childSubtaxonCount = child.getSubtaxonCount();
+
             childObj.put("id", childID);
             childObj.put("name", childName);
 
