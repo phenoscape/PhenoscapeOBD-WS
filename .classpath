@@ -12,7 +12,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/obo-vocab.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/obo.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/postgresql-8.2-506.jdbc3.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javax.servlet.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.json.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.osgi.core.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.ext.json.jar"/>

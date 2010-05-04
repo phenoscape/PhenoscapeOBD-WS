@@ -1,7 +1,7 @@
 package org.obd.ws.application;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -49,12 +49,9 @@ public class OBDApplication extends Application {
     }
 
     /* Some static Strings */
-    public static final String PREFIX_TO_NS_FILE = 
-        "PrefixToDefaultNamespaceOfOntology.properties";
-    public static final String PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING = 
-        "prefixToDefaultNamespacesMap";
-    public static final String DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING = 
-        "defaultNamespacesToSourceIdMap";
+    public static final String PREFIX_TO_NS_FILE = "PrefixToDefaultNamespaceOfOntology.properties";
+    public static final String PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING = "prefixToDefaultNamespacesMap";
+    public static final String DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING = "defaultNamespacesToSourceIdMap";
     public static final String TTO_TAXONOMY_STRING = "ttoTaxonomy";
     public static final String QUERIES_STRING = "queries";
     public static final String SHARD_STRING = "shard";
@@ -82,12 +79,12 @@ public class OBDApplication extends Application {
         this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
 
         obdsql = dbToggler.chooseDatabase();
-        selectedDatabaseName = dbToggler.getSelectedDatabaseName();
+        selectedDatabaseName = dbToggler.getDBName();
         dbHost = dbToggler.getDbHost();
         uid = dbToggler.getUid();
         pwd = dbToggler.getPwd();
 
-        if(obdsql != null && selectedDatabaseName != null && dbHost != null && uid != null && pwd != null){
+        if(obdsql != null && selectedDatabaseName != null && dbHost != null && uid != null && pwd != null) {
             this.getContext().getAttributes().put(SHARD_STRING, obdsql);
             this.getContext().getAttributes().put(SELECTED_DATABASE_NAME_STRING, selectedDatabaseName);
             this.getContext().getAttributes().put(DB_HOST_NAME_STRING, dbHost);
@@ -99,10 +96,10 @@ public class OBDApplication extends Application {
             this.constructDefaultNamespaceToNodeIdMap();
             this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
             this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
-        }else
+        } else {
             throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
             "This is because neither database is ready to be queried. ");
-
+        }
         TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
         this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
@@ -162,10 +159,6 @@ public class OBDApplication extends Application {
         return router;
     }
 
-    private Logger log() {
-        return Logger.getLogger(this.getClass());
-    }
-
     /**
      * PURPOSE This method reads in the list of default namespaces from a file and
      * adds the corresponding node ids to a map
@@ -173,15 +166,15 @@ public class OBDApplication extends Application {
      * @throws SQLException 
      */
     private void constructDefaultNamespaceToNodeIdMap() throws SQLException{
-        String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
+        final String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
         String nodeId, uid;
-        Connection conn = obdsql.getConnection();
-        java.sql.Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery(sourceNodeQuery);
+        final Connection conn = obdsql.getConnection();
+        final java.sql.Statement stmt = conn.createStatement();
+        final ResultSet rs = stmt.executeQuery(sourceNodeQuery);
         while(rs.next()){
             nodeId = rs.getString(1);
             uid = rs.getString(2);
-            if(uid.length() > 0){
+            if (uid.length() > 0) {
                 this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
             }
         }
@@ -197,21 +190,34 @@ public class OBDApplication extends Application {
      * file. This is converted into a map
      * @throws IOException
      */
-    private void constructPrefixToDefaultNamespacesMap() 
-    throws IOException{
-        InputStream inStream = 
-            this.getClass().getResourceAsStream(PREFIX_TO_NS_FILE);
-        Properties props = new Properties();
-        props.load(inStream);
-        Set<String> namespaceSet;
-        for(Object key : props.keySet()){
-            String prefix = key.toString();
-            String commaDelimitedNamespaces = props.get(key).toString();
-            namespaceSet = new HashSet<String>();
+    private void constructPrefixToDefaultNamespacesMap() throws IOException {
+        final Properties props = new Properties();
+        props.load(new StringReader(
+                "oboInOwl=oboInOwl,oboInOwl:Subset\n" +
+                "OBO_REL=relationship\n" +
+                "PATO=quality,pato.ontology\n" +
+                "ZFA=zebrafish_anatomy\n" +
+                "TAO=teleost_anatomy\n" +
+                "TTO=teleost-taxonomy\n" +
+                "COLLECTION=museum\n" +
+                "BSPO=spatial\n" +
+                "SO=sequence\n" +
+                "UO=unit.ontology\n" +
+                "PHENOSCAPE=phenoscape_vocab\n" +
+                "GO=gene_ontology,biological_process,molecular_function,cellular_component\n" +
+                "ECO=evidence_code2.obo\n"));
+        for (Object key : props.keySet()) {
+            final Set<String> namespaceSet = new HashSet<String>();
+            final String prefix = key.toString();
+            final String commaDelimitedNamespaces = props.get(key).toString();
             for(String namespace : commaDelimitedNamespaces.split(",")){
                 namespaceSet.add(namespace);
             }
             prefixToDefaultNamespacesMap.put(prefix, namespaceSet);
         }
+    }
+    
+    private Logger log() {
+        return Logger.getLogger(this.getClass());
     }
 }
