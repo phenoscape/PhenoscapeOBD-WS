@@ -2,6 +2,8 @@ package org.obd.ws.resources;
 
 import java.sql.SQLException;
 
+import javax.sql.DataSource;
+
 import org.apache.log4j.Logger;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.application.OBDApplication;
@@ -10,7 +12,6 @@ import org.restlet.resource.ServerResource;
 
 public abstract class AbstractOBDResource extends ServerResource {
 
-    private static final String DRIVER_NAME = "jdbc:postgresql://";
     private OBDSQLShard shard;
 
     /* (non-Javadoc)
@@ -20,13 +21,7 @@ public abstract class AbstractOBDResource extends ServerResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        try {
-            this.shard = new OBDSQLShard();
-        } catch (SQLException e) {
-            log().fatal("Failed to create shard", e);
-        } catch (ClassNotFoundException e) {
-            log().fatal("Failed to create shard", e);
-        }        
+        this.shard = new OBDSQLShard();
     }
 
     protected OBDSQLShard getShard() {
@@ -40,12 +35,7 @@ public abstract class AbstractOBDResource extends ServerResource {
      * @throws ClassNotFoundException
      */
     protected void connectShardToDatabase() throws SQLException, ClassNotFoundException{
-        String dbName = (String)this.getContext().getAttributes().get(OBDApplication.SELECTED_DATABASE_NAME_STRING);
-        String dbHost = (String)this.getContext().getAttributes().get(OBDApplication.DB_HOST_NAME_STRING);
-        String uid = (String)this.getContext().getAttributes().get(OBDApplication.UID_STRING);
-        String pwd = (String)this.getContext().getAttributes().get(OBDApplication.PWD_STRING);
-        String dbConnString = DRIVER_NAME + dbHost + "/" + dbName;
-        this.shard.connect(dbConnString, uid, pwd);
+        this.shard.connect((DataSource)(this.getContext().getAttributes().get(OBDApplication.DATA_SOURCE_KEY)));
     }
 
     protected void disconnectShardFromDatabase() {

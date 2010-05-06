@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+For the database connection, a "context.xml" file should be created next to this one using this format.
+The username, password, and url should be edited with the correct values.
+-->
+<Context>
+    <Resource name="jdbc/OBD" auth="Container"
+        type="javax.sql.DataSource" maxActive="20" maxIdle="5" maxWait="10000"
+        username="?" password="?"
+        driverClassName="org.postgresql.Driver"
+        url="jdbc:postgresql://hostname/dbname" 
+        removeAbandoned="true" removeAbandonedTimeout="30"
+        validationQuery="SELECT * FROM obd_schema_metadata;" testWhileIdle="true">
+    </Resource>
+</Context>

@@ -12,11 +12,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.sql.DataSource;
+
 import org.apache.log4j.Logger;
 import org.obd.model.CompositionalDescription;
 import org.obd.model.Node;
 import org.obd.query.Shard;
-import org.obd.query.impl.AbstractSQLShard;
+import org.obd.ws.application.OBDApplication;
 import org.obd.ws.resources.AutoCompleteResource;
 import org.obd.ws.util.Collections;
 import org.obd.ws.util.Queries;
@@ -35,7 +37,6 @@ import org.obd.ws.util.dto.PhenotypeDTO;
 public class OBDQuery {
 
 	private final Shard shard;
-	private Connection conn;
 	public Logger log;
 	private Queries queries;
 	
@@ -87,7 +88,6 @@ public class OBDQuery {
 	 */
 	public OBDQuery(Shard shard) throws SQLException{
 		this.shard = shard;
-		this.conn = ((AbstractSQLShard)this.shard).getConnection();
 		this.log = Logger.getLogger(this.getClass());
 	}
 
@@ -120,8 +120,7 @@ public class OBDQuery {
 		this.prefixToDefaultNamespacesMap = prefixToNSMap;
 	}
 	
-	public List<PhenotypeAndAnnotatedSubtaxonCountDTO> 
-			executeQueryForSquarifiedTaxonMapResource(String taxonUID) throws SQLException{
+	public List<PhenotypeAndAnnotatedSubtaxonCountDTO> executeQueryForSquarifiedTaxonMapResource(String taxonUID) throws SQLException {
 		
 		List<PhenotypeAndAnnotatedSubtaxonCountDTO> results = 
 					new ArrayList<PhenotypeAndAnnotatedSubtaxonCountDTO>();
@@ -129,6 +128,7 @@ public class OBDQuery {
 		String id, name;
 		int phenotypeCount, subtaxonCount;
 		PreparedStatement ps1 = null, ps2 = null;
+		final Connection conn = this.createConnection();
 		try {
 			ps1 = conn.prepareStatement(queries.getQueryForSquarifiedTaxonMapResource2());
 			ps1.setString(1, taxonUID);
@@ -167,15 +167,14 @@ public class OBDQuery {
 			if (ps1 != null) {
 				ps1.close();
 			}
-			if(ps2 != null){
+			if(ps2 != null) {
 				ps2.close();
 			}
-			if(conn != null){
+			if (conn != null) {
 				conn.commit();
 				conn.close();
 			}
 		}
-		
 		return results;
 	}
 	
@@ -187,7 +186,7 @@ public class OBDQuery {
 	public String executeTimestampQuery() throws SQLException{
 		String timestamp = "2009-07-24";
 		PreparedStatement pStmt = null;
-		
+		final Connection conn = this.createConnection();
 		try{
 			pStmt = conn.prepareStatement(queries.getTimestampQuery());
 			log.trace(pStmt.toString());
@@ -227,14 +226,13 @@ public class OBDQuery {
 	 * The metadata is packaged into a collection of Nodes which are then returned
 	 * back
 	 */
-	public Collection<AnnotationDTO> executeFreeTextQueryAndAssembleResults(Integer reifLinkId)
-		throws SQLException{
+	public Collection<AnnotationDTO> executeFreeTextQueryAndAssembleResults(Integer reifLinkId) throws SQLException{
 		
 		Collection<AnnotationDTO> results = new ArrayList<AnnotationDTO>();
 		PreparedStatement pStmt = null;
 		
 		String entityId, entity, qualityId, quality, relEntityId, relEntity;
-		
+		final Connection conn = this.createConnection();
 		try{
 			pStmt = conn.prepareStatement(queries.getFreeTextDataQuery());
 			pStmt.setInt(1, reifLinkId);
@@ -302,6 +300,7 @@ public class OBDQuery {
 			if (pStmt != null) {
 				pStmt.close(); 
 			}
+			if (conn != null) { conn.close(); }
 		}
 		
 		return results;
@@ -320,7 +319,7 @@ public class OBDQuery {
 		throws SQLException{
 		Collection<HomologDTO> results = new ArrayList<HomologDTO>();
 		PreparedStatement pStmt = null;
-		
+		final Connection conn = this.createConnection();
 		try{
 			pStmt = conn.prepareStatement(queries.getHomologyQuery());
 			for(int i = 1; i <= pStmt.getParameterMetaData().getParameterCount(); i++)
@@ -355,11 +354,12 @@ public class OBDQuery {
 		finally {
 			if (pStmt != null) {
 				pStmt.close(); 
-				if(conn != null){
-					conn.commit();
-					conn.close();
-				}
+				
 			}
+			if(conn != null){
+                conn.commit();
+                conn.close();
+            }
 		}
 		return results;
 	}
@@ -381,10 +381,10 @@ public class OBDQuery {
 		/** <a> annotationToReifsMap </a> 
 		 * This new map has been added tp consolidate reif ids for a TAXON to PHENOTYPE assertion*/
 		Map<PhenotypeDTO, Set<String>> annotationToReifsMap = new HashMap<PhenotypeDTO, Set<String>>();
-		
+		final Connection conn = this.createConnection();
 		String entityLabel, entityId;
 		PreparedStatement pstmt = null;
-		try{
+		try {
 			pstmt = conn.prepareStatement(queryStr);
 			for(int i = 1; i <= pstmt.getParameterMetaData().getParameterCount(); i++)
 				pstmt.setString(i, searchTerm);
@@ -544,6 +544,11 @@ public class OBDQuery {
 		return executeAutocompletionQueryAndProcessResults(query, ontologySourceIds);
 	}
 	
+	private Connection createConnection() throws SQLException {
+	    final DataSource ds = (DataSource)(OBDApplication.getCurrent().getContext().getAttributes().get(OBDApplication.DATA_SOURCE_KEY));
+	    return ds.getConnection();
+	}
+	
 	/**
 	 * This method uses the input search term and input specified 
 	 * search options to construct an SQL query, which will be executed by the 
@@ -585,58 +590,60 @@ public class OBDQuery {
 	 * @return - a data structure which groups the autocompletions under
 	 * different categories viz. label match, synonym match and definition
 	 * match
+	 * @throws SQLException 
 	 * @throws SQLException
 	 */
-	private Map<String, List<List<String>>>
-				executeAutocompletionQueryAndProcessResults(String query, 
-						List<String> sourceIdList) throws SQLException{
+	private Map<String, List<List<String>>> executeAutocompletionQueryAndProcessResults(String query, List<String> sourceIdList) throws SQLException {
 		
-		Map<String, List<List<String>>> resultsFromDifferentCategories =
-			new HashMap<String, List<List<String>>>();
-		
+		Map<String, List<List<String>>> resultsFromDifferentCategories = new HashMap<String, List<List<String>>>();
 		List<List<String>> labelMatches = new ArrayList<List<String>>();
 		List<List<String>> synonymMatches = new ArrayList<List<String>>();
 		List<List<String>> definitionMatches = new ArrayList<List<String>>();
-		
-		java.sql.Statement stmt = conn.createStatement();
-		ResultSet rs = stmt.executeQuery(query);
-		List<String> row;
-		String uid, label, definition, synonym, sourceId;
-		while(rs.next()){
-			row = new ArrayList<String>();
-			uid = rs.getString(1);
-			label = rs.getString(2);
-			synonym = rs.getString(3);
-			definition = rs.getString(4);
-			sourceId = rs.getString(5);
-			
-			if(!uid.contains("GENE")){ //GENEs dont have source ids
-				if(isToBeFiltered(sourceId, sourceIdList))
-					continue;
-			}
-			row.add(uid);
-			row.add(label);
-			row.add(synonym);
-			row.add(definition);
-			
-			if(definition != null && definition.length() > 0)
-				definitionMatches.add(row);
-			else if(synonym != null && synonym.length() > 0)
-				synonymMatches.add(row);
-			else
-				labelMatches.add(row);
-		}
-		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), 
-								labelMatches);
-		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), 
-								synonymMatches);
-		resultsFromDifferentCategories.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), 
-								definitionMatches);
-		if(conn != null){
-			conn.commit();
-			conn.close();
-		}
-			
+		Connection conn = null;
+        try {
+            conn = this.createConnection();
+            java.sql.Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery(query);
+            List<String> row;
+            String uid, label, definition, synonym, sourceId;
+            while (rs.next()) {
+                row = new ArrayList<String>();
+                uid = rs.getString(1);
+                label = rs.getString(2);
+                synonym = rs.getString(3);
+                definition = rs.getString(4);
+                sourceId = rs.getString(5);
+                
+                if(!uid.contains("GENE")){ //GENEs dont have source ids
+                    if(isToBeFiltered(sourceId, sourceIdList))
+                        continue;
+                }
+                row.add(uid);
+                row.add(label);
+                row.add(synonym);
+                row.add(definition);
+                
+                if(definition != null && definition.length() > 0)
+                    definitionMatches.add(row);
+                else if(synonym != null && synonym.length() > 0)
+                    synonymMatches.add(row);
+                else
+                    labelMatches.add(row);
+            }
+            resultsFromDifferentCategories.put(AutoCompletionMatchTypes.LABEL_MATCH.name(), 
+                                    labelMatches);
+            resultsFromDifferentCategories.put(AutoCompletionMatchTypes.SYNONYM_MATCH.name(), 
+                                    synonymMatches);
+            resultsFromDifferentCategories.put(AutoCompletionMatchTypes.DEFINITION_MATCH.name(), 
+                                    definitionMatches);
+        } catch (SQLException e) {
+            throw(e);
+        } finally {
+            if (conn != null) {
+                conn.commit();
+                conn.close();
+            }
+        }	
 		return resultsFromDifferentCategories;
 	}
 	

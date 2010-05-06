@@ -7,7 +7,6 @@
 	<classpathentry kind="con" path="org.eclipse.jst.j2ee.internal.module.container"/>
 	<classpathentry kind="lib" path="lib/junit-4.5.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/bbop.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.13.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/obdapi.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/obo-vocab.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/obo.jar"/>
@@ -17,5 +16,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.ext.json.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.ext.servlet.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.13.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

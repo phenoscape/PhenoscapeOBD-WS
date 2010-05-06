@@ -12,6 +12,10 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import javax.naming.InitialContext;
+import javax.naming.NamingException;
+import javax.sql.DataSource;
+
 import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
@@ -27,16 +31,13 @@ public class OBDApplication extends Application {
 
     private Queries queries;
     private OBDSQLShard obdsql;
-    /* Database connection parameters */
-    private String selectedDatabaseName,dbHost,uid,pwd;
-
     /** A structure which maps ontology prefixes to their 
      * default namespaces */
-    private Map<String, Set<String>> prefixToDefaultNamespacesMap;
+    final private Map<String, Set<String>> prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
     /** A structure to map default namespaces of ontologies to their
      * node ids in the database */
-    private Map<String, String> defaultNamespaceToNodeIdMap;
-
+    final private Map<String, String> defaultNamespaceToNodeIdMap = new HashMap<String, String>();
+    
     /** GETTER for the map from default namespaces of ontologies 
      * to their node ids in the database */
     public Map<String, String> getDefaultNamespaceToNodeIdMap() {
@@ -48,17 +49,13 @@ public class OBDApplication extends Application {
         return prefixToDefaultNamespacesMap;
     }
 
-    /* Some static Strings */
+    private static final String JNDI_KEY = "java:/comp/env/jdbc/OBD";
+    public static final String DATA_SOURCE_KEY = "org.phenoscape.jndi.obd.datasource";
     public static final String PREFIX_TO_NS_FILE = "PrefixToDefaultNamespaceOfOntology.properties";
     public static final String PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING = "prefixToDefaultNamespacesMap";
     public static final String DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING = "defaultNamespacesToSourceIdMap";
     public static final String TTO_TAXONOMY_STRING = "ttoTaxonomy";
-    public static final String QUERIES_STRING = "queries";
-    public static final String SHARD_STRING = "shard";
-    public static final String SELECTED_DATABASE_NAME_STRING = "selectedDatabaseName";
-    public static final String DB_HOST_NAME_STRING = "dbHost";
-    public static final String UID_STRING = "uid";
-    public static final String PWD_STRING = "pwd";
+    public static final String QUERIES_STRING = "queries";  
 
     /**
      * Selects the Shard pointing to the most recently updated database to be used by the 
@@ -70,26 +67,20 @@ public class OBDApplication extends Application {
      * @throws ParseException
      * @throws PhenoscapeDbConnectionException
      * @throws DataAdapterException
+     * @throws NamingException 
+     * @throws NamingException 
+     * @throws ClassNotFoundException 
+     * @throws SQLException 
      */
-    private void connect() throws SQLException, ClassNotFoundException, IOException, ParseException, 
-    PhenoscapeDbConnectionException, DataAdapterException{
+    private void connect() throws IOException, ParseException, PhenoscapeDbConnectionException, DataAdapterException, NamingException, SQLException, ClassNotFoundException {
+        //TODO this method should probably be removed or significantly revised
+        final InitialContext initialContext = new InitialContext();
+        final DataSource dataSource = (DataSource)(initialContext.lookup(JNDI_KEY));
+        this.getContext().getAttributes().put(DATA_SOURCE_KEY, dataSource);
 
-        DatabaseToggler dbToggler = new DatabaseToggler();
-        this.prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
-        this.defaultNamespaceToNodeIdMap = new HashMap<String, String>();
-
-        obdsql = dbToggler.chooseDatabase();
-        selectedDatabaseName = dbToggler.getDBName();
-        dbHost = dbToggler.getDbHost();
-        uid = dbToggler.getUid();
-        pwd = dbToggler.getPwd();
-
-        if(obdsql != null && selectedDatabaseName != null && dbHost != null && uid != null && pwd != null) {
-            this.getContext().getAttributes().put(SHARD_STRING, obdsql);
-            this.getContext().getAttributes().put(SELECTED_DATABASE_NAME_STRING, selectedDatabaseName);
-            this.getContext().getAttributes().put(DB_HOST_NAME_STRING, dbHost);
-            this.getContext().getAttributes().put(UID_STRING, uid);
-            this.getContext().getAttributes().put(PWD_STRING, pwd);
+        obdsql = new OBDSQLShard();
+        obdsql.connect(dataSource);
+        if(obdsql != null) {
             queries = new Queries(obdsql);
             this.getContext().getAttributes().put(QUERIES_STRING, queries);
             this.constructPrefixToDefaultNamespacesMap();
@@ -124,8 +115,9 @@ public class OBDApplication extends Application {
             log().fatal("Error with the database connection", e);
         } catch (DataAdapterException e) {
             log().fatal("Error reading in the OBO files", e);
+        } catch (NamingException e) {
+            log().fatal("Failed to create JDBC adapter via JNDI");
         }
-
         final Router router = new Router(this.getContext());
         // URL mappings
         router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);

@@ -102,11 +102,10 @@ public class PhenotypeDetailsResource extends AbstractOBDResource {
         Representation rep;
         Map<NodeDTO, List<PhenotypeDTO>> annots;
 
-        try{
+        try {
             this.connectShardToDatabase();
             if(!inputFormParametersAreValid()){
                 this.jObjs = null;
-                this.disconnectShardFromDatabase();
                 return null;
             }
             obdq = new OBDQuery(this.getShard(), queries);
