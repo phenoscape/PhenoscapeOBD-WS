@@ -5,7 +5,7 @@ import java.io.StringReader;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.ParseException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -19,7 +19,6 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
-import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
 import org.restlet.Application;
@@ -30,7 +29,6 @@ import org.restlet.routing.Template;
 public class OBDApplication extends Application {
 
     private Queries queries;
-    private OBDSQLShard obdsql;
     /** A structure which maps ontology prefixes to their 
      * default namespaces */
     final private Map<String, Set<String>> prefixToDefaultNamespacesMap = new HashMap<String, Set<String>>();
@@ -61,36 +59,21 @@ public class OBDApplication extends Application {
      * Selects the Shard pointing to the most recently updated database to be used by the 
      * data services
      * Then this method sets a number of context level parameters
-     * @throws SQLException
-     * @throws ClassNotFoundException
-     * @throws IOException
-     * @throws ParseException
-     * @throws PhenoscapeDbConnectionException
-     * @throws DataAdapterException
-     * @throws NamingException 
-     * @throws NamingException 
-     * @throws ClassNotFoundException 
+     * @throws IOException 
      * @throws SQLException 
+     * @throws DataAdapterException 
+     * @throws ClassNotFoundException 
      */
-    private void connect() throws IOException, ParseException, PhenoscapeDbConnectionException, DataAdapterException, NamingException, SQLException, ClassNotFoundException {
+    private void connect() throws IOException, SQLException, DataAdapterException, ClassNotFoundException {
         //TODO this method should probably be removed or significantly revised
-        final InitialContext initialContext = new InitialContext();
-        final DataSource dataSource = (DataSource)(initialContext.lookup(JNDI_KEY));
-        this.getContext().getAttributes().put(DATA_SOURCE_KEY, dataSource);
-
-        obdsql = new OBDSQLShard();
-        obdsql.connect(dataSource);
-        if(obdsql != null) {
-            queries = new Queries(obdsql);
-            this.getContext().getAttributes().put(QUERIES_STRING, queries);
-            this.constructPrefixToDefaultNamespacesMap();
-            this.constructDefaultNamespaceToNodeIdMap();
-            this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
-            this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
-        } else {
-            throw new PhenoscapeDbConnectionException("Failed to obtain a connection to the database. " +
-            "This is because neither database is ready to be queried. ");
-        }
+        final OBDSQLShard shard = new OBDSQLShard();
+        shard.connect((DataSource)(this.getContext().getAttributes().get(DATA_SOURCE_KEY)));
+        queries = new Queries(shard);
+        this.getContext().getAttributes().put(QUERIES_STRING, queries);
+        this.constructPrefixToDefaultNamespacesMap();
+        this.constructDefaultNamespaceToNodeIdMap();
+        this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
+        this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
         TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
         this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
@@ -101,22 +84,17 @@ public class OBDApplication extends Application {
      */
     @Override
     public Restlet createInboundRoot() {
+        this.initializeDataSource();
         try {
             connect();
         } catch (SQLException e) {
             log().fatal("Error connecting to SQL shard", e);
-        } catch (ClassNotFoundException e) {
-            log().fatal("Error creating SQL shard", e);
         } catch (IOException e) {
             log().fatal("Error reading connection properties file", e);
-        } catch (ParseException e) {
-            log().fatal("Error parsing the date", e);
-        } catch (PhenoscapeDbConnectionException e) {
-            log().fatal("Error with the database connection", e);
         } catch (DataAdapterException e) {
             log().fatal("Error reading in the OBO files", e);
-        } catch (NamingException e) {
-            log().fatal("Failed to create JDBC adapter via JNDI");
+        } catch (ClassNotFoundException e) {
+            log().fatal("Error connecting to SQL shard", e);
         }
         final Router router = new Router(this.getContext());
         // URL mappings
@@ -150,26 +128,49 @@ public class OBDApplication extends Application {
                 org.obd.ws.statistics.resources.CharactersDatasetsAndTaxaByClade.class);
         return router;
     }
+    
+    private void initializeDataSource() {
+        try {
+            final InitialContext initialContext = new InitialContext();
+            final DataSource dataSource = (DataSource)(initialContext.lookup(JNDI_KEY));
+            this.getContext().getAttributes().put(DATA_SOURCE_KEY, dataSource);
+        } catch (NamingException e) {
+            log().fatal("Unable to configure database connection via JNDI", e);
+        }
+    }
 
     /**
      * PURPOSE This method reads in the list of default namespaces from a file and
      * adds the corresponding node ids to a map
-     * @throws IOException
-     * @throws SQLException 
      */
-    private void constructDefaultNamespaceToNodeIdMap() throws SQLException{
+    private void constructDefaultNamespaceToNodeIdMap() throws SQLException {
         final String sourceNodeQuery = queries.getQueryForNodeIdsForOntologies();
         String nodeId, uid;
-        final Connection conn = obdsql.getConnection();
-        final java.sql.Statement stmt = conn.createStatement();
-        final ResultSet rs = stmt.executeQuery(sourceNodeQuery);
-        while(rs.next()){
-            nodeId = rs.getString(1);
-            uid = rs.getString(2);
-            if (uid.length() > 0) {
-                this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = this.createConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sourceNodeQuery);
+            while(rs.next()){
+                nodeId = rs.getString(1);
+                uid = rs.getString(2);
+                if (uid.length() > 0) {
+                    this.defaultNamespaceToNodeIdMap.put(uid, nodeId);
+                }
             }
+        } catch (SQLException e) {
+            throw e;
+        } finally {
+            if (rs != null) { rs.close(); }
+            if (stmt != null) { stmt.close(); }
+            if (conn != null) { conn.close(); }
         }
+    }
+    
+    private Connection createConnection() throws SQLException {
+        return ((DataSource)(this.getContext().getAttributes().get(OBDApplication.DATA_SOURCE_KEY))).getConnection();
     }
 
     /**
