@@ -14,15 +14,15 @@ import java.util.Set;
 import org.bbop.dataadapter.DataAdapterException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.exceptions.PhenoscapeTreeAssemblyException;
-import org.obd.ws.util.Queries;
-import org.obd.ws.util.TTOTaxonomy;
-import org.obd.ws.util.TaxonTree;
-import org.obd.ws.util.TaxonomyBuilder;
-import org.obd.ws.util.dto.NodeDTO;
-import org.obd.ws.util.dto.PhenotypeDTO;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.util.NodeDTO;
+import org.phenoscape.util.PhenotypeDTO;
+import org.phenoscape.util.Queries;
+import org.phenoscape.util.TTOTaxonomy;
+import org.phenoscape.util.TaxonTree;
+import org.phenoscape.util.TaxonomyBuilder;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
+import org.phenoscape.ws.exceptions.PhenoscapeTreeAssemblyException;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -60,8 +60,8 @@ public class PhenotypeDetailsResource extends AbstractOBDResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.TTO_TAXONOMY_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
 
         if(this.getQuery().getFirstValue(SUBJECT_STRING) != null){
             this.subject_id = Reference.decode((String) (this.getQuery().getFirstValue(SUBJECT_STRING)));
@@ -458,7 +458,7 @@ public class PhenotypeDetailsResource extends AbstractOBDResource {
             NodeDTO mrcaNode = tree.getMrca();
             taxonToAssertionsMap.put(mrcaNode, tree.getNodeToListOfEQCRListsMap().get(mrcaNode));
         }
-        else if(tree.getMrca() != null){ //MRCA is lower than the search nnode
+        else if(tree.getMrca() != null){ //MRCA is lower than the search node
             NodeDTO mrcaNode = tree.getMrca();
             taxonToAssertionsMap.put(mrcaNode, tree.getNodeToListOfEQCRListsMap().get(mrcaNode));
         }

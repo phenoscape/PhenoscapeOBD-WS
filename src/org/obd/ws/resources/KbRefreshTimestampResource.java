@@ -4,9 +4,9 @@ import java.sql.SQLException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.util.Queries;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.util.Queries;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -22,7 +22,7 @@ public class KbRefreshTimestampResource extends AbstractOBDResource{
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
         this.jObjs = new JSONObject();
     }
 

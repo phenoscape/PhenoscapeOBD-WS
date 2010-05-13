@@ -6,7 +6,7 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 import org.obd.query.impl.OBDSQLShard;
-import org.obd.ws.application.OBDApplication;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
 
@@ -35,7 +35,7 @@ public abstract class AbstractOBDResource extends ServerResource {
      * @throws ClassNotFoundException
      */
     protected void connectShardToDatabase() throws SQLException, ClassNotFoundException{
-        this.shard.connect((DataSource)(this.getContext().getAttributes().get(OBDApplication.DATA_SOURCE_KEY)));
+        this.shard.connect((DataSource)(this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.DATA_SOURCE_KEY)));
     }
 
     protected void disconnectShardFromDatabase() {

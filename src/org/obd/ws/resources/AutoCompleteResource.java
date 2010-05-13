@@ -13,9 +13,9 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.util.Queries;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.util.Queries;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -85,9 +85,9 @@ public class AutoCompleteResource extends AbstractOBDResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
-        this.prefixToNSMap = (Map<String, Set<String>>)this.getContext().getAttributes().get(OBDApplication.PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING);
-        this.nsToSourceIdMap = (Map<String, String>)this.getContext().getAttributes().get(OBDApplication.DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
+        this.prefixToNSMap = (Map<String, Set<String>>)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING);
+        this.nsToSourceIdMap = (Map<String, String>)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING);
         this.searchOptions = new HashMap<String, String>();
 
         this.searchTerm = Reference.decode((String) this.getQuery().getFirstValue(INPUT_TEXT_STRING));

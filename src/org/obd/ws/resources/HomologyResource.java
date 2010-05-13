@@ -6,12 +6,12 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.util.Queries;
-import org.obd.ws.util.TTOTaxonomy;
-import org.obd.ws.util.dto.HomologDTO;
-import org.obd.ws.util.dto.NodeDTO;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.util.HomologDTO;
+import org.phenoscape.util.NodeDTO;
+import org.phenoscape.util.Queries;
+import org.phenoscape.util.TTOTaxonomy;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -30,8 +30,8 @@ public class HomologyResource extends AbstractOBDResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
-        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(OBDApplication.TTO_TAXONOMY_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
+        this.ttoTaxonomy = (TTOTaxonomy)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.TTO_TAXONOMY_STRING);
         this.termID = Reference.decode(this.getRequestAttributes().get("termID").toString());
         this.jObjs = new JSONObject();
     }

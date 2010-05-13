@@ -4,7 +4,7 @@
         <!-- Application class name -->
         <context-param>
                 <param-name>org.restlet.application</param-name>
-                <param-value>org.obd.ws.application.OBDApplication</param-value>
+                <param-value>org.phenoscape.ws.application.PhenoscapeWebServiceApplication</param-value>
         </context-param>
       
         <!-- Restlet adapter -->

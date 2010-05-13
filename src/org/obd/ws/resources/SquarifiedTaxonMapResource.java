@@ -6,10 +6,10 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.util.Queries;
-import org.obd.ws.util.dto.PhenotypeAndAnnotatedSubtaxonCountDTO;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.util.PhenotypeAndAnnotatedSubtaxonCountDTO;
+import org.phenoscape.util.Queries;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -27,7 +27,7 @@ public class SquarifiedTaxonMapResource extends AbstractOBDResource {
     protected void doInit() throws ResourceException {
         super.doInit();
         this.taxonID = Reference.decode((String)(this.getRequestAttributes().get("taxonID")));
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
     }
 
     @Get("json")

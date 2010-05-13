@@ -12,11 +12,11 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.obd.ws.application.OBDApplication;
-import org.obd.ws.util.Queries;
-import org.obd.ws.util.dto.PhenotypeDTO;
-import org.phenoscape.dw.queries.StoredProceduresForPhenotypeSummaries;
-import org.phenoscape.obd.OBDQuery;
+import org.phenoscape.obd.query.OBDQuery;
+import org.phenoscape.obd.query.StoredProceduresForPhenotypeSummaries;
+import org.phenoscape.util.PhenotypeDTO;
+import org.phenoscape.util.Queries;
+import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -48,7 +48,7 @@ public class PhenotypeSummaryResource extends AbstractOBDResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.queries = (Queries)this.getContext().getAttributes().get(OBDApplication.QUERIES_STRING);
+        this.queries = (Queries)this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.QUERIES_STRING);
         if (this.getQuery().getFirstValue(SUBJECT_STRING) != null) {
             this.subject_id = Reference.decode((String) (this.getQuery().getFirstValue(SUBJECT_STRING)));
         }
