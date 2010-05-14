@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
@@ -59,6 +60,14 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             children.put(child);
         }
         json.put("children", children);
+        final JSONArray synonyms = new JSONArray();
+        for (Synonym synonym : taxon.getSynonyms()) {
+            final JSONObject synonymObj = new JSONObject();
+            synonymObj.put("name", synonym.getLabel());
+            synonymObj.put("lang", synonym.getLanguage());
+            synonyms.put(synonymObj);
+        }
+        json.put("synonyms", synonyms);
         return json;
     }
     

@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
 
@@ -72,6 +73,7 @@ public class PhenoscapeDataStore {
                             childrenStatement.close();
                         }
                     }
+                    this.addSynonymsToTerm(taxon, taxonNode);
                     return taxon;
                 }
             }  finally {
@@ -103,6 +105,40 @@ public class PhenoscapeDataStore {
             taxon.setRank(rank);
         }
         return taxon;
+    }
+    
+    private void addSynonymsToTerm(Term term, int nodeID) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = dataSource.getConnection();
+            PreparedStatement synonymsStatement = null;
+            ResultSet synonymsResult = null;
+            try {
+                final String synonymsQuery = 
+                    "SELECT * " +
+                    "FROM alias " +
+                    "WHERE node_id = ?";
+                synonymsStatement = connection.prepareStatement(synonymsQuery);
+                synonymsStatement.setInt(1, nodeID);
+                synonymsResult = synonymsStatement.executeQuery();
+                while (synonymsResult.next()) {
+                    final Synonym synonym = this.createSynonym(synonymsResult);
+                    term.addSynonym(synonym);
+                }
+            } finally {
+                if (synonymsStatement != null) {
+                    synonymsStatement.close();
+                }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }
+    }
+
+    private Synonym createSynonym(ResultSet result) throws SQLException {
+        final Synonym synonym = new Synonym();
+        synonym.setLabel(result.getString("label"));
+        return synonym;
     }
 
     private Logger log() {
