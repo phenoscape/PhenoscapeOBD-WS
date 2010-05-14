@@ -14,7 +14,7 @@ import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
 /**
- * A resource providing access to basic information about a taxon.
+ * A resource providing term info in a format tailored to a taxon.
  * @author Jim Balhoff
  */
 public class TaxonTermResource extends AbstractPhenoscapeResource {
@@ -31,6 +31,10 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
     public Representation getJSONRepresentation() {
         try {
             final TaxonTerm taxon = this.getDataStore().getTaxonTerm(this.termID);
+            if (taxon == null) {
+                this.setStatus(Status.CLIENT_ERROR_NOT_FOUND);
+                return null;
+            }
             return new JsonRepresentation(this.translate(taxon));
         } catch (JSONException e) {
             log().error("Failed to create JSON object for taxon", e);

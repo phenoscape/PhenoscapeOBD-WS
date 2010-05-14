@@ -17,6 +17,10 @@ public class TaxonTerm extends Term {
     public void setExtinct(boolean isExtinct) {
         this.isExtinct = isExtinct;
     }
+    /**
+     * Returns a TaxonTerm representing this taxon's parent taxon. If it is
+     * null, this taxon may either not have a parent or this object may not know about it.
+     */
     public TaxonTerm getParent() {
         return parent;
     }
@@ -25,6 +29,10 @@ public class TaxonTerm extends Term {
         this.parent = parent;
     }
 
+    /**
+     * Returns a set of TaxonTerms representing this taxon's children taxa. 
+     * If the set is empty, this taxon may either have no children or this object doesn't know about them.
+     */
     public Set<TaxonTerm> getChildren() {
         return Collections.unmodifiableSet(children);
     }
