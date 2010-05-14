@@ -4,13 +4,16 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-public class TaxonTerm extends Term {
+public class TaxonTerm extends DefaultTerm {
 
     private boolean isExtinct = false;
     private TaxonTerm parent = null;
     private Set<TaxonTerm> children = new HashSet<TaxonTerm>();
     private Term rank = null;
 
+    public TaxonTerm(int nodeID) {
+        super(nodeID);
+    }
     public boolean isExtinct() {
         return isExtinct;
     }
