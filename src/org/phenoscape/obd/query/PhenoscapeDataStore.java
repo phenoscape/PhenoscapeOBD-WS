@@ -24,58 +24,62 @@ public class PhenoscapeDataStore {
      */
     public TaxonTerm getTaxonTerm(String uid) throws SQLException {
         Connection connection = null;
-        PreparedStatement taxonStatement = null;
-        ResultSet taxonResult = null;
-        PreparedStatement childrenStatement = null;
-        ResultSet childrenResult = null;
         try {
             connection = dataSource.getConnection();
-            final String taxonQuery = 
-                "SELECT focal_taxon.*, parent.uid AS parent_uid, parent.label AS parent_label, parent.is_extinct AS parent_is_extinct, parent.rank_uid AS parent_rank_uid, parent.rank_label AS parent_rank_label " +
-                "FROM taxon focal_taxon " +
-                "LEFT OUTER JOIN taxon parent ON (parent.node_id = focal_taxon.parent_node_id) " +
-                "WHERE focal_taxon.uid = ?";
-            taxonStatement = connection.prepareStatement(taxonQuery);
-            taxonStatement.setString(1, uid);
-            taxonResult = taxonStatement.executeQuery();
-            while (taxonResult.next()) {
-                final TaxonTerm taxon = this.createTaxonTermWithProperties(taxonResult);
-                final int taxonNode = taxonResult.getInt("node_id");
-                if (taxonResult.getString("parent_uid") != null) {
-                    final TaxonTerm parent = new TaxonTerm();
-                    parent.setUID(taxonResult.getString("parent_uid"));
-                    parent.setLabel(taxonResult.getString("parent_label"));
-                    parent.setExtinct(taxonResult.getBoolean("parent_is_extinct"));
-                    if (taxonResult.getString("parent_rank_uid") != null) {
-                        final Term parentRank = new Term();
-                        parentRank.setUID(taxonResult.getString("parent_rank_uid"));
-                        parentRank.setLabel(taxonResult.getString("parent_rank_label"));
-                        parent.setRank(parentRank);
+            PreparedStatement taxonStatement = null;
+            ResultSet taxonResult = null;
+            try {
+                final String taxonQuery = 
+                    "SELECT focal_taxon.*, parent.uid AS parent_uid, parent.label AS parent_label, parent.is_extinct AS parent_is_extinct, parent.rank_uid AS parent_rank_uid, parent.rank_label AS parent_rank_label " +
+                    "FROM taxon focal_taxon " +
+                    "LEFT OUTER JOIN taxon parent ON (parent.node_id = focal_taxon.parent_node_id) " +
+                    "WHERE focal_taxon.uid = ?";
+                taxonStatement = connection.prepareStatement(taxonQuery);
+                taxonStatement.setString(1, uid);
+                taxonResult = taxonStatement.executeQuery();
+                while (taxonResult.next()) {
+                    final TaxonTerm taxon = this.createTaxonTermWithProperties(taxonResult);
+                    final int taxonNode = taxonResult.getInt("node_id");
+                    if (taxonResult.getString("parent_uid") != null) {
+                        final TaxonTerm parent = new TaxonTerm();
+                        parent.setUID(taxonResult.getString("parent_uid"));
+                        parent.setLabel(taxonResult.getString("parent_label"));
+                        parent.setExtinct(taxonResult.getBoolean("parent_is_extinct"));
+                        if (taxonResult.getString("parent_rank_uid") != null) {
+                            final Term parentRank = new Term();
+                            parentRank.setUID(taxonResult.getString("parent_rank_uid"));
+                            parentRank.setLabel(taxonResult.getString("parent_rank_label"));
+                            parent.setRank(parentRank);
+                        }
+                        taxon.setParent(parent);
                     }
-                    taxon.setParent(parent);
+                    PreparedStatement childrenStatement = null;
+                    ResultSet childrenResult = null;
+                    try {
+                        final String childrenQuery = 
+                            "SELECT * " +
+                            "FROM taxon " +
+                            "WHERE parent_node_id = ?";
+                        childrenStatement = connection.prepareStatement(childrenQuery);
+                        childrenStatement.setInt(1, taxonNode);
+                        childrenResult = childrenStatement.executeQuery();
+                        while (childrenResult.next()) {
+                            final TaxonTerm child = this.createTaxonTermWithProperties(childrenResult);
+                            taxon.addChild(child);
+                        }
+                    } finally {
+                        if (childrenStatement != null) {
+                            childrenStatement.close();
+                        }
+                    }
+                    return taxon;
                 }
-                final String childrenQuery = 
-                    "SELECT * " +
-                    "FROM taxon " +
-                    "WHERE parent_node_id = ?";
-                childrenStatement = connection.prepareStatement(childrenQuery);
-                childrenStatement.setInt(1, taxonNode);
-                childrenResult = childrenStatement.executeQuery();
-                while (childrenResult.next()) {
-                    final TaxonTerm child = this.createTaxonTermWithProperties(childrenResult);
-                    taxon.addChild(child);
+            }  finally {
+                if (taxonStatement != null) {
+                    taxonStatement.close();
                 }
-                return taxon;
             }
-        } catch (SQLException e) {
-            throw e;
         } finally {
-            if (taxonStatement != null) {
-                taxonStatement.close();
-            }
-            if (childrenStatement != null) {
-                childrenStatement.close();
-            }
             if (connection != null) {
                 connection.close();
             }
