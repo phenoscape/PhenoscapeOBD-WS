@@ -13,6 +13,7 @@ import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
+import org.phenoscape.obd.model.Vocab;
 
 public class PhenoscapeDataStore {
 
@@ -40,7 +41,11 @@ public class PhenoscapeDataStore {
             ResultSet termResult = null;
             try {
                 final String termQuery = 
-                    "SELECT * FROM node term " +
+                    "SELECT term.*, description.label AS definition, tagval.val AS comment " +
+                    "FROM node term " +
+                    "LEFT OUTER JOIN description ON (description.node_id = term.node_id) " +
+                    "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + Vocab.COMMENT + "') " +
+                    "LEFT OUTER JOIN tagval ON (tagval.tag_id = comment_rel.node_id AND tagval.node_id = term.node_id) " +
                     "WHERE term.uid = ?";
                 termStatement = connection.prepareStatement(termQuery);
                 termStatement.setString(1, uid);
@@ -62,6 +67,8 @@ public class PhenoscapeDataStore {
         final DefaultTerm term = new DefaultTerm(result.getInt("node_id"));
         term.setUID(result.getString("uid"));
         term.setLabel(result.getString("label"));
+        term.setDefinition(result.getString("definition"));
+        term.setComment(result.getString("comment"));
         this.addSynonymsToTerm(term);
         return term;
     }

@@ -15,6 +15,10 @@ public interface Term {
     public String getDefinition();
 
     public void setDefinition(String definition);
+    
+    public String getComment();
+    
+    public void setComment(String comment);
 
     public Set<Synonym> getSynonyms();
 

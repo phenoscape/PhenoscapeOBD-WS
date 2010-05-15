@@ -76,8 +76,8 @@ public class PhenoscapeWebServiceApplication extends Application {
         this.constructDefaultNamespaceToNodeIdMap();
         this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
         this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
-        //TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
-        //this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
+        TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
+        this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
 
     /**

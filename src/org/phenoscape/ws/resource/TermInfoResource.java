@@ -1,12 +1,15 @@
 package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.Synonym;
+import org.phenoscape.obd.model.Term;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -15,7 +18,7 @@ import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
 /**
- * A resource proving term info limited to properties and relationships defined in source ontologies.
+ * A resource providing term info limited to the properties and relationships defined in source ontologies.
  */
 public class TermInfoResource extends AbstractPhenoscapeResource {
 
@@ -49,16 +52,8 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
 
     private JSONObject translate(LinkedTerm term) throws JSONException {
         final JSONObject json = this.translateMinimal(term);
-        //        if (taxon.getParent() != null) {
-        //            final JSONObject parent = this.translateMinimal(taxon.getParent());
-        //            json.put("parent", parent);
-        //        }
-        //        final JSONArray children = new JSONArray();
-        //        for (TaxonTerm childTaxon : taxon.getChildren()) {
-        //            final JSONObject child = this.translateMinimal(childTaxon);
-        //            children.put(child);
-        //        }
-        //        json.put("children", children);
+        json.put("parents", this.translateRelationships(term.getSubjectLinks()));
+        json.put("children", this.translateRelationships(term.getObjectLinks()));
         final JSONArray synonyms = new JSONArray();
         for (Synonym synonym : term.getSynonyms()) {
             final JSONObject synonymObj = new JSONObject();
@@ -67,10 +62,23 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
             synonyms.put(synonymObj);
         }
         json.put("synonyms", synonyms);
+        json.put("definition", term.getDefinition());
+        json.put("comment", term.getComment());
         return json;
     }
 
-    private JSONObject translateMinimal(LinkedTerm term) throws JSONException {
+    private JSONArray translateRelationships(Set<Relationship> relationships) throws JSONException {
+        final JSONArray links = new JSONArray();
+        for (Relationship relationship : relationships) {
+            final JSONObject link = new JSONObject();
+            link.put("target", this.translateMinimal(relationship.getOther()));
+            link.put("relation", this.translateMinimal(relationship.getPredicate()));
+            links.put(link);
+        }
+        return links;
+    }
+
+    private JSONObject translateMinimal(Term term) throws JSONException {
         final JSONObject json = new JSONObject();
         json.put("id", term.getUID());
         json.put("name", term.getLabel());

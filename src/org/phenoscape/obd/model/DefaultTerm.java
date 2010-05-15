@@ -9,15 +9,16 @@ public class DefaultTerm implements LinkedTerm {
     private String uid;
     private String label;
     private String definition;
+    private String comment;
     private Set<Synonym> synonyms = new HashSet<Synonym>();
     private Set<Relationship> subjectLinks = new HashSet<Relationship>();
     private Set<Relationship> objectLinks = new HashSet<Relationship>();
     private final int nodeID;
-        
+
     public DefaultTerm(int nodeID) {
         this.nodeID = nodeID;
     }
-    
+
     public int getNodeID() {
         return this.nodeID;
     }
@@ -46,6 +47,14 @@ public class DefaultTerm implements LinkedTerm {
         this.definition = definition;
     }
 
+    public String getComment() {
+        return this.comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
+    }
+
     public Set<Synonym> getSynonyms() {
         return Collections.unmodifiableSet(this.synonyms);
     }
@@ -53,25 +62,25 @@ public class DefaultTerm implements LinkedTerm {
     public void addSynonym(Synonym synonym) {
         this.synonyms.add(synonym);
     }
-    
+
     /**
      * The Relationships in which this term is the subject of the link - this term's "parents".
      */
     public Set<Relationship> getSubjectLinks() {
         return Collections.unmodifiableSet(this.subjectLinks);
     }
-    
+
     public void addSubjectLink(Relationship relationship) {
         this.subjectLinks.add(relationship);
     }
-    
+
     /**
      * The Relationships in which this term is the object of the link - this term's "children".
      */
     public Set<Relationship> getObjectLinks() {
         return Collections.unmodifiableSet(this.objectLinks);
     }
-    
+
     public void addObjectLink(Relationship relationship) {
         this.objectLinks.add(relationship);
     }
