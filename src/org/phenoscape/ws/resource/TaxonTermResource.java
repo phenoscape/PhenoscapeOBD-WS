@@ -38,11 +38,11 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             }
             return new JsonRepresentation(this.translate(taxon));
         } catch (JSONException e) {
-            log().error("Failed to create JSON object for taxon", e);
+            log().error("Failed to create JSON object for taxon: " + this.termID, e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (SQLException e) {
-            log().error("Database error querying for taxon", e);
+            log().error("Database error querying for taxon: " + this.termID, e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }

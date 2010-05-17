@@ -14,13 +14,19 @@ public class DefaultTerm implements LinkedTerm {
     private Set<Relationship> subjectLinks = new HashSet<Relationship>();
     private Set<Relationship> objectLinks = new HashSet<Relationship>();
     private final int nodeID;
+    private final Integer sourceID;
 
-    public DefaultTerm(int nodeID) {
+    public DefaultTerm(int nodeID, Integer sourceID) {
         this.nodeID = nodeID;
+        this.sourceID = sourceID;
     }
 
     public int getNodeID() {
         return this.nodeID;
+    }
+    
+    public Integer getSourceID() {
+        return this.sourceID;
     }
 
     public String getUID() {

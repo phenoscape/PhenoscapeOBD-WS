@@ -11,8 +11,8 @@ public class TaxonTerm extends DefaultTerm {
     private Set<TaxonTerm> children = new HashSet<TaxonTerm>();
     private Term rank = null;
 
-    public TaxonTerm(int nodeID) {
-        super(nodeID);
+    public TaxonTerm(int nodeID, Integer sourceID) {
+        super(nodeID, sourceID);
     }
     public boolean isExtinct() {
         return isExtinct;

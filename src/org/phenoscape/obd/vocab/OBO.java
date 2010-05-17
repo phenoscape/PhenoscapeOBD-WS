@@ -1,6 +1,6 @@
-package org.phenoscape.obd.model;
+package org.phenoscape.obd.vocab;
 
-public class Vocab {
+public class OBO {
 
     public static final String IS_A = "OBO_REL:is_a";
     public static final String COMMENT = "oboInOwl:comment";

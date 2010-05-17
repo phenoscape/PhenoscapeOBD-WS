@@ -76,8 +76,8 @@ public class PhenoscapeWebServiceApplication extends Application {
         this.constructDefaultNamespaceToNodeIdMap();
         this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
         this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
-        TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
-        this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
+//        TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
+//        this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
 
     /**
@@ -100,7 +100,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         }
         final Router router = new Router(this.getContext());
         // URL mappings
-        router.attach("/term/term/{termID}", TermInfoResource.class);
+        router.attach("/term/term/{termID}", TermInfoResource.class); //TODO this url is temporary
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
         router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
         router.attach("/phenotypes/summary", org.obd.ws.resources.PhenotypeSummaryResource.class);

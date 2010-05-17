@@ -13,7 +13,7 @@ import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
-import org.phenoscape.obd.model.Vocab;
+import org.phenoscape.obd.vocab.OBO;
 
 public class PhenoscapeDataStore {
 
@@ -29,7 +29,9 @@ public class PhenoscapeDataStore {
 
     public LinkedTerm getLinkedTerm(String uid) throws SQLException {
         final DefaultTerm term = this.queryForTerm(uid);
-        this.addLinksToTerm(term);
+        if (term != null) {
+            this.addLinksToTerm(term);    
+        }
         return term;
     }
 
@@ -44,7 +46,7 @@ public class PhenoscapeDataStore {
                     "SELECT term.*, description.label AS definition, tagval.val AS comment " +
                     "FROM node term " +
                     "LEFT OUTER JOIN description ON (description.node_id = term.node_id) " +
-                    "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + Vocab.COMMENT + "') " +
+                    "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + OBO.COMMENT + "') " +
                     "LEFT OUTER JOIN tagval ON (tagval.tag_id = comment_rel.node_id AND tagval.node_id = term.node_id) " +
                     "WHERE term.uid = ?";
                 termStatement = connection.prepareStatement(termQuery);
@@ -64,7 +66,7 @@ public class PhenoscapeDataStore {
     }
 
     private DefaultTerm createTerm(ResultSet result) throws SQLException {
-        final DefaultTerm term = new DefaultTerm(result.getInt("node_id"));
+        final DefaultTerm term = new DefaultTerm(result.getInt("node_id"), result.getInt("source_id"));
         term.setUID(result.getString("uid"));
         term.setLabel(result.getString("label"));
         term.setDefinition(result.getString("definition"));
@@ -73,8 +75,55 @@ public class PhenoscapeDataStore {
         return term;
     }
 
-    private void addLinksToTerm(DefaultTerm term) {
-        //TODO
+    private void addLinksToTerm(DefaultTerm term) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement subjectStatement = null;
+            ResultSet subjectResult = null;
+            try {
+                final String subjectQuery = 
+                    "SELECT link.*, relation.uid AS relation_uid, relation.label AS relation_label, target.uid AS other_uid, target.label AS other_label " +
+                    "FROM link " +
+                    "JOIN node relation ON (relation.node_id = link.predicate_id) " +
+                    "JOIN node target ON (target.node_id = link.object_id) " +
+                    "WHERE link.node_id = ? AND link.source_id = ?"; //TODO
+                subjectStatement = connection.prepareStatement(subjectQuery);
+                subjectStatement.setInt(1, term.getNodeID());
+                subjectStatement.setInt(2, term.getSourceID());
+                subjectResult = subjectStatement.executeQuery();
+                log().debug("Source: " + term.getSourceID());
+                while (subjectResult.next()) {
+                    //TODO add links
+                    log().debug(subjectResult.toString());
+                }
+            } finally {
+                if (subjectStatement != null) { subjectStatement.close(); }
+            }
+            connection = this.dataSource.getConnection();
+            PreparedStatement objectStatement = null;
+            ResultSet objectResult = null;
+            try {
+                final String objectQuery = 
+                    "SELECT link.*, relation.uid AS relation_uid, relation.label AS relation_label, subject.uid AS other_uid, subject.label AS other_label " +
+                    "FROM link " +
+                    "JOIN node relation ON (relation.node_id = link.predicate_id) " +
+                    "JOIN node subject ON (subject.node_id = link.object_id) " +
+                    "WHERE link.object_id = ? AND link.source_id = ?"; //TODO
+                objectStatement = connection.prepareStatement(objectQuery);
+                objectStatement.setInt(1, term.getNodeID());
+                objectStatement.setInt(2, term.getSourceID());
+                objectResult = objectStatement.executeQuery();
+                while (objectResult.next()) {
+                    //TODO add links
+                    log().debug(objectResult.toString());
+                }
+            } finally {
+                if (objectStatement != null) { objectStatement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }
     }
 
     /**
@@ -98,12 +147,12 @@ public class PhenoscapeDataStore {
                 while (taxonResult.next()) {
                     final TaxonTerm taxon = this.createTaxonTermWithProperties(taxonResult);
                     if (taxonResult.getString("parent_uid") != null) {
-                        final TaxonTerm parent = new TaxonTerm(taxonResult.getInt("parent_node_id"));
+                        final TaxonTerm parent = new TaxonTerm(taxonResult.getInt("parent_node_id"), null);
                         parent.setUID(taxonResult.getString("parent_uid"));
                         parent.setLabel(taxonResult.getString("parent_label"));
                         parent.setExtinct(taxonResult.getBoolean("parent_is_extinct"));
                         if (taxonResult.getString("parent_rank_uid") != null) {
-                            final Term parentRank = new DefaultTerm(taxonResult.getInt("parent_rank_node_id"));
+                            final Term parentRank = new DefaultTerm(taxonResult.getInt("parent_rank_node_id"), null);
                             parentRank.setUID(taxonResult.getString("parent_rank_uid"));
                             parentRank.setLabel(taxonResult.getString("parent_rank_label"));
                             parent.setRank(parentRank);
@@ -144,12 +193,12 @@ public class PhenoscapeDataStore {
      * Creates a new TaxonTerm and extracts its uid, label, isExtinct, and rank from the ResultSet
      */
     private TaxonTerm createTaxonTermWithProperties(ResultSet result) throws SQLException {
-        final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"));
+        final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"), null);
         taxon.setUID(result.getString("uid"));
         taxon.setLabel(result.getString("label"));
         taxon.setExtinct(result.getBoolean("is_extinct"));
         if (result.getString("rank_uid") != null) {
-            final Term rank = new DefaultTerm(result.getInt("node_id"));
+            final Term rank = new DefaultTerm(result.getInt("node_id"), null);
             rank.setUID(result.getString("rank_uid"));
             rank.setLabel(result.getString("rank_label"));
             taxon.setRank(rank);
