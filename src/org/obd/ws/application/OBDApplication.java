@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.obd.ws.exceptions.PhenoscapeDbConnectionException;
+import org.obd.ws.resources.AnnotationSourceResource;
 import org.obd.ws.util.Queries;
 import org.obd.ws.util.TTOTaxonomy;
 import org.restlet.Application;
@@ -131,6 +132,7 @@ public class OBDApplication extends Application {
         router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
         router.attach("/phenotypes/summary", org.obd.ws.resources.PhenotypeSummaryResource.class);
         router.attach("/phenotypes/source/{annotation_id}", org.obd.ws.resources.AnnotationResource.class);
+        router.attach("/phenotypes/source", AnnotationSourceResource.class);
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
         router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
         router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);

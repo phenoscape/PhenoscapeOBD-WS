@@ -94,16 +94,13 @@ public class PhenotypeSummaryResource extends AbstractOBDResource {
             ecAnnots = getAnnotationSummary(subject_id, entity_id, quality_id, publication_id);
             this.assembleJsonObjectFromResults(ecAnnots);
         } catch(SQLException sqle){
-            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-            "[SQL EXCEPTION] Something broke server side. Consult server logs");
+            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, sqle);
             return null;
         } catch (ClassNotFoundException e) {
-            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-            "[CLASS NOT FOUND EXCEPTION] Something broke server side. Consult server logs");
+            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch(JSONException jsone){
-            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, 
-            "[RESOURCE EXCEPTION] Something broke server side. Consult server logs");
+            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL, jsone);
             log().error(jsone);
             throw new ResourceException(jsone);
         } finally{
