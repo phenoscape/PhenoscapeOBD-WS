@@ -123,8 +123,16 @@ public class AnnotationSourceResource extends AbstractOBDResource {
     
     private JSONObject buildSource(ResultSet result) throws SQLException, JSONException {
         final JSONObject source = new JSONObject();
+        source.put("publication", this.buildCitation(result));
+        source.put("character_text", result.getString("character_label"));
+        source.put("character_number", result.getString("character_number"));
+        source.put("state_text", result.getString("state_label"));
+        source.put("curated_by", ""); //TODO
+        return source;
+    }
+    
+    private String buildCitation(ResultSet result) throws SQLException {
         final StringBuffer citation = new StringBuffer();
-        //TODO improve citation format
         final String authors = result.getString("authors");
         citation.append(authors);
         if (!authors.endsWith(".")) { citation.append("."); }
@@ -135,15 +143,22 @@ public class AnnotationSourceResource extends AbstractOBDResource {
         citation.append(title);
         if (!title.endsWith(".")) { citation.append("."); }
         citation.append(" ");
-        citation.append(result.getString("volume"));
-        citation.append(":");
-        citation.append(result.getString("pages"));
-        source.put("publication", citation.toString());
-        source.put("character_text", result.getString("character_label"));
-        source.put("character_number", result.getString("character_number"));
-        source.put("state_text", result.getString("state_label"));
-        source.put("curated_by", ""); //TODO
-        return source;
+        if (result.getString("volume") != null) {
+            citation.append(result.getString("volume"));
+        }
+        if ((result.getString("volume") != null) && (result.getString("pages") != null)) {
+            citation.append(":");
+        }
+        if (result.getString("pages") != null) {
+            citation.append(result.getString("pages"));    
+        }
+        citation.append(".");
+        if (result.getString("secondary_title") != null) {
+            citation.append(" ");
+            citation.append(result.getString("secondary_title"));
+            citation.append(".");
+        }
+        return citation.toString();
     }
 
     /**
