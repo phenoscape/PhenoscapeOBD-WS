@@ -301,7 +301,7 @@ public class PhenoscapeDataStore {
         return 0;
     }
     
-    public MatchResult getMatchResults() {
+    public AutocompleteResult getAutocompleteMatches() {
         //TODO
         return null;
     }
