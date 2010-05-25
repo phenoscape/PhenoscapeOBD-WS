@@ -8,6 +8,12 @@ import java.sql.SQLException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.obo.datamodel.Link;
+import org.obo.datamodel.OBOClass;
+import org.obo.datamodel.OBOProperty;
+import org.obo.datamodel.impl.OBOSessionImpl;
+import org.obo.postcomp.ParseException;
+import org.obo.postcomp.PostcompUtil;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -47,10 +53,14 @@ public class AnnotationSourceResource extends AbstractOBDResource {
             log().error("Error querying for annotation source", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
+        } catch (ParseException e) {
+            log().error("Failed to parse quality ID", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            return null;
         }
     }
 
-    private JSONObject queryAnnotationSourceData() throws SQLException, ClassNotFoundException, JSONException {
+    private JSONObject queryAnnotationSourceData() throws SQLException, ClassNotFoundException, JSONException, ParseException {
         final JSONObject json = new JSONObject();
         Connection connection = null;
         try {
@@ -59,6 +69,7 @@ public class AnnotationSourceResource extends AbstractOBDResource {
             PreparedStatement statement = null;
             ResultSet result = null;
             try {
+                this.extractRelatedEntityIfNecessary();
                 final String sourceQuery = 
                     "SELECT DISTINCT taxon_uid, taxon_label, taxon_rank_uid, taxon_rank_label, taxon_is_extinct, queryable_annotation.entity_uid, dw_entity_table.entity_label, quality_uid, quality_label, related_entity_uid, related_entity_label, publication_uid, pub.authors, pub.publication_year AS year, pub.title, pub.secondary_title, pub.volume, pub.pages, character_number, character_label, state_label " +
                     "FROM queryable_annotation " +
@@ -158,6 +169,25 @@ public class AnnotationSourceResource extends AbstractOBDResource {
             citation.append(result.getString("pages"));    
         }
         return citation.toString();
+    }
+    
+    /**
+     * This is not the greatest way to do this, but the code calling this resource does not separate out the related entity, and that 
+     * will not be fixed in this version of the application.
+     */
+    private void extractRelatedEntityIfNecessary() throws ParseException {
+        if (this.relatedEntityID != null) {
+            return;
+        } else if (this.qualityID.contains("^")) {
+            final OBOClass quality = PostcompUtil.createPostcompObject(new OBOSessionImpl(), this.qualityID, true);
+            for (Link link : quality.getParents()) {
+                if (link.getType().equals(OBOProperty.IS_A)) {
+                    this.qualityID = link.getParent().getID();
+                } else if (link.getType().getID().equals("OBO_REL:towards")) {
+                    this.relatedEntityID = link.getParent().getID();
+                }
+            }
+        }
     }
 
     /**
