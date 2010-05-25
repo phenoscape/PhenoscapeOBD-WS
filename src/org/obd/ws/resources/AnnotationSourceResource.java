@@ -143,6 +143,11 @@ public class AnnotationSourceResource extends AbstractOBDResource {
         citation.append(title);
         if (!title.endsWith(".")) { citation.append("."); }
         citation.append(" ");
+        if (result.getString("secondary_title") != null) {
+            citation.append(" ");
+            citation.append(result.getString("secondary_title"));
+            citation.append(". ");
+        }
         if (result.getString("volume") != null) {
             citation.append(result.getString("volume"));
         }
@@ -153,11 +158,6 @@ public class AnnotationSourceResource extends AbstractOBDResource {
             citation.append(result.getString("pages"));    
         }
         citation.append(".");
-        if (result.getString("secondary_title") != null) {
-            citation.append(" ");
-            citation.append(result.getString("secondary_title"));
-            citation.append(".");
-        }
         return citation.toString();
     }
 
