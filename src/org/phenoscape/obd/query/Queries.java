@@ -1,4 +1,4 @@
-package org.phenoscape.util;
+package org.phenoscape.obd.query;
 
 import java.util.HashMap;
 import java.util.Map;

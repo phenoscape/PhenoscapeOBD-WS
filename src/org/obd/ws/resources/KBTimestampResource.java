@@ -5,7 +5,7 @@ import java.sql.SQLException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.OBDQuery;
-import org.phenoscape.util.Queries;
+import org.phenoscape.obd.query.Queries;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;

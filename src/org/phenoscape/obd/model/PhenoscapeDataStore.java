@@ -4,6 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.sql.DataSource;
 
@@ -16,6 +20,12 @@ public class PhenoscapeDataStore {
 
     public PhenoscapeDataStore(DataSource dataSource) {
         this.dataSource = dataSource;
+    }
+    
+    public Date getRefreshDate() throws ParseException {
+        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
+        //TODO this is a placeholder date
+        return formatter.parse("1859-11-24");
     }
 
     public Term getTerm(String uid) throws SQLException {

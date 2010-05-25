@@ -14,7 +14,7 @@ import java.util.Set;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.OBDQuery;
-import org.phenoscape.util.Queries;
+import org.phenoscape.obd.query.Queries;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;

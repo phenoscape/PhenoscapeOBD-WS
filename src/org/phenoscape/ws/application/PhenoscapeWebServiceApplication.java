@@ -19,7 +19,7 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
-import org.phenoscape.util.Queries;
+import org.phenoscape.obd.query.Queries;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
 import org.restlet.Application;

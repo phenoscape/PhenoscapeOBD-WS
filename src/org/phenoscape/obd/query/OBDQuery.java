@@ -24,7 +24,6 @@ import org.phenoscape.util.Collections;
 import org.phenoscape.util.HomologDTO;
 import org.phenoscape.util.PhenotypeAndAnnotatedSubtaxonCountDTO;
 import org.phenoscape.util.PhenotypeDTO;
-import org.phenoscape.util.Queries;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 
 /**
