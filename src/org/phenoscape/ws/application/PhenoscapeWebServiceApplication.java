@@ -20,7 +20,6 @@ import org.apache.log4j.Logger;
 import org.bbop.dataadapter.DataAdapterException;
 import org.obd.query.impl.OBDSQLShard;
 import org.phenoscape.util.Queries;
-import org.phenoscape.util.TTOTaxonomy;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
 import org.restlet.Application;
@@ -54,7 +53,6 @@ public class PhenoscapeWebServiceApplication extends Application {
     public static final String PREFIX_TO_NS_FILE = "PrefixToDefaultNamespaceOfOntology.properties";
     public static final String PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING = "prefixToDefaultNamespacesMap";
     public static final String DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING = "defaultNamespacesToSourceIdMap";
-    public static final String TTO_TAXONOMY_STRING = "ttoTaxonomy";
     public static final String QUERIES_STRING = "queries";  
 
     /**
@@ -76,8 +74,6 @@ public class PhenoscapeWebServiceApplication extends Application {
         this.constructDefaultNamespaceToNodeIdMap();
         this.getContext().getAttributes().put(PREFIX_TO_DEFAULT_NAMESPACE_MAP_STRING, this.prefixToDefaultNamespacesMap);
         this.getContext().getAttributes().put(DEFAULT_NAMESPACE_TO_SOURCE_ID_MAP_STRING, this.defaultNamespaceToNodeIdMap);
-//        TTOTaxonomy ttoTaxonomy = new TTOTaxonomy();
-//        this.getContext().getAttributes().put(TTO_TAXONOMY_STRING, ttoTaxonomy);
     }
 
     /**
@@ -100,15 +96,10 @@ public class PhenoscapeWebServiceApplication extends Application {
         }
         final Router router = new Router(this.getContext());
         // URL mappings
-        router.attach("/term/term/{termID}", TermInfoResource.class); //TODO this url is temporary
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
-        router.attach("/phenotypes", org.obd.ws.resources.PhenotypeDetailsResource.class);
-        router.attach("/phenotypes/summary", org.obd.ws.resources.PhenotypeSummaryResource.class);
-        router.attach("/phenotypes/source/{annotation_id}", org.obd.ws.resources.AnnotationResource.class);
         router.attach("/term/search", org.obd.ws.resources.AutoCompleteResource.class);
-        router.attach("/term/{termID}", org.obd.ws.resources.TermResource.class);
-        router.attach("/term/{termID}/homology", org.obd.ws.resources.HomologyResource.class);
-        router.attach("/timestamp", org.obd.ws.resources.KbRefreshTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
+        router.attach("/term/{termID}", TermInfoResource.class);
+        router.attach("/timestamp", org.obd.ws.resources.KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/taxon/{taxonID}/treemap/",org.obd.ws.resources.SquarifiedTaxonMapResource.class);
         /* These resources generate data consistency reports*/
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",

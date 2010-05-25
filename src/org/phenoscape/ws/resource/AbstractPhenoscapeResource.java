@@ -3,8 +3,9 @@ package org.phenoscape.ws.resource;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.obd.query.PhenoscapeDataStore;
+import org.phenoscape.obd.model.PhenoscapeDataStore;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
+import org.restlet.data.Reference;
 import org.restlet.resource.ServerResource;
 
 /**
@@ -23,6 +24,17 @@ public class AbstractPhenoscapeResource extends ServerResource {
             this.dataStore = new PhenoscapeDataStore(this.getDataSource());
         }
         return this.dataStore;
+    }
+    
+    /**
+     * Return first value of the given query parameter, decoded, or null if not present;
+     */
+    protected String getFirstQueryValue(String parameter) {
+        if (this.getQuery().getFirstValue(parameter) != null) {
+            return Reference.decode(this.getQuery().getFirstValue(parameter));
+        } else {
+            return null;
+        }
     }
     
     /**

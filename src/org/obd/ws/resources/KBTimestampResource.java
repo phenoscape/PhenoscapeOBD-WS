@@ -13,7 +13,7 @@ import org.restlet.representation.Representation;
 import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
-public class KbRefreshTimestampResource extends AbstractOBDResource{
+public class KBTimestampResource extends AbstractOBDResource {
 
     private JSONObject jObjs;
     private OBDQuery obdq;

@@ -1,4 +1,4 @@
-package org.phenoscape.obd.query;
+package org.phenoscape.obd.model;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -8,11 +8,6 @@ import java.sql.SQLException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.obd.model.DefaultTerm;
-import org.phenoscape.obd.model.LinkedTerm;
-import org.phenoscape.obd.model.Synonym;
-import org.phenoscape.obd.model.TaxonTerm;
-import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.vocab.OBO;
 
 public class PhenoscapeDataStore {
