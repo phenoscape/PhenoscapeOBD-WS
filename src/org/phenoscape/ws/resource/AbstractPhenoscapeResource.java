@@ -37,6 +37,24 @@ public class AbstractPhenoscapeResource extends ServerResource {
         }
     }
     
+    protected boolean getBooleanQueryValue(String parameter, boolean defaultValue) {
+        if (this.getQuery().getFirstValue(parameter) != null) {
+            final String queryValue = this.getFirstQueryValue(parameter);
+            return Boolean.parseBoolean(queryValue);
+        } else {
+            return defaultValue;
+        }
+    }
+    
+    protected int getIntegerQueryValue(String parameter, int defaultValue) {
+        if (this.getQuery().getFirstValue(parameter) != null) {
+            final String queryValue = this.getFirstQueryValue(parameter);
+            return Integer.parseInt(queryValue);
+        } else {
+            return defaultValue;
+        }
+    }
+    
     /**
      * Retrieve the JDBC DataSource from the application context.
      */

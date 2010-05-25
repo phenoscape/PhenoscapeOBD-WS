@@ -12,7 +12,7 @@ import java.util.Date;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.obd.vocab.OBO;
+import org.phenoscape.obd.model.Vocab.OBO;
 
 public class PhenoscapeDataStore {
 
@@ -299,6 +299,11 @@ public class PhenoscapeDataStore {
     public int getCountOfAnnotatedGenes() {
         //TODO
         return 0;
+    }
+    
+    public MatchResult getMatchResults() {
+        //TODO
+        return null;
     }
 
     private Logger log() {
