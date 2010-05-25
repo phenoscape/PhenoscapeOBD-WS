@@ -111,8 +111,6 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations",
                 org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion13.class);
         /* These resources generate summary statistics of the data */
-        router.attach("/statistics/phenotypeannotationcount",
-                org.phenoscape.ws.resource.statistics.PhenotypeAnnotationCounts.class);
         router.attach("/statistics/countsofgenesandcharactersbyattribute",
                 org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute.class);
         router.attach("/statistics/countsofgenesandcharactersbysystem",

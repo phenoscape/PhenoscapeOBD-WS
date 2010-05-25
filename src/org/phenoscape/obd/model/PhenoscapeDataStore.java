@@ -233,6 +233,64 @@ public class PhenoscapeDataStore {
         return synonym;
     }
 
+    public int getCountOfTaxonomicAnnotations(boolean includeInferredAnnotations) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement statement = null;
+            ResultSet result = null;
+            try {
+                final String annotationsQuery = 
+                    "SELECT count(*) " +
+                    "FROM annotation";
+                statement = connection.prepareStatement(annotationsQuery);
+                result = statement.executeQuery();
+                while (result.next()) {
+                    return result.getInt(1);
+                }
+            } finally {
+                if (statement != null) { statement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }
+        return 0;
+    }
+
+    public int getCountOfAnnotatedTaxa(boolean includeInferredAnnotations) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement statement = null;
+            ResultSet result = null;
+            try {
+                final String annotationsQuery = 
+                    "SELECT count(DISTINCT taxon_node_id) " +
+                    "FROM annotation";
+                statement = connection.prepareStatement(annotationsQuery);
+                result = statement.executeQuery();
+                while (result.next()) {
+                    return result.getInt(1);
+                }
+            } finally {
+                if (statement != null) { statement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }
+        return 0;
+    }
+
+    public int getCountOfGeneAnnotations() {
+        //TODO
+        return 0;
+    }
+
+    public int getCountOfAnnotatedGenes() {
+        //TODO
+        return 0;
+    }
+
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }
