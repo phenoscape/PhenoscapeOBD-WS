@@ -157,7 +157,6 @@ public class AnnotationSourceResource extends AbstractOBDResource {
         if (result.getString("pages") != null) {
             citation.append(result.getString("pages"));    
         }
-        citation.append(".");
         return citation.toString();
     }
 
