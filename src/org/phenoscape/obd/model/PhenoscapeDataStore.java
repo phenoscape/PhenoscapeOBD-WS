@@ -24,7 +24,7 @@ public class PhenoscapeDataStore {
     
     public Date getRefreshDate() throws ParseException {
         DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        //TODO this is a placeholder date
+        //TODO this is a placeholder date - retrieve from database
         return formatter.parse("1859-11-24");
     }
 

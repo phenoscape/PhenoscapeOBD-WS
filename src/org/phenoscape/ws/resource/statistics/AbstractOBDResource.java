@@ -1,4 +1,4 @@
-package org.obd.ws.resources;
+package org.phenoscape.ws.resource.statistics;
 
 import java.sql.SQLException;
 

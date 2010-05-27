@@ -1,6 +1,6 @@
 package org.phenoscape.ws.resource.statistics.reports;
 
-import org.obd.ws.resources.AbstractOBDResource;
+import org.phenoscape.ws.resource.statistics.AbstractOBDResource;
 
 public abstract class AbstractStatisticalReportGenerator extends AbstractOBDResource {
 

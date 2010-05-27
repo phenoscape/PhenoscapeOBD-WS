@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.obd.model.Node;
-import org.obd.ws.resources.AbstractOBDResource;
 
 public abstract class AbstractStatisticsGenerator extends AbstractOBDResource {
 
