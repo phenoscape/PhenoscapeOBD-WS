@@ -27,7 +27,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
     }
     
     /**
-     * Return first value of the given query parameter, decoded, or null if not present;
+     * Return first value of the given query parameter, decoded, or null if not present.
      */
     protected String getFirstQueryValue(String parameter) {
         if (this.getQuery().getFirstValue(parameter) != null) {
@@ -37,6 +37,9 @@ public class AbstractPhenoscapeResource extends ServerResource {
         }
     }
     
+    /**
+     * Return first value of the given query parameter as a boolean, or the given default value if not present.
+     */
     protected boolean getBooleanQueryValue(String parameter, boolean defaultValue) {
         if (this.getQuery().getFirstValue(parameter) != null) {
             final String queryValue = this.getFirstQueryValue(parameter);
@@ -46,6 +49,9 @@ public class AbstractPhenoscapeResource extends ServerResource {
         }
     }
     
+    /**
+     * Return first value of the given query parameter as an integer, or the given default value if not present.
+     */
     protected int getIntegerQueryValue(String parameter, int defaultValue) {
         if (this.getQuery().getFirstValue(parameter) != null) {
             final String queryValue = this.getFirstQueryValue(parameter);
