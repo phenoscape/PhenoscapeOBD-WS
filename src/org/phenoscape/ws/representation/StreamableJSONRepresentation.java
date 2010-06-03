@@ -1,9 +1,6 @@
 package org.phenoscape.ws.representation;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Iterator;
 
@@ -12,25 +9,26 @@ import org.restlet.data.MediaType;
 
 public class StreamableJSONRepresentation extends StreamableTextRepresentation {
 
-    private String key;
-    private JSONObject otherValues = new JSONObject();
+    private final String key;
+    private final JSONObject otherValues;
     private static final String SEPARATOR = "," + System.getProperty("line.separator"); 
 
     public StreamableJSONRepresentation(Iterator<? extends JSONObject> items) {
-        super(items, MediaType.APPLICATION_JSON);
+        this(items, null);
     }
 
     public StreamableJSONRepresentation(Iterator<? extends JSONObject> items, String key) {
-        super(items, MediaType.APPLICATION_JSON);
+        this(items, key, new JSONObject());
     }
 
     public StreamableJSONRepresentation(Iterator<? extends JSONObject> items, String key, JSONObject otherValues) {
         super(items, MediaType.APPLICATION_JSON);
+        this.key = key;
+        this.otherValues = otherValues;
     }
 
     @Override
-    public void write(OutputStream stream) throws IOException {
-        final Writer writer = new BufferedWriter(new OutputStreamWriter(stream, this.getCharacterEncoding()));
+    public void write(Writer writer) throws IOException {
         if (this.key != null) {
             final String json = this.otherValues.toString();
             final String openEndedJSON = json.substring(0, json.lastIndexOf("}"));
@@ -39,7 +37,7 @@ public class StreamableJSONRepresentation extends StreamableTextRepresentation {
             writer.append(":");
         }
         writer.write("[");
-        super.write(stream);
+        super.write(writer);
         writer.write("]");
         if (this.key != null) { writer.write("}"); }
     }
