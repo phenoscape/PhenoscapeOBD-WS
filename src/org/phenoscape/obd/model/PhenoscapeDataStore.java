@@ -22,10 +22,35 @@ public class PhenoscapeDataStore {
         this.dataSource = dataSource;
     }
     
-    public Date getRefreshDate() throws ParseException {
-        DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd");
-        //TODO this is a placeholder date - retrieve from database
-        return formatter.parse("1859-11-24");
+    /**
+     * Returns the date on which the Knowledgebase data were loaded.
+     */
+    public Date getRefreshDate() throws ParseException, SQLException {
+        final DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement statement = null;
+            ResultSet result = null;
+            try {
+                //TODO "notes" is a weird name for this column - should be refresh_date or something
+                final String query = "SELECT notes from obd_schema_metadata";
+                statement = connection.prepareStatement(query);
+                result = statement.executeQuery();
+                while (result.next()) {
+                    final String date = result.getString("notes");
+                    if (date != null) {
+                        return formatter.parse(result.getString("notes"));    
+                    }
+                }
+            } finally {
+                if (statement != null) { statement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }
+        // if a date was not found, return dummy date
+        return formatter.parse("1859-11-24_00:00:00");
     }
 
     public Term getTerm(String uid) throws SQLException {
