@@ -5,6 +5,7 @@ import java.io.Writer;
 import java.util.Iterator;
 
 import org.json.JSONObject;
+import org.restlet.data.CharacterSet;
 import org.restlet.data.MediaType;
 
 public class StreamableJSONRepresentation extends StreamableTextRepresentation {
@@ -25,6 +26,7 @@ public class StreamableJSONRepresentation extends StreamableTextRepresentation {
         super(items, MediaType.APPLICATION_JSON);
         this.key = key;
         this.otherValues = otherValues;
+        this.setCharacterSet(CharacterSet.UTF_8); //this should be the default for JSON
     }
 
     @Override
