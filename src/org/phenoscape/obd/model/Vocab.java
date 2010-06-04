@@ -32,5 +32,9 @@ public class Vocab {
         public static final String CC_NAMESPACE = "cellular_component";
         
     }
+    
+    public static class ZFIN {
+        public static final String GENE_NAMESPACE = "zfin-gene";
+    }
 
 }

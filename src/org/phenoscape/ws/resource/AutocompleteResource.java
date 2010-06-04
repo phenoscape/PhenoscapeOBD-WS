@@ -2,19 +2,25 @@ package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.AutocompleteResult;
+import org.phenoscape.obd.model.SearchConfig;
 import org.phenoscape.obd.model.SearchHit;
 import org.phenoscape.obd.model.SearchHit.MatchType;
 import org.phenoscape.obd.model.Vocab.GO;
 import org.phenoscape.obd.model.Vocab.PATO;
 import org.phenoscape.obd.model.Vocab.TAO;
 import org.phenoscape.obd.model.Vocab.TTO;
+import org.phenoscape.obd.model.Vocab.ZFIN;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -25,9 +31,9 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
 
     private boolean matchName = true;
     private boolean matchSynonym = false;
-    private boolean matchDefinition = false;
     private String searchText = null;
     private int limit = 0;
+    private final Set<String> searchNamespaces = new HashSet<String>();
 
     private static final Map<String, String[]> prefixes = new HashMap<String, String[]>();
     static {
@@ -35,14 +41,22 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         prefixes.put("go", new String[] {GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
         prefixes.put("pato", new String[] {PATO.NAMESPACE});
         prefixes.put("tto", new String[] {TTO.NAMESPACE});
-        //prefixes.put("zfin", ""); //TODO
+        prefixes.put("zfin", new String[] {ZFIN.GENE_NAMESPACE});
+    }
+    
+    private static final Map<String, String[]> termTypes = new HashMap<String, String[]>();
+    static {
+        termTypes.put("entity", new String[] {TAO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
+        termTypes.put("quality", new String[] {PATO.NAMESPACE});
+        termTypes.put("taxon", new String[] {TTO.NAMESPACE});
+        termTypes.put("gene", new String[] {ZFIN.GENE_NAMESPACE});
+        //TODO termTypes.put("pub", ...
     }
 
     private static final Map<MatchType, String> matchTypes = new HashMap<MatchType, String>();
     static {
         matchTypes.put(MatchType.NAME, "name");
         matchTypes.put(MatchType.SYNONYM, "syn");
-        matchTypes.put(MatchType.DEFINITION, "def");
     }
 
     @Override
@@ -51,8 +65,11 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         this.searchText = this.getFirstQueryValue("text");
         this.matchName = this.getBooleanQueryValue("name", this.matchName);
         this.matchSynonym = this.getBooleanQueryValue("syn", this.matchSynonym);
-        this.matchDefinition = this.getBooleanQueryValue("def", this.matchDefinition);
         this.limit = this.getIntegerQueryValue("limit", this.limit);
+        final String prefixChoices = this.getFirstQueryValue("ontology");
+        if (prefixChoices != null) { this.parsePrefixChoices(prefixChoices); }
+        final String termTypeChoices = this.getFirstQueryValue("type");
+        if (termTypeChoices != null) { this.parseTermTypeChoices(termTypeChoices); }
     }
 
     @Get("json")
@@ -74,6 +91,24 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
             return null;
         }
     }
+    
+    private void parsePrefixChoices(String prefixChoices) {
+        for (String item : prefixChoices.split(",")) {
+            final String text = item.trim().toLowerCase();
+            if (prefixes.containsKey(text)) {
+                this.searchNamespaces.addAll(Arrays.asList(prefixes.get(text)));
+            }
+        }
+    }
+    
+    private void parseTermTypeChoices(String termTypeChoices) {
+        for (String item : termTypeChoices.split(",")) {
+            final String text = item.trim().toLowerCase();
+            if (termTypes.containsKey(text)) {
+                this.searchNamespaces.addAll(Arrays.asList(termTypes.get(text)));
+            }
+        }
+    }
 
     private JSONObject translate(AutocompleteResult result) throws JSONException, SQLException {
         final JSONObject json = new JSONObject();
@@ -82,8 +117,7 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
             matches.add(this.translate(hit));
         }
         json.put("matches", matches);
-        json.put("total", result.getCompleteResultCount());
-        json.put("search_term", result.getSearchText());
+        json.put("search_term", result.getSearchConfig().getSearchText());
         return json;
     }
 
@@ -96,9 +130,26 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         return json;
     }
 
-    private AutocompleteResult queryForMatches() {
-        //TODO pass parameters
-        return this.getDataStore().getAutocompleteMatches();
+    private AutocompleteResult queryForMatches() throws SQLException {
+        final SearchConfig config = new SearchConfig(this.searchText);
+        config.setSearchNames(this.matchName);
+        config.setSearchSynonyms(this.matchSynonym);
+        config.setLimit(this.limit);
+        if (this.searchNamespaces.isEmpty()) {
+            config.addAllNamespaces(this.flatten(prefixes.values()));
+            config.addAllNamespaces(this.flatten(termTypes.values()));
+        } else {
+            config.addAllNamespaces(this.searchNamespaces);
+        }
+        return this.getDataStore().getAutocompleteMatches(config);
     }
+    
+    private Collection<String> flatten(Collection<String[]> items) {
+        final List<String> allItems = new ArrayList<String>();
+        for (String[] itemArray : items) {
+            allItems.addAll(Arrays.asList(itemArray));
+        }
+        return allItems;
+    }    
 
 }

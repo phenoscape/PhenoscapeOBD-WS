@@ -7,12 +7,20 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
+import java.util.List;
 
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.phenoscape.obd.model.SearchHit.MatchType;
 import org.phenoscape.obd.model.Vocab.OBO;
+
+import com.eekboom.utils.Strings;
 
 public class PhenoscapeDataStore {
 
@@ -326,9 +334,139 @@ public class PhenoscapeDataStore {
         return 0;
     }
     
-    public AutocompleteResult getAutocompleteMatches() {
-        //TODO
-        return null;
+    public AutocompleteResult getAutocompleteMatches(final SearchConfig config) throws SQLException {
+        final AutocompleteResult matches = new AutocompleteResult(config);
+        if (config.getNamespaces().isEmpty()) {
+            log().warn("No namespaces provided for autocomplete search. Returning empty result.");
+            return matches;
+        }
+        final List<SearchHit> sortedHits = new ArrayList<SearchHit>();
+        if (config.searchNames()) {
+            final Collection<SearchHit> nameMatches = this.queryNameMatches(config, false);
+            sortedHits.addAll(nameMatches);    
+        }
+        if (config.searchSynonyms()) {
+            final Collection<SearchHit> synonymMatches = this.querySynonymMatches(config, false);
+            sortedHits.addAll(synonymMatches);
+        }
+        Collections.sort(sortedHits, new Comparator<SearchHit>() {
+            public int compare(SearchHit a, SearchHit b) {
+                final boolean aStartsWithMatch = a.getMatchText().toLowerCase().startsWith(config.getSearchText().toLowerCase());
+                final boolean bStartsWithMatch = b.getMatchText().toLowerCase().startsWith(config.getSearchText().toLowerCase());
+                if (aStartsWithMatch && bStartsWithMatch) {
+                    return Strings.compareNatural(a.getMatchText(), b.getMatchText());
+                } else if (aStartsWithMatch) {
+                    return -1;
+                } else if (bStartsWithMatch) {
+                    return 1;
+                } else {
+                    return Strings.compareNatural(a.getMatchText(), b.getMatchText());
+                }
+            }
+        });
+        if ((config.getLimit() > 0) && (sortedHits.size() > config.getLimit())) {
+            matches.addAllSearchHits(sortedHits.subList(0, config.getLimit()));
+        } else {
+            matches.addAllSearchHits(sortedHits);    
+        }
+        return matches;
+    }
+    
+    private List<SearchHit> queryNameMatches(SearchConfig config, boolean startsWith) throws SQLException {
+        final List<SearchHit> hits = new ArrayList<SearchHit>();
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement statement = null;
+            ResultSet result = null;
+            try {
+                final String searchText = startsWith ? (config.getSearchText().toLowerCase() + "%") : ("%" + config.getSearchText().toLowerCase() + "%");
+                final String query = 
+                    "SELECT term.* " +
+                    "FROM node term " +
+                    "JOIN node source ON (term.source_id = source.node_id) " +
+                    "WHERE lower(term.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
+                statement = connection.prepareStatement(query);
+                statement.setString(1, searchText);
+                int index = 2;
+                for (String namespace : config.getNamespaces()) {
+                    statement.setString(index, namespace);
+                    index++;
+                }
+                result = statement.executeQuery();
+                while (result.next()) {
+                    final SearchHit hit = this.createSearchHit(result, MatchType.NAME);
+                    hits.add(hit);
+                }
+            } finally {
+                if (statement != null) { statement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }    
+        return hits;
+    }
+    
+    private List<SearchHit> querySynonymMatches(SearchConfig config, boolean startsWith) throws SQLException {
+        final List<SearchHit> hits = new ArrayList<SearchHit>();
+        Connection connection = null;
+        try {
+            connection = this.dataSource.getConnection();
+            PreparedStatement statement = null;
+            ResultSet result = null;
+            try {
+                final String searchText = startsWith ? (config.getSearchText().toLowerCase() + "%") : ("%" + config.getSearchText().toLowerCase() + "%");
+                final String query = 
+                    "SELECT term.*, alias.label AS synonym_label " +
+                    "FROM node term " +
+                    "JOIN node source ON (term.source_id = source.node_id) " +
+                    "JOIN alias ON (term.node_id = alias.node_id) " +
+                    "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
+                statement = connection.prepareStatement(query);
+                statement.setString(1, searchText);
+                int index = 2;
+                for (String namespace : config.getNamespaces()) {
+                    statement.setString(index, namespace);
+                    index++;
+                }
+                result = statement.executeQuery();
+                while (result.next()) {
+                    final SearchHit hit = this.createSearchHit(result, MatchType.SYNONYM);
+                    hits.add(hit);
+                }
+            } finally {
+                if (statement != null) { statement.close(); }
+            }
+        } finally {
+            if (connection != null) { connection.close(); }
+        }    
+        return hits;
+    }
+    
+    private SearchHit createSearchHit(ResultSet nodeResult, MatchType type) throws SQLException {
+        final DefaultTerm term = new DefaultTerm(nodeResult.getInt("node_id"), nodeResult.getInt("source_id"));
+        term.setUID(nodeResult.getString("uid"));
+        final String label = nodeResult.getString("label");
+        term.setLabel(label);
+        final String matchText;
+        if (type == MatchType.SYNONYM) {
+            matchText = nodeResult.getString("synonym_label");
+        } else {
+            matchText = label;
+        }
+        final SearchHit hit = new SearchHit(term, matchText, type);
+        return hit;
+    }
+    
+    private String createNamespacePlaceholders(int count) {
+        final StringBuffer buffer = new StringBuffer();
+        buffer.append("(");
+        for (int i = 0; i < count; i++) {
+            buffer.append("?");
+            if ((i + 1) < count) { buffer.append(", "); }
+        }
+        buffer.append(")");
+        return buffer.toString();
     }
 
     private Logger log() {
