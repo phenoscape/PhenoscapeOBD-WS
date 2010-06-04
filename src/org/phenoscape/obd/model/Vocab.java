@@ -36,5 +36,9 @@ public class Vocab {
     public static class ZFIN {
         public static final String GENE_NAMESPACE = "zfin-gene";
     }
+    
+    public static class PHENOSCAPE {
+        public static final String PUB_NAMESPACE = "phenoscape_pub";
+    }
 
 }

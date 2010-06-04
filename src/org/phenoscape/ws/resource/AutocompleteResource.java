@@ -18,6 +18,7 @@ import org.phenoscape.obd.model.SearchHit;
 import org.phenoscape.obd.model.SearchHit.MatchType;
 import org.phenoscape.obd.model.Vocab.GO;
 import org.phenoscape.obd.model.Vocab.PATO;
+import org.phenoscape.obd.model.Vocab.PHENOSCAPE;
 import org.phenoscape.obd.model.Vocab.TAO;
 import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.model.Vocab.ZFIN;
@@ -42,6 +43,7 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         prefixes.put("pato", new String[] {PATO.NAMESPACE});
         prefixes.put("tto", new String[] {TTO.NAMESPACE});
         prefixes.put("zfin", new String[] {ZFIN.GENE_NAMESPACE});
+        prefixes.put("pspub", new String[] {PHENOSCAPE.PUB_NAMESPACE});
     }
     
     private static final Map<String, String[]> termTypes = new HashMap<String, String[]>();
@@ -50,7 +52,7 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         termTypes.put("quality", new String[] {PATO.NAMESPACE});
         termTypes.put("taxon", new String[] {TTO.NAMESPACE});
         termTypes.put("gene", new String[] {ZFIN.GENE_NAMESPACE});
-        //TODO termTypes.put("pub", ...
+        termTypes.put("pub", new String[] {PHENOSCAPE.PUB_NAMESPACE});
     }
 
     private static final Map<MatchType, String> matchTypes = new HashMap<MatchType, String>();
