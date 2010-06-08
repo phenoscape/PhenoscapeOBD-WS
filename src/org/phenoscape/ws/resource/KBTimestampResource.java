@@ -2,7 +2,6 @@ package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -21,10 +20,6 @@ public class KBTimestampResource extends AbstractPhenoscapeResource {
             return new JsonRepresentation(this.translate(this.getDataStore().getRefreshDate()));
         } catch (JSONException e) {
             log().error("Error creating JSON object for timestamp", e);
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
-            return null;
-        } catch (ParseException e) {
-            log().error("Unable to parse timestamp", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (SQLException e) {

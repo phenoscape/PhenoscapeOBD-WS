@@ -3,7 +3,7 @@ package org.phenoscape.ws.resource;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.obd.model.PhenoscapeDataStore;
+import org.phenoscape.obd.query.PhenoscapeDataStore;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.resource.ServerResource;

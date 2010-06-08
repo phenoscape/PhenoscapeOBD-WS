@@ -1,4 +1,4 @@
-package org.phenoscape.obd.model;
+package org.phenoscape.obd.query;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,8 +17,13 @@ import java.util.List;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.obd.model.SearchHit.MatchType;
+import org.phenoscape.obd.model.DefaultTerm;
+import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.Synonym;
+import org.phenoscape.obd.model.TaxonTerm;
+import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
 
@@ -29,36 +34,31 @@ public class PhenoscapeDataStore {
     public PhenoscapeDataStore(DataSource dataSource) {
         this.dataSource = dataSource;
     }
-    
+
     /**
      * Returns the date on which the Knowledgebase data were loaded.
      */
-    public Date getRefreshDate() throws ParseException, SQLException {
+    public Date getRefreshDate() throws SQLException {
         final DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement statement = null;
-            ResultSet result = null;
-            try {
-                //TODO "notes" is a weird name for this column - should be refresh_date or something
-                final String query = "SELECT notes from obd_schema_metadata";
-                statement = connection.prepareStatement(query);
-                result = statement.executeQuery();
-                while (result.next()) {
-                    final String date = result.getString("notes");
-                    if (date != null) {
-                        return formatter.parse(result.getString("notes"));    
+        final SimpleQuery query = new SimpleQuery("SELECT notes from obd_schema_metadata");
+        final QueryExecutor<Date> executor = new QueryExecutor<Date>(this.dataSource, query) {
+            @Override
+            public Date processResult(ResultSet result) throws SQLException {
+                try {
+                    while (result.next()) {
+                        final String date = result.getString("notes");
+                        if (date != null) {
+                            return formatter.parse(result.getString("notes"));    
+                        }
                     }
+                    // if a date was not found, return dummy date
+                    return formatter.parse("1859-11-24_00:00:00");
+                } catch (ParseException e) {
+                    throw new SQLException(e);
                 }
-            } finally {
-                if (statement != null) { statement.close(); }
             }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }
-        // if a date was not found, return dummy date
-        return formatter.parse("1859-11-24_00:00:00");
+        };
+        return executor.executeQuery();
     }
 
     public Term getTerm(String uid) throws SQLException {
@@ -277,51 +277,33 @@ public class PhenoscapeDataStore {
     }
 
     public int getCountOfTaxonomicAnnotations(boolean includeInferredAnnotations) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement statement = null;
-            ResultSet result = null;
-            try {
-                final String annotationsQuery = 
-                    "SELECT count(*) " +
-                    "FROM annotation";
-                statement = connection.prepareStatement(annotationsQuery);
-                result = statement.executeQuery();
+        //TODO inferred
+        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM annotation");
+        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
-                    return result.getInt(1);
+                    return Integer.valueOf(result.getInt(1));
                 }
-            } finally {
-                if (statement != null) { statement.close(); }
+                return Integer.valueOf(0);
             }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }
-        return 0;
+        };
+        return queryExecutor.executeQuery();
     }
 
     public int getCountOfAnnotatedTaxa(boolean includeInferredAnnotations) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement statement = null;
-            ResultSet result = null;
-            try {
-                final String annotationsQuery = 
-                    "SELECT count(DISTINCT taxon_node_id) " +
-                    "FROM annotation";
-                statement = connection.prepareStatement(annotationsQuery);
-                result = statement.executeQuery();
+        //TODO inferred
+        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT taxon_node_id) FROM annotation");
+        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
-                    return result.getInt(1);
+                    return Integer.valueOf(result.getInt(1));
                 }
-            } finally {
-                if (statement != null) { statement.close(); }
+                return Integer.valueOf(0);
             }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }
-        return 0;
+        };
+        return queryExecutor.executeQuery();
     }
 
     public int getCountOfGeneAnnotations() {
@@ -333,7 +315,7 @@ public class PhenoscapeDataStore {
         //TODO
         return 0;
     }
-    
+
     public AutocompleteResult getAutocompleteMatches(final SearchConfig config) throws SQLException {
         final AutocompleteResult matches = new AutocompleteResult(config);
         if (config.getNamespaces().isEmpty()) {
@@ -371,78 +353,39 @@ public class PhenoscapeDataStore {
         }
         return matches;
     }
-    
+
     private List<SearchHit> queryNameMatches(SearchConfig config, boolean startsWith) throws SQLException {
-        final List<SearchHit> hits = new ArrayList<SearchHit>();
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement statement = null;
-            ResultSet result = null;
-            try {
-                final String searchText = startsWith ? (config.getSearchText().toLowerCase() + "%") : ("%" + config.getSearchText().toLowerCase() + "%");
-                final String query = 
-                    "SELECT term.* " +
-                    "FROM node term " +
-                    "JOIN node source ON (term.source_id = source.node_id) " +
-                    "WHERE lower(term.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
-                statement = connection.prepareStatement(query);
-                statement.setString(1, searchText);
-                int index = 2;
-                for (String namespace : config.getNamespaces()) {
-                    statement.setString(index, namespace);
-                    index++;
-                }
-                result = statement.executeQuery();
+        final AutocompleteNameQueryBuilder queryBuilder = new AutocompleteNameQueryBuilder(config, startsWith);
+        final QueryExecutor<List<SearchHit>> queryExecutor = new QueryExecutor<List<SearchHit>>(this.dataSource, queryBuilder) {
+            @Override
+            public List<SearchHit> processResult(ResultSet result) throws SQLException {
+                final List<SearchHit> hits = new ArrayList<SearchHit>();
                 while (result.next()) {
-                    final SearchHit hit = this.createSearchHit(result, MatchType.NAME);
+                    final SearchHit hit = createSearchHit(result, MatchType.NAME);
                     hits.add(hit);
                 }
-            } finally {
-                if (statement != null) { statement.close(); }
+                return hits;
             }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }    
-        return hits;
+        };
+        return queryExecutor.executeQuery();
     }
-    
+
     private List<SearchHit> querySynonymMatches(SearchConfig config, boolean startsWith) throws SQLException {
-        final List<SearchHit> hits = new ArrayList<SearchHit>();
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement statement = null;
-            ResultSet result = null;
-            try {
-                final String searchText = startsWith ? (config.getSearchText().toLowerCase() + "%") : ("%" + config.getSearchText().toLowerCase() + "%");
-                final String query = 
-                    "SELECT term.*, alias.label AS synonym_label " +
-                    "FROM node term " +
-                    "JOIN node source ON (term.source_id = source.node_id) " +
-                    "JOIN alias ON (term.node_id = alias.node_id) " +
-                    "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
-                statement = connection.prepareStatement(query);
-                statement.setString(1, searchText);
-                int index = 2;
-                for (String namespace : config.getNamespaces()) {
-                    statement.setString(index, namespace);
-                    index++;
-                }
-                result = statement.executeQuery();
+        final AutocompleteSynonymQueryBuilder queryBuilder = new AutocompleteSynonymQueryBuilder(config, startsWith);
+        final QueryExecutor<List<SearchHit>> queryExecutor = new QueryExecutor<List<SearchHit>>(this.dataSource, queryBuilder) {
+            @Override
+            public List<SearchHit> processResult(ResultSet result) throws SQLException {
+                final List<SearchHit> hits = new ArrayList<SearchHit>();
                 while (result.next()) {
-                    final SearchHit hit = this.createSearchHit(result, MatchType.SYNONYM);
+                    final SearchHit hit = createSearchHit(result, MatchType.SYNONYM);
                     hits.add(hit);
                 }
-            } finally {
-                if (statement != null) { statement.close(); }
+                return hits;
             }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }    
-        return hits;
+        };
+        return queryExecutor.executeQuery();
     }
-    
+
     private SearchHit createSearchHit(ResultSet nodeResult, MatchType type) throws SQLException {
         final DefaultTerm term = new DefaultTerm(nodeResult.getInt("node_id"), nodeResult.getInt("source_id"));
         term.setUID(nodeResult.getString("uid"));
@@ -456,17 +399,6 @@ public class PhenoscapeDataStore {
         }
         final SearchHit hit = new SearchHit(term, matchText, type);
         return hit;
-    }
-    
-    private String createNamespacePlaceholders(int count) {
-        final StringBuffer buffer = new StringBuffer();
-        buffer.append("(");
-        for (int i = 0; i < count; i++) {
-            buffer.append("?");
-            if ((i + 1) < count) { buffer.append(", "); }
-        }
-        buffer.append(")");
-        return buffer.toString();
     }
 
     private Logger log() {

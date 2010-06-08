@@ -1,4 +1,4 @@
-package org.phenoscape.obd.model;
+package org.phenoscape.obd.query;
 
 import java.util.Collection;
 import java.util.Collections;

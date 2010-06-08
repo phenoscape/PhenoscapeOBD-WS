@@ -1,4 +1,6 @@
-package org.phenoscape.obd.model;
+package org.phenoscape.obd.query;
+
+import org.phenoscape.obd.model.Term;
 
 /**
  * A search match to a term in the Knowledgebase, describing the term that was matched and also which text matched the input text.
