@@ -12,7 +12,7 @@ public class SimpleQuery extends QueryBuilder {
     
     /**
      * Create a new SimpleQuery.
-     * @param query The SQL to be executed.
+     * @param query The SQL to be executed - it should not have any parameter placeholders.
      */
     public SimpleQuery(String query) {
         this.query = query;

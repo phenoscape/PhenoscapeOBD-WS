@@ -40,6 +40,7 @@ public class PhenoscapeDataStore {
      */
     public Date getRefreshDate() throws SQLException {
         final DateFormat formatter = new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss");
+        //TODO don't put date in "notes" column
         final SimpleQuery query = new SimpleQuery("SELECT notes from obd_schema_metadata");
         final QueryExecutor<Date> executor = new QueryExecutor<Date>(this.dataSource, query) {
             @Override
