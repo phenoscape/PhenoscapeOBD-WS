@@ -150,6 +150,7 @@
             <classes dir="${src}" includes="org/obd/ws/application/*.properties"/>
 			<classes dir="${src}" includes="org/phenoscape/obd/*.properties"/>
             <lib dir="${weblib}" />
+            <webinf file="WebContent/WEB-INF/jboss-web.xml"/>
         </war>
     </target>
     
