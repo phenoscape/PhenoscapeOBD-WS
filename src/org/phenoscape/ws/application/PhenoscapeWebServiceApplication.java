@@ -5,6 +5,8 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.phenoscape.ws.resource.AutocompleteResource;
+import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
 import org.restlet.Application;
@@ -26,9 +28,9 @@ public class PhenoscapeWebServiceApplication extends Application {
         final Router router = new Router(this.getContext());
         // URL mappings
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
-        router.attach("/term/search", org.phenoscape.ws.resource.AutocompleteResource.class);
+        router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/{termID}", TermInfoResource.class);
-        router.attach("/timestamp", org.phenoscape.ws.resource.KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
+        router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         // These resources generate data consistency reports
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",
                 org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21A.class);

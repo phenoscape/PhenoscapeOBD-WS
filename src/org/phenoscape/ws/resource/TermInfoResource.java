@@ -27,7 +27,7 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.termID = Reference.decode((String) (this.getRequestAttributes().get("termID")));
+        this.termID = Reference.decode((String)(this.getRequestAttributes().get("termID")));
     }
 
     @Get("json")

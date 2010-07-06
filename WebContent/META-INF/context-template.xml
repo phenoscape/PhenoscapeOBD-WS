@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-For the database connection, a "context.xml" file should be created next to this one using this format.
+This can be used to configure the database connection for running in Tomcat from Eclipse. The context.xml file 
+is not needed when deploying to a container that has the database resource centrally configured.
+A "context.xml" file should be created next to this one using this format.
 The username, password, and url should be edited with the correct values.
 -->
 <Context>

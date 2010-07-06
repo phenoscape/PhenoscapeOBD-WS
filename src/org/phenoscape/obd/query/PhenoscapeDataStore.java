@@ -12,7 +12,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -22,7 +24,6 @@ import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
-import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -75,33 +76,16 @@ public class PhenoscapeDataStore {
     }
 
     private DefaultTerm queryForTerm(String uid) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement termStatement = null;
-            ResultSet termResult = null;
-            try {
-                final String termQuery = 
-                    "SELECT term.*, description.label AS definition, tagval.val AS comment " +
-                    "FROM node term " +
-                    "LEFT OUTER JOIN description ON (description.node_id = term.node_id) " +
-                    "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + OBO.COMMENT + "') " +
-                    "LEFT OUTER JOIN tagval ON (tagval.tag_id = comment_rel.node_id AND tagval.node_id = term.node_id) " +
-                    "WHERE term.uid = ?";
-                termStatement = connection.prepareStatement(termQuery);
-                termStatement.setString(1, uid);
-                termResult = termStatement.executeQuery();
-                while (termResult.next()) {
-                    final DefaultTerm term = this.createTerm(termResult);
+        final QueryBuilder query = new TermQueryBuilder(uid);
+        return (new QueryExecutor<DefaultTerm>(this.dataSource, query) {
+            @Override
+            public DefaultTerm processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    final DefaultTerm term = createTerm(result);
                     return term;
                 }
-            } finally {
-                if (termStatement != null) { termStatement.close(); }
-            }
-        } finally {
-            if (connection != null) { connection.close(); }
-        }
-        return null;
+                return null;
+            }}).executeQuery();
     }
 
     private DefaultTerm createTerm(ResultSet result) throws SQLException {
@@ -169,63 +153,50 @@ public class PhenoscapeDataStore {
      * Return a TaxonTerm object for the given UID. Returns null if no taxon with that UID exists.
      */
     public TaxonTerm getTaxonTerm(String uid) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement taxonStatement = null;
-            ResultSet taxonResult = null;
-            try {
-                final String taxonQuery = 
-                    "SELECT focal_taxon.*, parent.uid AS parent_uid, parent.label AS parent_label, parent.is_extinct AS parent_is_extinct, parent.rank_node_id AS parent_rank_node_id, parent.rank_uid AS parent_rank_uid, parent.rank_label AS parent_rank_label " +
-                    "FROM taxon focal_taxon " +
-                    "LEFT OUTER JOIN taxon parent ON (parent.node_id = focal_taxon.parent_node_id) " +
-                    "WHERE focal_taxon.uid = ?";
-                taxonStatement = connection.prepareStatement(taxonQuery);
-                taxonStatement.setString(1, uid);
-                taxonResult = taxonStatement.executeQuery();
-                while (taxonResult.next()) {
-                    final TaxonTerm taxon = this.createTaxonTermWithProperties(taxonResult);
-                    if (taxonResult.getString("parent_uid") != null) {
-                        final TaxonTerm parent = new TaxonTerm(taxonResult.getInt("parent_node_id"), null);
-                        parent.setUID(taxonResult.getString("parent_uid"));
-                        parent.setLabel(taxonResult.getString("parent_label"));
-                        parent.setExtinct(taxonResult.getBoolean("parent_is_extinct"));
-                        if (taxonResult.getString("parent_rank_uid") != null) {
-                            final Term parentRank = new DefaultTerm(taxonResult.getInt("parent_rank_node_id"), null);
-                            parentRank.setUID(taxonResult.getString("parent_rank_uid"));
-                            parentRank.setLabel(taxonResult.getString("parent_rank_label"));
+        final QueryBuilder query = new TaxonQueryBuilder(uid);
+        final TaxonTerm taxonTerm = (new QueryExecutor<TaxonTerm>(this.dataSource, query) {
+            @Override
+            public TaxonTerm processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    final TaxonTerm taxon = createTaxonTermWithProperties(result);
+                    if (result.getString("parent_uid") != null) {
+                        final TaxonTerm parent = new TaxonTerm(result.getInt("parent_node_id"), null);
+                        parent.setUID(result.getString("parent_uid"));
+                        parent.setLabel(result.getString("parent_label"));
+                        parent.setExtinct(result.getBoolean("parent_is_extinct"));
+                        if (result.getString("parent_rank_uid") != null) {
+                            final Term parentRank = new DefaultTerm(result.getInt("parent_rank_node_id"), null);
+                            parentRank.setUID(result.getString("parent_rank_uid"));
+                            parentRank.setLabel(result.getString("parent_rank_label"));
                             parent.setRank(parentRank);
                         }
                         taxon.setParent(parent);
                     }
-                    PreparedStatement childrenStatement = null;
-                    ResultSet childrenResult = null;
-                    try {
-                        final String childrenQuery = 
-                            "SELECT * " +
-                            "FROM taxon " +
-                            "WHERE parent_node_id = ?";
-                        childrenStatement = connection.prepareStatement(childrenQuery);
-                        childrenStatement.setInt(1, taxon.getNodeID());
-                        childrenResult = childrenStatement.executeQuery();
-                        while (childrenResult.next()) {
-                            final TaxonTerm child = this.createTaxonTermWithProperties(childrenResult);
-                            taxon.addChild(child);
-                        }
-                    } finally {
-                        if (childrenStatement != null) { childrenStatement.close(); }
-                    }
-                    this.addSynonymsToTerm(taxon);
+                    addChildrenToTaxon(taxon);
+                    addSynonymsToTerm(taxon);
                     return taxon;
                 }
-            }  finally {
-                if (taxonStatement != null) { taxonStatement.close(); }
+                //no taxon with this ID
+                return null;
+            }}).executeQuery();
+        return taxonTerm;
+    }
+
+    private void addChildrenToTaxon(TaxonTerm taxon) throws SQLException {
+        final QueryBuilder childrenQuery = new TaxonChildrenQueryBuilder(taxon);
+        final Set<TaxonTerm> children = (new QueryExecutor<Set<TaxonTerm>>(dataSource, childrenQuery) {
+            @Override
+            public Set<TaxonTerm> processResult(ResultSet result) throws SQLException {
+                final Set<TaxonTerm> children = new HashSet<TaxonTerm>();
+                while (result.next()) {
+                    children.add(createTaxonTermWithProperties(result));
+                }
+                return children;
             }
-        } finally {
-            if (connection != null) { connection.close(); }
+        }).executeQuery();
+        for (TaxonTerm child : children) {
+            taxon.addChild(child);
         }
-        //no taxon with this ID
-        return null;
     }
 
     /**
@@ -246,28 +217,19 @@ public class PhenoscapeDataStore {
     }
 
     private void addSynonymsToTerm(DefaultTerm term) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement synonymsStatement = null;
-            ResultSet synonymsResult = null;
-            try {
-                final String synonymsQuery = 
-                    "SELECT * " +
-                    "FROM alias " +
-                    "WHERE node_id = ?";
-                synonymsStatement = connection.prepareStatement(synonymsQuery);
-                synonymsStatement.setInt(1, term.getNodeID());
-                synonymsResult = synonymsStatement.executeQuery();
-                while (synonymsResult.next()) {
-                    final Synonym synonym = this.createSynonym(synonymsResult);
-                    term.addSynonym(synonym);
+        final QueryBuilder query = new SynonymsQueryBuilder(term);
+        final Set<Synonym> synonyms = (new QueryExecutor<Set<Synonym>>(this.dataSource, query) {
+            @Override
+            public Set<Synonym> processResult(ResultSet result) throws SQLException {
+                final Set<Synonym> synonyms = new HashSet<Synonym>();
+                while (result.next()) {
+                    synonyms.add(createSynonym(result));
                 }
-            } finally {
-                if (synonymsStatement != null) { synonymsStatement.close(); }
+                return synonyms;
             }
-        } finally {
-            if (connection != null) { connection.close(); }
+        }).executeQuery();
+        for (Synonym synonym : synonyms) {
+            term.addSynonym(synonym);
         }
     }
 

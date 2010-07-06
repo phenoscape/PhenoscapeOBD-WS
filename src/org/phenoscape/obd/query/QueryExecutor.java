@@ -35,7 +35,7 @@ public abstract class QueryExecutor<T> {
 
     /**
      * Execute the SQL query and return the processed results. This method 
-     * will close the open Connection and Statements.
+     * will close any Connections and Statements it may open.
      */
     public final T executeQuery() throws SQLException {
         Connection connection = null;
