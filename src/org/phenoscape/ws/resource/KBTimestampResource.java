@@ -23,7 +23,7 @@ public class KBTimestampResource extends AbstractPhenoscapeResource {
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (SQLException e) {
-            log().error("Database error querying for timestamp: ", e);
+            log().error("Database error querying for timestamp", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }

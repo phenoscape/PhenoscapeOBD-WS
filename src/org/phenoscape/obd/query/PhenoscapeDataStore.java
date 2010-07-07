@@ -1,7 +1,5 @@
 package org.phenoscape.obd.query;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -21,6 +19,7 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
@@ -99,54 +98,47 @@ public class PhenoscapeDataStore {
     }
 
     private void addLinksToTerm(DefaultTerm term) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = this.dataSource.getConnection();
-            PreparedStatement subjectStatement = null;
-            ResultSet subjectResult = null;
-            try {
-                final String subjectQuery = 
-                    "SELECT link.*, relation.uid AS relation_uid, relation.label AS relation_label, target.uid AS other_uid, target.label AS other_label " +
-                    "FROM link " +
-                    "JOIN node relation ON (relation.node_id = link.predicate_id) " +
-                    "JOIN node target ON (target.node_id = link.object_id) " +
-                    "WHERE link.node_id = ? AND link.source_id = ?"; //TODO
-                subjectStatement = connection.prepareStatement(subjectQuery);
-                subjectStatement.setInt(1, term.getNodeID());
-                subjectStatement.setInt(2, term.getSourceID());
-                subjectResult = subjectStatement.executeQuery();
-                log().debug("Source: " + term.getSourceID());
-                while (subjectResult.next()) {
-                    //TODO add links
-                    log().debug(subjectResult.toString());
+        final QueryBuilder parentsQuery = new TermLinkSubjectQueryBuilder(term);
+        final Set<Relationship> parents = (new QueryExecutor<Set<Relationship>>(this.dataSource, parentsQuery) {
+            @Override
+            public Set<Relationship> processResult(ResultSet result) throws SQLException {
+                final Set<Relationship> parentResults = new HashSet<Relationship>();
+                while (result.next()) {
+                    parentResults.add(createRelationship(result));
                 }
-            } finally {
-                if (subjectStatement != null) { subjectStatement.close(); }
+                return parentResults;
             }
-            connection = this.dataSource.getConnection();
-            PreparedStatement objectStatement = null;
-            ResultSet objectResult = null;
-            try {
-                final String objectQuery = 
-                    "SELECT link.*, relation.uid AS relation_uid, relation.label AS relation_label, subject.uid AS other_uid, subject.label AS other_label " +
-                    "FROM link " +
-                    "JOIN node relation ON (relation.node_id = link.predicate_id) " +
-                    "JOIN node subject ON (subject.node_id = link.object_id) " +
-                    "WHERE link.object_id = ? AND link.source_id = ?"; //TODO
-                objectStatement = connection.prepareStatement(objectQuery);
-                objectStatement.setInt(1, term.getNodeID());
-                objectStatement.setInt(2, term.getSourceID());
-                objectResult = objectStatement.executeQuery();
-                while (objectResult.next()) {
-                    //TODO add links
-                    log().debug(objectResult.toString());
-                }
-            } finally {
-                if (objectStatement != null) { objectStatement.close(); }
-            }
-        } finally {
-            if (connection != null) { connection.close(); }
+        }).executeQuery();
+        for (Relationship parent : parents) {
+            term.addSubjectLink(parent);
         }
+        final QueryBuilder childrenQuery = new TermLinkObjectQueryBuilder(term);
+        final Set<Relationship> children = (new QueryExecutor<Set<Relationship>>(this.dataSource, childrenQuery) {
+            @Override
+            public Set<Relationship> processResult(ResultSet result) throws SQLException {
+                final Set<Relationship> childrenResults = new HashSet<Relationship>();
+                while (result.next()) {
+                    childrenResults.add(createRelationship(result));
+                }
+                return childrenResults;
+            }
+        }).executeQuery();
+        for (Relationship child : children) {
+            term.addObjectLink(child);
+        }
+    }
+    
+    private Relationship createRelationship(ResultSet result) throws SQLException {
+        final Relationship relationship = new Relationship();
+        final DefaultTerm otherTerm = new DefaultTerm(result.getInt("other_node_id"), null);
+        otherTerm.setUID(result.getString("other_uid"));
+        otherTerm.setLabel(result.getString("other_label"));
+        relationship.setOther(otherTerm);
+        final DefaultTerm predicate = new DefaultTerm(result.getInt("relation_node_id"), null);
+        predicate.setUID(result.getString("relation_uid"));
+        predicate.setLabel(result.getString("relation_label"));
+        relationship.setPredicate(predicate);
+        return relationship;
     }
 
     /**
