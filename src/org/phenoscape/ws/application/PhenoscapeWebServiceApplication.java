@@ -6,6 +6,7 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
+import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
@@ -31,6 +32,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
+        router.attach("/annotation/gene", GeneAnnotationsResource.class);
         // These resources generate data consistency reports
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",
                 org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21A.class);

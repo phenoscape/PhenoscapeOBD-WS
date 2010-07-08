@@ -142,7 +142,8 @@ public class PhenoscapeDataStore {
     }
 
     /**
-     * Return a TaxonTerm object for the given UID. Returns null if no taxon with that UID exists.
+     * Return a TaxonTerm object for the given UID. Returns null if no taxon with that UID exists. 
+     * The TaxonTerm will include references to its synonyms, parent, and children taxa.
      */
     public TaxonTerm getTaxonTerm(String uid) throws SQLException {
         final QueryBuilder query = new TaxonQueryBuilder(uid);
