@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.DefaultTerm;
+import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.Synonym;
@@ -127,7 +128,7 @@ public class PhenoscapeDataStore {
             term.addObjectLink(child);
         }
     }
-    
+
     private Relationship createRelationship(ResultSet result) throws SQLException {
         final Relationship relationship = new Relationship();
         final DefaultTerm otherTerm = new DefaultTerm(result.getInt("other_node_id"), null);
@@ -234,7 +235,7 @@ public class PhenoscapeDataStore {
 
     public int getCountOfTaxonomicAnnotations(boolean includeInferredAnnotations) throws SQLException {
         //TODO inferred
-        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM annotation");
+        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM taxon_annotation");
         final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
@@ -249,7 +250,7 @@ public class PhenoscapeDataStore {
 
     public int getCountOfAnnotatedTaxa(boolean includeInferredAnnotations) throws SQLException {
         //TODO inferred
-        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT taxon_node_id) FROM annotation");
+        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT taxon_node_id) FROM taxon_annotation");
         final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
@@ -262,14 +263,39 @@ public class PhenoscapeDataStore {
         return queryExecutor.executeQuery();
     }
 
-    public int getCountOfGeneAnnotations() {
+    public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) {
         //TODO
-        return 0;
+        return null;
+    }
+    
+    public int getCountOfGeneAnnotations() throws SQLException {
+        // returning distinct count for now because we aren't preserving useful information about different 
+        // annotation statements in the data loader
+        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM distinct_gene_annotation");
+        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        };
+        return queryExecutor.executeQuery();
     }
 
-    public int getCountOfAnnotatedGenes() {
-        //TODO
-        return 0;
+    public int getCountOfAnnotatedGenes() throws SQLException {
+        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT gene_node_id) FROM gene_annotation");
+        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        };
+        return queryExecutor.executeQuery();
     }
 
     public AutocompleteResult getAutocompleteMatches(final SearchConfig config) throws SQLException {
