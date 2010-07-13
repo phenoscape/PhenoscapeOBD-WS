@@ -15,7 +15,6 @@ public class GeneAnnotationsQueryConfig {
     private boolean sortDescending = false;
     private final Set<String> geneIDs = new HashSet<String>();
     private final Set<PhenotypeSpec> phenotypes = new HashSet<PhenotypeSpec>();
-    private boolean includeInferredAnnotations = false;
 
     public SORT_COLUMN getSortColumn() {
         return this.sortColumn;
@@ -47,14 +46,6 @@ public class GeneAnnotationsQueryConfig {
 
     public void setSortDescending(boolean sortDescending) {
         this.sortDescending = sortDescending;
-    }
-
-    public boolean includeInferredAnnotations() {
-        return this.includeInferredAnnotations;
-    }
-
-    public void setIncludeInferredAnnotations(boolean includeInferredAnnotations) {
-        this.includeInferredAnnotations = includeInferredAnnotations;
     }
 
     public Set<String> getGeneIDs() {

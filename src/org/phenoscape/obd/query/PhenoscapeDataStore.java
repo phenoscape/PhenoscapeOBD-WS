@@ -19,8 +19,10 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
+import org.phenoscape.obd.model.GeneTerm;
 import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Relationship;
+import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
@@ -263,11 +265,32 @@ public class PhenoscapeDataStore {
         return queryExecutor.executeQuery();
     }
 
-    public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) {
-        //TODO
-        return null;
+    public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new GeneAnnotationsQueryBuilder(config);
+        return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
+            @Override
+            public List<GeneAnnotation> processResult(ResultSet result) throws SQLException {
+                final List<GeneAnnotation> annotations = new ArrayList<GeneAnnotation>();
+                while (result.next()) {
+                    annotations.add(createGeneAnnotation(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
     }
     
+    private GeneAnnotation createGeneAnnotation(ResultSet result) throws SQLException {
+        final GeneAnnotation annotation = new GeneAnnotation();
+        final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
+        gene.setUID(result.getString("gene_uid"));
+        gene.setLabel(result.getString("gene_label"));
+        annotation.setGene(gene);
+        annotation.setEntity(new SimpleTerm(result.getString("entity_uid"), result.getString("entity_label")));
+        annotation.setQuality(new SimpleTerm(result.getString("quality_uid"), result.getString("quality_label")));
+        annotation.setRelatedEntity(new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label")));
+        return annotation;
+    }
+
     public int getCountOfGeneAnnotations() throws SQLException {
         // returning distinct count for now because we aren't preserving useful information about different 
         // annotation statements in the data loader

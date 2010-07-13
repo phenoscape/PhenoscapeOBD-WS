@@ -1,5 +1,6 @@
 package org.phenoscape.ws.resource;
 
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -11,6 +12,7 @@ import org.json.JSONObject;
 import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig;
+import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
 import org.phenoscape.ws.representation.StreamableTextRepresentation;
@@ -34,7 +36,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
      * TODO: need to investigate ideal value for this to maximize performance with acceptable memory usage
      */
     private static final int QUERY_LIMIT = 500;
-    private JSONObject query;
+    private JSONObject query = new JSONObject();
     private String sortColumn = "gene";
     private int limit;
     private int index;
@@ -72,6 +74,12 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         } catch (JSONException e) {
             this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error creating JSON object");
             return null;
+        } catch (SQLException e) {
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            return null;
+        } catch (QueryException e) {
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            return null;
         }
     }
 
@@ -83,7 +91,13 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         } catch (JSONException e) {
             this.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid annotation query");
             return null;
-        }   
+        } catch (SQLException e) {
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            return null;
+        } catch (QueryException e) {
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            return null;  
+        }
     }
 
     private Iterator<JSONObject> translateToJSON(final Iterator<GeneAnnotation> annotations) {
@@ -167,7 +181,12 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         return buffer.toString();
     }
 
-    private Iterator<GeneAnnotation> queryForAnnotations() throws JSONException {
+    /**
+     * @throws JSONException
+     * @throws SQLException
+     * @throws QueryException
+     */
+    private Iterator<GeneAnnotation> queryForAnnotations() throws JSONException, SQLException, QueryException {
         final GeneAnnotationsQueryConfig config = this.createInitialQueryConfig();
         final List<GeneAnnotation> initialResults = this.getDataStore().getGeneAnnotations(config);
         return new Iterator<GeneAnnotation>() {
@@ -179,10 +198,14 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
                     return true; 
                 } else if (this.needMore()) {
                     config.setIndex(config.getIndex() + QUERY_LIMIT);
-                    final List<GeneAnnotation> nextResults = getDataStore().getGeneAnnotations(config);
-                    this.gotten += QUERY_LIMIT;
-                    this.currentAnnotations = nextResults.iterator();
-                    return this.currentAnnotations.hasNext();
+                    try {
+                        List<GeneAnnotation> nextResults = getDataStore().getGeneAnnotations(config);
+                        this.gotten += QUERY_LIMIT;
+                        this.currentAnnotations = nextResults.iterator();
+                        return this.currentAnnotations.hasNext();
+                    } catch (SQLException e) {
+                        throw new QueryException(e);
+                    }
                 } else {
                     return false;
                 }
@@ -199,7 +222,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         };
     }
 
-    private GeneAnnotationsQueryConfig createInitialQueryConfig() throws JSONException {
+    private GeneAnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
         final GeneAnnotationsQueryConfig config = new GeneAnnotationsQueryConfig();
         config.setIndex(this.index);
         config.setSortColumn(COLUMNS.get(this.sortColumn));
@@ -234,7 +257,10 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         return config;
     }
 
-    private Iterable<JSONObject> toIterable(final JSONArray array) {
+    /**
+     * @throws QueryException
+     */
+    private Iterable<JSONObject> toIterable(final JSONArray array) throws QueryException {
         return new Iterable<JSONObject>() {
             @Override
             public Iterator<JSONObject> iterator() {
@@ -248,12 +274,11 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
                     public JSONObject next() {
                         try {
                             final JSONObject json = array.getJSONObject(this.index);
+                            this.index++;
                             return json;
                         } catch (JSONException e) {
-                            log().error("Invalid object in JSON structure", e);
+                            throw new QueryException(e);
                         }
-                        this.index++;
-                        return null;
                     }
                     @Override
                     public void remove() {}
