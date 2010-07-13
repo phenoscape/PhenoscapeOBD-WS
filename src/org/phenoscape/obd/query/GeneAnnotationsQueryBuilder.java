@@ -10,6 +10,7 @@ import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
 public class GeneAnnotationsQueryBuilder extends QueryBuilder {
 
     private final GeneAnnotationsQueryConfig config;
+    private final boolean totalOnly;
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
         COLUMNS.put(SORT_COLUMN.GENE, "distinct_gene_annotation.gene_label");
@@ -18,25 +19,27 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "distinct_gene_annotation.related_entity_label");
     }
 
-    public GeneAnnotationsQueryBuilder(GeneAnnotationsQueryConfig config) {
+    public GeneAnnotationsQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
+        this.totalOnly = totalOnly;
     }
 
     @Override
     protected void fillStatement(PreparedStatement statement) throws SQLException {
         //TODO
-        // maybe first shouldn't be a string parameter?
-        statement.setString(1, COLUMNS.get(this.config.getSortColumn()));
-        statement.setInt(2, this.config.getLimit());
-        statement.setInt(3, this.config.getIndex());
+        if (!this.totalOnly) {
+            statement.setInt(1, this.config.getLimit());
+            statement.setInt(2, this.config.getIndex());
+        }
     }
 
     @Override
     protected String getQuery() {
         //TODO
-        return "SELECT distinct_gene_annotation.* FROM distinct_gene_annotation " +
-        "ORDER BY ? " +
-        "LIMIT ? OFFSET ?";
+        final String select = this.totalOnly ? "SELECT count(distinct_gene_annotation.*) " : "SELECT distinct_gene_annotation.* ";
+        final String ending = this.totalOnly ? "" : "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + "LIMIT ? OFFSET ?";
+        return select + "FROM distinct_gene_annotation " + ending;
+
     }
 
 }

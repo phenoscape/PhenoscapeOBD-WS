@@ -266,7 +266,7 @@ public class PhenoscapeDataStore {
     }
 
     public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
-        final QueryBuilder query = new GeneAnnotationsQueryBuilder(config);
+        final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
             @Override
             public List<GeneAnnotation> processResult(ResultSet result) throws SQLException {
@@ -291,10 +291,10 @@ public class PhenoscapeDataStore {
         return annotation;
     }
 
-    public int getCountOfGeneAnnotations() throws SQLException {
+    public int getCountOfGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
         // returning distinct count for now because we aren't preserving useful information about different 
         // annotation statements in the data loader
-        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM distinct_gene_annotation");
+        final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, true);
         final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {

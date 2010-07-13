@@ -35,7 +35,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
      * The maximum number of annotations to pull out of the database in one query.
      * TODO: need to investigate ideal value for this to maximize performance with acceptable memory usage
      */
-    private static final int QUERY_LIMIT = 500;
+    private static final int QUERY_LIMIT = 1000;
     private JSONObject query = new JSONObject();
     private String sortColumn = "gene";
     private int limit;
@@ -70,15 +70,21 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
     public Representation getJSONRepresentation() {
         try {
             final Iterator<JSONObject> annotations = this.translateToJSON(this.queryForAnnotations());
-            return new StreamableJSONRepresentation(annotations, "annotations");
+            final int total = this.queryForAnnotationsCount(this.createInitialQueryConfig());
+            final JSONObject otherValues = new JSONObject();
+            otherValues.put("total", total);
+            return new StreamableJSONRepresentation(annotations, "annotations", otherValues);
         } catch (JSONException e) {
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error creating JSON object");
+            this.log().error("Error creating JSON object", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (SQLException e) {
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            this.log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (QueryException e) {
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            this.log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
     }
@@ -89,13 +95,16 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
             final Iterator<String> annotations = this.translateToText(this.queryForAnnotations());
             return new StreamableTextRepresentation(annotations, MediaType.TEXT_TSV);
         } catch (JSONException e) {
-            this.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid annotation query");
+            this.log().error("Invalid annotation query", e);
+            this.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, e);
             return null;
         } catch (SQLException e) {
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            this.log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (QueryException e) {
-            this.setStatus(Status.SERVER_ERROR_INTERNAL, "Error querying database");
+            this.log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;  
         }
     }
@@ -217,9 +226,17 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
             @Override
             public void remove() {}
             private boolean needMore() {
-                return this.gotten < limit;
+                if (limit > 0) {
+                    return this.gotten < limit;       
+                } else {
+                    return true;
+                }
             }
         };
+    }
+
+    private int queryForAnnotationsCount(GeneAnnotationsQueryConfig config) throws SQLException {
+        return this.getDataStore().getCountOfGeneAnnotations(config);
     }
 
     private GeneAnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
@@ -227,7 +244,11 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         config.setIndex(this.index);
         config.setSortColumn(COLUMNS.get(this.sortColumn));
         config.setSortDescending(this.sortDescending);
-        config.setLimit(Math.min(this.limit, QUERY_LIMIT));
+        if (this.limit > 0) {
+            config.setLimit(Math.min(this.limit, QUERY_LIMIT));
+        } else {
+            config.setLimit(QUERY_LIMIT);
+        }
         if (this.query.has("gene")) {
             for (JSONObject gene : this.toIterable(this.query.getJSONArray("gene"))) {
                 config.addGeneID(gene.getString("id"));
