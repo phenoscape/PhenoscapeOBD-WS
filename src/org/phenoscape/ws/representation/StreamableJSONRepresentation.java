@@ -64,6 +64,7 @@ public class StreamableJSONRepresentation extends StreamableTextRepresentation {
             final String json = this.otherValues.toString();
             final String openEndedJSON = json.substring(0, json.lastIndexOf("}"));
             writer.append(openEndedJSON);
+            writer.append(", ");
             writer.append(JSONObject.quote(this.key));
             writer.append(":");
         }

@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
 
 public class GeneAnnotationsQueryBuilder extends QueryBuilder {
@@ -27,19 +28,55 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
     @Override
     protected void fillStatement(PreparedStatement statement) throws SQLException {
         //TODO
+        int index = 1;
+        for (String geneID : this.config.getGeneIDs()) {
+            statement.setString(index++, geneID);
+        }
         if (!this.totalOnly) {
-            statement.setInt(1, this.config.getLimit());
-            statement.setInt(2, this.config.getIndex());
+            statement.setInt(index++, this.config.getLimit());
+            statement.setInt(index++, this.config.getIndex());
         }
     }
 
     @Override
     protected String getQuery() {
         //TODO
-        final String select = this.totalOnly ? "SELECT count(distinct_gene_annotation.*) " : "SELECT distinct_gene_annotation.* ";
-        final String ending = this.totalOnly ? "" : "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + "LIMIT ? OFFSET ?";
-        return select + "FROM distinct_gene_annotation " + ending;
+        final String baseQuery = "SELECT DISTINCT distinct_gene_annotation.* " + 
+        "FROM distinct_gene_annotation " +
+        this.createWhereClause();
+        final String query;
+        if (this.totalOnly) {
+            query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
+        } else {
+            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + "LIMIT ? OFFSET ?";
+        }
+        log().debug("Query: " + query);
+        return query;
+    }
 
+    private String createWhereClause() {
+        final StringBuffer where = new StringBuffer();
+        if (!this.config.getGeneIDs().isEmpty()) {
+            where.append("WHERE ");
+            where.append("distinct_gene_annotation.gene_uid IN ");
+            where.append(this.createPlaceholders(this.config.getGeneIDs().size()));
+        }
+        return where.toString();
+    }
+    
+    private String createPlaceholders(int count) {
+        final StringBuffer buffer = new StringBuffer();
+        buffer.append("(");
+        for (int i = 0; i < count; i++) {
+            buffer.append("?");
+            if ((i + 1) < count) { buffer.append(", "); }
+        }
+        buffer.append(") ");
+        return buffer.toString();
+    }
+    
+    private Logger log() {
+        return Logger.getLogger(this.getClass());
     }
 
 }
