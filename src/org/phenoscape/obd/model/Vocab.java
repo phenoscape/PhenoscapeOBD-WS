@@ -6,7 +6,8 @@ public class Vocab {
 
         public static final String IS_A = "OBO_REL:is_a";
         public static final String COMMENT = "oboInOwl:comment";
-       
+        public static final String INHERES_IN = "OBO_REL:inheres_in";
+        public static final String INHERES_IN_PART_OF = "OBO_REL:inheres_in_part_of";
     }
     
     public static class TAO {

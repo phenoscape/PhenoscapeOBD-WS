@@ -35,7 +35,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
      * The maximum number of annotations to pull out of the database in one query.
      * TODO: need to investigate ideal value for this to maximize performance with acceptable memory usage
      */
-    private static final int QUERY_LIMIT = 1000;
+    private static final int QUERY_LIMIT = 5000;
     private JSONObject query = new JSONObject();
     private String sortColumn = "gene";
     private int limit;
@@ -196,11 +196,14 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
      * @throws QueryException
      */
     private Iterator<GeneAnnotation> queryForAnnotations() throws JSONException, SQLException, QueryException {
+        log().debug("Querying for annotations");
         final GeneAnnotationsQueryConfig config = this.createInitialQueryConfig();
         final List<GeneAnnotation> initialResults = this.getDataStore().getGeneAnnotations(config);
+        log().debug("Got initial results: " + initialResults.size());
         return new Iterator<GeneAnnotation>() {
             private Iterator<GeneAnnotation> currentAnnotations = initialResults.iterator();
-            private int gotten = Math.max(initialResults.size(), QUERY_LIMIT);
+            private int gotten = QUERY_LIMIT;
+            private boolean stop = initialResults.size() < QUERY_LIMIT;
             @Override
             public boolean hasNext() {
                 if (this.currentAnnotations.hasNext()) {
@@ -210,6 +213,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
                     try {
                         List<GeneAnnotation> nextResults = getDataStore().getGeneAnnotations(config);
                         this.gotten += QUERY_LIMIT;
+                        this.stop = nextResults.size() < QUERY_LIMIT;
                         this.currentAnnotations = nextResults.iterator();
                         return this.currentAnnotations.hasNext();
                     } catch (SQLException e) {
@@ -226,7 +230,9 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
             @Override
             public void remove() {}
             private boolean needMore() {
-                if (limit > 0) {
+                if (stop) {
+                    return false;
+                } else if (limit > 0) {
                     return this.gotten < limit;       
                 } else {
                     return true;

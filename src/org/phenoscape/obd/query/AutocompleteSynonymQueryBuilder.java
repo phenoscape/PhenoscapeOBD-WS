@@ -32,19 +32,8 @@ public class AutocompleteSynonymQueryBuilder extends QueryBuilder {
             "FROM node term " +
             "JOIN node source ON (term.source_id = source.node_id) " +
             "JOIN alias ON (term.node_id = alias.node_id) " +
-            "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
+            "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createPlaceholdersList(config.getNamespaces().size());
         return query;
-    }
-
-    private String createNamespacePlaceholders(int count) {
-        final StringBuffer buffer = new StringBuffer();
-        buffer.append("(");
-        for (int i = 0; i < count; i++) {
-            buffer.append("?");
-            if ((i + 1) < count) { buffer.append(", "); }
-        }
-        buffer.append(")");
-        return buffer.toString();
     }
 
 }
