@@ -11,7 +11,7 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
-import org.phenoscape.obd.model.Vocab;
+import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
 
 public class GeneAnnotationsQueryBuilder extends QueryBuilder {
@@ -76,14 +76,14 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
     private String createJoins() {
         final StringBuffer joins = new StringBuffer();
         if (this.needsIsA()) {
-            joins.append(String.format("JOIN node is_a ON (is_a.uid = '%s') ", Vocab.OBO.IS_A));
+            joins.append(String.format("JOIN node is_a ON (is_a.uid = '%s') ", OBO.IS_A));
         }
         if (this.needsInheresIn()) {
-            joins.append(String.format("JOIN node inheres_in ON (inheres_in.uid = '%s') ", Vocab.OBO.INHERES_IN));
+            joins.append(String.format("JOIN node inheres_in ON (inheres_in.uid = '%s') ", OBO.INHERES_IN));
             joins.append("JOIN link phenotype_inheres_in ON (phenotype_inheres_in.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in.predicate_id = inheres_in.node_id) ");
         }
         if (this.needsInheresInPartOf()) {
-            joins.append(String.format("JOIN node inheres_in_part_of ON (inheres_in_part_of.uid = '%s') ", Vocab.OBO.INHERES_IN_PART_OF));
+            joins.append(String.format("JOIN node inheres_in_part_of ON (inheres_in_part_of.uid = '%s') ", OBO.INHERES_IN_PART_OF));
             joins.append("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = inheres_in_part_of.node_id) ");
         }
         if (this.hasQualities(this.config)) {
