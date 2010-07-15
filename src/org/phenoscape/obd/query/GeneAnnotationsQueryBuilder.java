@@ -97,13 +97,16 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
 
     private String createWhereClause() {
         final StringBuffer where = new StringBuffer();
+        where.append("WHERE ");
         if (!this.config.getGeneIDs().isEmpty()) {
-            where.append("WHERE ");
             where.append("distinct_gene_annotation.gene_uid IN ");
             where.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
         }
         if (!config.getPhenotypes().isEmpty()) {
-            where.append("AND (");
+            if (!this.config.getGeneIDs().isEmpty()) {
+                where.append("AND ");
+            }
+            where.append("(");
             final Iterator<PhenotypeSpec> phenotypes = this.config.getPhenotypes().iterator();
             while (phenotypes.hasNext()) {
                 where.append(this.translate(phenotypes.next()));

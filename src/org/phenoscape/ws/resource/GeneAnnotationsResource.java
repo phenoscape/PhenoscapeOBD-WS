@@ -35,7 +35,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
      * The maximum number of annotations to pull out of the database in one query.
      * TODO: need to investigate ideal value for this to maximize performance with acceptable memory usage
      */
-    private static final int QUERY_LIMIT = 5000;
+    private static final int QUERY_LIMIT = 50000;
     private JSONObject query = new JSONObject();
     private String sortColumn = "gene";
     private int limit;
