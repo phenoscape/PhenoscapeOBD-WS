@@ -1,7 +1,8 @@
 package org.phenoscape.obd.query;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.phenoscape.obd.model.PhenotypeSpec;
@@ -13,8 +14,8 @@ public class GeneAnnotationsQueryConfig {
     private int limit = 0;
     private int index = 0;
     private boolean sortDescending = false;
-    private final Set<String> geneIDs = new HashSet<String>();
-    private final Set<PhenotypeSpec> phenotypes = new HashSet<PhenotypeSpec>();
+    private final List<String> geneIDs = new ArrayList<String>();
+    private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
 
     public SORT_COLUMN getSortColumn() {
         return this.sortColumn;
@@ -48,8 +49,8 @@ public class GeneAnnotationsQueryConfig {
         this.sortDescending = sortDescending;
     }
 
-    public Set<String> getGeneIDs() {
-        return Collections.unmodifiableSet(this.geneIDs);
+    public List<String> getGeneIDs() {
+        return Collections.unmodifiableList(this.geneIDs);
     }
 
     public void addGeneID(String geneID) {
@@ -60,8 +61,8 @@ public class GeneAnnotationsQueryConfig {
         this.geneIDs.addAll(geneIDs);
     }
 
-    public Set<PhenotypeSpec> getPhenotypes() {
-        return Collections.unmodifiableSet(this.phenotypes);
+    public List<PhenotypeSpec> getPhenotypes() {
+        return Collections.unmodifiableList(this.phenotypes);
     }
 
     public void addPhenotype(PhenotypeSpec phenotype) {

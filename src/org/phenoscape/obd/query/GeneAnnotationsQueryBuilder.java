@@ -4,7 +4,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -19,12 +18,13 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
     private final GeneAnnotationsQueryConfig config;
     private final boolean totalOnly;
     private static final String NODE = "(SELECT node.node_id FROM node WHERE node.uid=?)";
+    private static final String NODE_S = "(SELECT node.node_id FROM node WHERE node.uid='%s')";
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
-        COLUMNS.put(SORT_COLUMN.GENE, "distinct_gene_annotation.gene_label");
-        COLUMNS.put(SORT_COLUMN.ENTITY, "distinct_gene_annotation.entity_label");
-        COLUMNS.put(SORT_COLUMN.QUALITY, "distinct_gene_annotation.quality_label");
-        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "distinct_gene_annotation.related_entity_label");
+        COLUMNS.put(SORT_COLUMN.GENE, "gene_label");
+        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_label");
+        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_label");
+        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
     }
 
     public GeneAnnotationsQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
@@ -59,10 +59,19 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
 
     @Override
     protected String getQuery() {
-        final String baseQuery = "SELECT DISTINCT distinct_gene_annotation.* " + 
-        "FROM distinct_gene_annotation " +
-        this.createJoins() +
-        this.createWhereClause();
+        final List<String> intersects = new ArrayList<String>();
+        if (!this.config.getGeneIDs().isEmpty()) {
+            intersects.add(this.getGenesQuery(this.config.getGeneIDs()));
+        }
+        if (!this.config.getPhenotypes().isEmpty()) {
+            intersects.add(this.getPhenotypesQuery(this.config.getPhenotypes()));
+        }
+        final String baseQuery;
+        if (intersects.isEmpty()) {
+            baseQuery = "SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation ";    
+        } else {
+            baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
+        }
         final String query;
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
@@ -73,94 +82,47 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         return query;
     }
 
-    private String createJoins() {
-        final StringBuffer joins = new StringBuffer();
-        if (this.needsIsA()) {
-            joins.append(String.format("JOIN node is_a ON (is_a.uid = '%s') ", OBO.IS_A));
-        }
-        if (this.needsInheresIn()) {
-            joins.append(String.format("JOIN node inheres_in ON (inheres_in.uid = '%s') ", OBO.INHERES_IN));
-            joins.append("JOIN link phenotype_inheres_in ON (phenotype_inheres_in.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in.predicate_id = inheres_in.node_id) ");
-        }
-        if (this.needsInheresInPartOf()) {
-            joins.append(String.format("JOIN node inheres_in_part_of ON (inheres_in_part_of.uid = '%s') ", OBO.INHERES_IN_PART_OF));
-            joins.append("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = inheres_in_part_of.node_id) ");
-        }
-        if (this.hasQualities(this.config)) {
-            joins.append("JOIN link quality_is_a ON (quality_is_a.node_id = distinct_gene_annotation.quality_node_id AND quality_is_a.predicate_id = is_a.node_id) ");
-        }
-        if (this.hasRelatedEntities(this.config)) {
-            joins.append("JOIN link related_entity_is_a ON (related_entity_is_a.node_id = distinct_gene_annotation.related_entity_node_id AND related_entity_is_a.predicate_id = is_a.node_id) ");
-        }
-        return joins.toString();
+    private String getGenesQuery(List<String> genes) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation WHERE ");
+        query.append("distinct_gene_annotation.gene_uid IN ");
+        query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
+        query.append(")");
+        return query.toString();
     }
 
-    private String createWhereClause() {
-        final StringBuffer where = new StringBuffer();
-        where.append("WHERE ");
-        if (!this.config.getGeneIDs().isEmpty()) {
-            where.append("distinct_gene_annotation.gene_uid IN ");
-            where.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
+    private String getPhenotypesQuery(List<PhenotypeSpec> phenotypes) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        final List<String> unions = new ArrayList<String>();
+        for (PhenotypeSpec phenotype : phenotypes) {
+            unions.add(this.getPhenotypeQuery(phenotype));
         }
-        if (!config.getPhenotypes().isEmpty()) {
-            if (!this.config.getGeneIDs().isEmpty()) {
-                where.append("AND ");
-            }
-            where.append("(");
-            final Iterator<PhenotypeSpec> phenotypes = this.config.getPhenotypes().iterator();
-            while (phenotypes.hasNext()) {
-                where.append(this.translate(phenotypes.next()));
-                if (phenotypes.hasNext()) {
-                    where.append(" OR ");
-                }
-            }
-            where.append(") ");
-        }
-        return where.toString();
+        query.append(StringUtils.join(unions, " UNION "));
+        query.append(")");
+        return query.toString();
     }
 
-    private boolean needsIsA() {
-        return this.hasQualities(config) || this.hasRelatedEntities(config);
-    }
-
-    private boolean needsInheresIn() {
-        return this.hasIsAOnlyEntities(config);
-    }
-
-    private boolean needsInheresInPartOf() {
-        return this.hasPartOfEntities(config);
-    }
-
-    private boolean hasIsAOnlyEntities(GeneAnnotationsQueryConfig config) {
-        for (PhenotypeSpec phenotype : config.getPhenotypes()) {
-            if ((phenotype.getEntityID() != null) && (!phenotype.includeEntityParts())) {
-                return true;
+    private String getPhenotypeQuery(PhenotypeSpec phenotype) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation ");
+        if (phenotype.getEntityID() != null) {
+            if (phenotype.includeEntityParts()) {
+                query.append(String.format("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = %s) ", this.node(OBO.INHERES_IN_PART_OF)));    
+            } else {
+                query.append(String.format("JOIN link phenotype_inheres_in ON (phenotype_inheres_in.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in.predicate_id = %s) ", this.node(OBO.INHERES_IN)));
             }
         }
-        return false;
-    }
-
-    private boolean hasPartOfEntities(GeneAnnotationsQueryConfig config) {
-        for (PhenotypeSpec phenotype : config.getPhenotypes()) {
-            if ((phenotype.getEntityID() != null) && (phenotype.includeEntityParts())) {
-                return true;
-            }
+        if (phenotype.getQualityID() != null) {
+            query.append(String.format("JOIN link quality_is_a ON (quality_is_a.node_id = distinct_gene_annotation.quality_node_id AND quality_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));
         }
-        return false;
-    }
-
-    private boolean hasQualities(GeneAnnotationsQueryConfig config) {
-        for (PhenotypeSpec phenotype : config.getPhenotypes()) {
-            if (phenotype.getQualityID() != null) return true;
+        if (phenotype.getRelatedEntityID() != null) {
+            query.append(String.format("JOIN link related_entity_is_a ON (related_entity_is_a.node_id = distinct_gene_annotation.related_entity_node_id AND related_entity_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));  
         }
-        return false;
-    }
-
-    private boolean hasRelatedEntities(GeneAnnotationsQueryConfig config) {
-        for (PhenotypeSpec phenotype : config.getPhenotypes()) {
-            if (phenotype.getRelatedEntityID() != null) return true;
-        }
-        return false;
+        query.append("WHERE ");
+        query.append(this.translate(phenotype));
+        query.append(") ");
+        return query.toString();
     }
 
     private String translate(PhenotypeSpec phenotype) {
@@ -183,6 +145,10 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         buffer.append(StringUtils.join(terms, " AND "));
         buffer.append(")");
         return buffer.toString();
+    }
+
+    private String node(String uid) {
+        return String.format(NODE_S, uid);
     }
 
     private Logger log() {
