@@ -76,10 +76,14 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
         } else {
-            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + "LIMIT ? OFFSET ?";
+            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         log().debug("Query: " + query);
         return query;
+    }
+    
+    private String getSortText() {
+        return this.config.sortDescending() ? "DESC " : ""; 
     }
 
     private String getGenesQuery(List<String> genes) {
