@@ -293,8 +293,6 @@ public class PhenoscapeDataStore {
     }
 
     public int getCountOfGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
-        // returning distinct count for now because we aren't preserving useful information about different 
-        // annotation statements in the data loader
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, true);
         final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
             @Override

@@ -7,9 +7,18 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
+import org.phenoscape.ws.resource.KBStatisticsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
+import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
+import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem;
+import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystemAndClade;
+import org.phenoscape.ws.resource.statistics.CharactersDatasetsAndTaxaByClade;
+import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion13;
+import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21A;
+import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21B;
+import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion9;
 import org.restlet.Application;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
@@ -34,23 +43,16 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         // These resources generate data consistency reports
-        router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities",
-                org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21A.class);
-        router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities",
-                org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21B.class);
-        router.attach("/statistics/consistencyreports/characterswithonlyoneannotatedstate",
-                org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion9.class);
-        router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations",
-                org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion13.class);
+        router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities", DataConsistencyReportGeneratorForQuestion21A.class);
+        router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities", DataConsistencyReportGeneratorForQuestion21B.class);
+        router.attach("/statistics/consistencyreports/characterswithonlyoneannotatedstate", DataConsistencyReportGeneratorForQuestion9.class);
+        router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations", DataConsistencyReportGeneratorForQuestion13.class);
         // These resources generate summary statistics of the data
-        router.attach("/statistics/countsofgenesandcharactersbyattribute",
-                org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute.class);
-        router.attach("/statistics/countsofgenesandcharactersbysystem",
-                org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem.class);
-        router.attach("/statistics/countsofgenesandcharactersbysystemandclade",
-                org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystemAndClade.class);
-        router.attach("/statistics/countsofcharactersdatasetsandtaxabyclade",
-                org.phenoscape.ws.resource.statistics.CharactersDatasetsAndTaxaByClade.class);
+        router.attach("/statistics/countsofgenesandcharactersbyattribute", CharactersAndGenesByAttribute.class);
+        router.attach("/statistics/countsofgenesandcharactersbysystem", CharactersAndGenesBySystem.class);
+        router.attach("/statistics/countsofgenesandcharactersbysystemandclade", CharactersAndGenesBySystemAndClade.class);
+        router.attach("/statistics/countsofcharactersdatasetsandtaxabyclade", CharactersDatasetsAndTaxaByClade.class);
+        router.attach("/statistics", KBStatisticsResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         return router;
     }
 
