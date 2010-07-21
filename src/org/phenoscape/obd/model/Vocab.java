@@ -50,10 +50,12 @@ public class Vocab {
 
     public static class PHENOSCAPE {
         public static final String PUB_NAMESPACE = "phenoscape_pub";
+        public static final String PUBLICATION = "PHENOSCAPE:Publication";
     }
 
     public static class CDAO {
         public static final String CHARACTER = "cdao:Character";
+        public static final String OTU = "cdao:TU";
     }
 
 }

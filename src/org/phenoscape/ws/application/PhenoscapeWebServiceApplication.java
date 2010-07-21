@@ -13,6 +13,7 @@ import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
 import org.phenoscape.ws.resource.report.CharacterCountsResource;
+import org.phenoscape.ws.resource.report.OTUCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
 import org.phenoscape.ws.resource.report.TaxonCountsResource;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
@@ -50,6 +51,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/report/count/characters/published", CharacterCountsResource.class);
         router.attach("/report/count/characters/annotated", AnnotatedCharacterCountsResource.class);
         router.attach("/report/count/taxa/annotated", TaxonCountsResource.class);
+        router.attach("/report/count/otus/published", OTUCountsResource.class);
         // These resources generate data consistency reports
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities", DataConsistencyReportGeneratorForQuestion21A.class);
         router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities", DataConsistencyReportGeneratorForQuestion21B.class);

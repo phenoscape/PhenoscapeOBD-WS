@@ -410,6 +410,21 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
+    public int getCountOfAllOTUs() throws SQLException {
+        final String instanceOf = String.format(QueryBuilder.NODE_S, OBO.INSTANCE_OF);
+        final String characterType = String.format(QueryBuilder.NODE_S, CDAO.OTU);
+        final QueryBuilder query = new SimpleQuery(String.format("SELECT count(DISTINCT uid) FROM node JOIN link ON (link.node_id = node.node_id AND link.predicate_id = %s AND link.object_id = %s)", instanceOf, characterType));
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
     private Term createPublicationTerm(ResultSet result) throws SQLException {
         final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
         term.setLabel(result.getString("publication_label"));
