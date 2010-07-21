@@ -236,9 +236,10 @@ public class PhenoscapeDataStore {
         synonym.setLabel(result.getString("label"));
         return synonym;
     }
+    
 
     public int getCountOfTaxonomicAnnotations(boolean includeInferredAnnotations) throws SQLException {
-        //TODO inferred
+        //TODO revise
         final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM taxon_annotation");
         final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -251,11 +252,23 @@ public class PhenoscapeDataStore {
         };
         return queryExecutor.executeQuery();
     }
+    public List<TaxonTerm> getAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, true);
+        return (new QueryExecutor<List<TaxonTerm>>(this.dataSource, query) {
+            @Override
+            public List<TaxonTerm> processResult(ResultSet result) throws SQLException {
+                final List<TaxonTerm> taxa = new ArrayList<TaxonTerm>();
+                while (result.next()) {
+                    taxa.add(createTaxonTermWithProperties(result));
+                }
+                return taxa;
+            }
+        }).executeQuery();
+    }
 
-    public int getCountOfAnnotatedTaxa(boolean includeInferredAnnotations) throws SQLException {
-        //TODO inferred
-        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT taxon_node_id) FROM taxon_annotation");
-        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+    public int getCountOfAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
@@ -263,8 +276,7 @@ public class PhenoscapeDataStore {
                 }
                 return Integer.valueOf(0);
             }
-        };
-        return queryExecutor.executeQuery();
+        }).executeQuery();
     }
 
     public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
