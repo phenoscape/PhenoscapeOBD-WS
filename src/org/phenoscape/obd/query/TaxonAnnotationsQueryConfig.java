@@ -6,15 +6,16 @@ import java.util.List;
 
 import org.phenoscape.obd.model.PhenotypeSpec;
 
-public class GeneAnnotationsQueryConfig {
+public class TaxonAnnotationsQueryConfig {
 
-    public static enum SORT_COLUMN {GENE, ENTITY, QUALITY, RELATED_ENTITY};
+    public static enum SORT_COLUMN {TAXON, ENTITY, QUALITY, RELATED_ENTITY};
     private SORT_COLUMN sortColumn;
     private int limit = 0;
     private int index = 0;
     private boolean sortDescending = false;
-    private final List<String> geneIDs = new ArrayList<String>();
+    private final List<String> taxonIDs = new ArrayList<String>();
     private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
+    private boolean includeInferredAnnotations = false;
 
     public SORT_COLUMN getSortColumn() {
         return this.sortColumn;
@@ -47,17 +48,25 @@ public class GeneAnnotationsQueryConfig {
     public void setSortDescending(boolean sortDescending) {
         this.sortDescending = sortDescending;
     }
-
-    public List<String> getGeneIDs() {
-        return Collections.unmodifiableList(this.geneIDs);
+    
+    public boolean includeInferredAnnotations() {
+        return this.includeInferredAnnotations;
+    }
+    
+    public void setIncludeInferredAnnotations(boolean include) {
+        this.includeInferredAnnotations = include;
     }
 
-    public void addGeneID(String geneID) {
-        this.geneIDs.add(geneID);
+    public List<String> getTaxonIDs() {
+        return Collections.unmodifiableList(this.taxonIDs);
     }
 
-    public void addAllGeneIDs(List<String> geneIDs) {
-        this.geneIDs.addAll(geneIDs);
+    public void addTaxonID(String taxonID) {
+        this.taxonIDs.add(taxonID);
+    }
+
+    public void addAllTaxonIDs(List<String> taxonIDs) {
+        this.taxonIDs.addAll(taxonIDs);
     }
 
     public List<PhenotypeSpec> getPhenotypes() {

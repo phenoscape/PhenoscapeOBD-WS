@@ -2,8 +2,11 @@ package org.phenoscape.ws.resource.report;
 
 import java.sql.SQLException;
 
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.TTO;
+import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Language;
@@ -12,8 +15,22 @@ import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
+import org.restlet.resource.ResourceException;
 
 public class PublicationCountsResource extends AbstractPhenoscapeResource {
+    
+    private TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+    
+    @Override
+    protected void doInit() throws ResourceException {
+        super.doInit();
+        try {
+            this.config = this.initializeTaxonQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
+        } catch (JSONException e) {
+            log().error("Bad JSON format", e);
+            throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
+        }
+    }
 
     @Get("tsv")
     public Representation getTable() {
@@ -26,10 +43,14 @@ public class PublicationCountsResource extends AbstractPhenoscapeResource {
                 result.append(taxon.getLabel());
             }
             result.append(System.getProperty("line.separator"));
-            result.append(this.getDataStore().getCountOfAnnotatedPublications(null));
+            result.append(this.getDataStore().getCountOfPublications(this.config));
             for (String taxonID : TTO.HIGHER_LEVEL_TAXA) {
                 result.append("\t");
-                final int count = this.getDataStore().getCountOfAnnotatedPublications(taxonID);
+                final TaxonAnnotationsQueryConfig taxonConfig = this.copyConfig(this.config);
+                if (!taxonConfig.getTaxonIDs().contains(taxonID)) {
+                    taxonConfig.addTaxonID(taxonID);    
+                }
+                final int count = this.getDataStore().getCountOfPublications(taxonConfig);
                 result.append(count);
             }
             result.append(System.getProperty("line.separator"));
@@ -39,6 +60,14 @@ public class PublicationCountsResource extends AbstractPhenoscapeResource {
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
+    }
+    
+    private TaxonAnnotationsQueryConfig copyConfig(TaxonAnnotationsQueryConfig oldConfig) {
+        final TaxonAnnotationsQueryConfig newConfig = new TaxonAnnotationsQueryConfig();
+        newConfig.addAllPhenotypes(oldConfig.getPhenotypes());
+        newConfig.setIncludeInferredAnnotations(oldConfig.includeInferredAnnotations());
+        newConfig.addAllTaxonIDs(oldConfig.getTaxonIDs());
+        return newConfig;
     }
 
 }

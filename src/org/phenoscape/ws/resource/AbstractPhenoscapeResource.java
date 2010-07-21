@@ -1,9 +1,17 @@
 package org.phenoscape.ws.resource;
 
+import java.util.Iterator;
+
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.query.PhenoscapeDataStore;
+import org.phenoscape.obd.query.QueryException;
+import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.ws.application.PhenoscapeWebServiceApplication;
 import org.restlet.data.Reference;
 import org.restlet.resource.ServerResource;
@@ -59,6 +67,79 @@ public class AbstractPhenoscapeResource extends ServerResource {
         } else {
             return defaultValue;
         }
+    }
+    
+    protected JSONObject getJSONQueryValue(String parameter, JSONObject defaultValue) throws JSONException {
+        if (this.getQuery().getFirstValue(parameter) != null) {
+            final String queryValue = this.getFirstQueryValue(parameter);
+            return new JSONObject(queryValue);
+        } else {
+            return defaultValue;
+        }
+    }
+    
+    protected TaxonAnnotationsQueryConfig initializeTaxonQueryConfig(JSONObject query) throws JSONException, QueryException {
+        final TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+        if (query.has("taxon")) {
+            for (JSONObject gene : this.toIterable(query.getJSONArray("taxon"))) {
+                config.addTaxonID(gene.getString("id"));
+            } 
+        }
+        if (query.has("phenotype")) {
+            for (JSONObject phenotype : this.toIterable(query.getJSONArray("phenotype"))) {
+                final PhenotypeSpec spec = new PhenotypeSpec();
+                if (phenotype.has("entity")) {
+                    final JSONObject entity = phenotype.getJSONObject("entity");
+                    spec.setEntityID(entity.getString("id"));
+                    if (entity.has("including_parts")) {
+                        spec.setIncludeEntityParts(entity.getBoolean("including_parts"));
+                    }
+                }
+                if (phenotype.has("quality")) {
+                    final JSONObject quality = phenotype.getJSONObject("quality");
+                    spec.setQualityID(quality.getString("id"));
+                }
+                if (phenotype.has("related_entity")) {
+                    final JSONObject relatedEntity = phenotype.getJSONObject("related_entity");
+                    spec.setRelatedEntityID(relatedEntity.getString("id"));
+                }
+                config.addPhenotype(spec);
+            }
+        }
+        if (query.has("include_inferred")) {
+            config.setIncludeInferredAnnotations(query.getBoolean("include_inferred"));
+        }
+        return config;
+    }
+    
+    /**
+     * @throws QueryException
+     */
+    protected Iterable<JSONObject> toIterable(final JSONArray array) throws QueryException {
+        return new Iterable<JSONObject>() {
+            @Override
+            public Iterator<JSONObject> iterator() {
+                return new Iterator<JSONObject>() {
+                    int index = 0;
+                    @Override
+                    public boolean hasNext() {
+                        return this.index < array.length();
+                    }
+                    @Override
+                    public JSONObject next() {
+                        try {
+                            final JSONObject json = array.getJSONObject(this.index);
+                            this.index++;
+                            return json;
+                        } catch (JSONException e) {
+                            throw new QueryException(e);
+                        }
+                    }
+                    @Override
+                    public void remove() {}
+                };
+            }
+        };
     }
     
     /**

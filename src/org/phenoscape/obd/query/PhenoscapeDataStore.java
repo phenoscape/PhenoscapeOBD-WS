@@ -320,6 +320,40 @@ public class PhenoscapeDataStore {
         return queryExecutor.executeQuery();
     }
     
+    public List<Term> getPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new PublicationsQueryBuilder(config, false);
+        return (new QueryExecutor<List<Term>>(this.dataSource, query) {
+            @Override
+            public List<Term> processResult(ResultSet result) throws SQLException {
+                final List<Term> annotations = new ArrayList<Term>();
+                while (result.next()) {
+                    annotations.add(createPublicationTerm(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
+    }
+    
+    public int getCountOfPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new PublicationsQueryBuilder(config, true);
+        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        };
+        return queryExecutor.executeQuery();
+    }
+    
+    private Term createPublicationTerm(ResultSet result) throws SQLException {
+        final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
+        term.setLabel(result.getString("publication_label"));
+        return term;
+    }
+    
     public int getCountOfAnnotatedPublications(String taxonID) throws SQLException {
         final QueryBuilder query = new PublicationCountQueryBuilder(taxonID);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
