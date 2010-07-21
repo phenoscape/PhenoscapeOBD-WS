@@ -26,6 +26,8 @@ import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
+import org.phenoscape.obd.model.Vocab.CDAO;
+import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -320,7 +322,7 @@ public class PhenoscapeDataStore {
         return queryExecutor.executeQuery();
     }
     
-    public List<Term> getPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public List<Term> getAnnotatedPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {
             @Override
@@ -334,28 +336,8 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, true);
-        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
-            @Override
-            public Integer processResult(ResultSet result) throws SQLException {
-                while (result.next()) {
-                    return Integer.valueOf(result.getInt(1));
-                }
-                return Integer.valueOf(0);
-            }
-        };
-        return queryExecutor.executeQuery();
-    }
-    
-    private Term createPublicationTerm(ResultSet result) throws SQLException {
-        final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
-        term.setLabel(result.getString("publication_label"));
-        return term;
-    }
-    
-    public int getCountOfAnnotatedPublications(String taxonID) throws SQLException {
-        final QueryBuilder query = new PublicationCountQueryBuilder(taxonID);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
@@ -363,8 +345,63 @@ public class PhenoscapeDataStore {
                     return Integer.valueOf(result.getInt(1));
                 }
                 return Integer.valueOf(0);
-            }            
+            }
         }).executeQuery();
+    }
+    
+    public List<Term> getAnnotatedCharacters(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new CharactersQueryBuilder(config, false);
+        return (new QueryExecutor<List<Term>>(this.dataSource, query) {
+            @Override
+            public List<Term> processResult(ResultSet result) throws SQLException {
+                final List<Term> annotations = new ArrayList<Term>();
+                while (result.next()) {
+                    annotations.add(createCharacterTerm(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
+    }
+    
+    public int getCountOfAnnotatedCharacters(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new CharactersQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
+    private Term createCharacterTerm(ResultSet result) throws SQLException {
+        //TODO should create a Character object with character number, etc.
+        final DefaultTerm term = new DefaultTerm(result.getInt("character_node_id"), null);
+        term.setLabel(result.getString("character_label"));
+        return term;
+    }
+    
+    public int getCountOfAllCharacters() throws SQLException {
+        final String instanceOf = String.format(QueryBuilder.NODE_S, OBO.INSTANCE_OF);
+        final String characterType = String.format(QueryBuilder.NODE_S, CDAO.CHARACTER);
+        final QueryBuilder query = new SimpleQuery(String.format("SELECT count(DISTINCT uid) FROM node JOIN link ON (link.node_id = node.node_id AND link.predicate_id = %s AND link.object_id = %s)", instanceOf, characterType));
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
+    private Term createPublicationTerm(ResultSet result) throws SQLException {
+        final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
+        term.setLabel(result.getString("publication_label"));
+        return term;
     }
 
     public AutocompleteResult getAutocompleteMatches(final SearchConfig config) throws SQLException {

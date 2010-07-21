@@ -5,12 +5,14 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.phenoscape.ws.resource.AnnotatedCharacterCountsResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.KBStatisticsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
+import org.phenoscape.ws.resource.report.CharacterCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem;
@@ -44,6 +46,8 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
+        router.attach("/report/count/characters/published", CharacterCountsResource.class);
+        router.attach("/report/count/characters/annotated", AnnotatedCharacterCountsResource.class);
         // These resources generate data consistency reports
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities", DataConsistencyReportGeneratorForQuestion21A.class);
         router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities", DataConsistencyReportGeneratorForQuestion21B.class);

@@ -9,6 +9,9 @@ import java.sql.SQLException;
  * to build up particular queries that require multiple inputs.
  */
 public abstract class QueryBuilder {
+    
+    public static final String NODE = "(SELECT node.node_id FROM node WHERE node.uid=?)";
+    public static final String NODE_S = "(SELECT node.node_id FROM node WHERE node.uid='%s')";
 
     /**
      * Return the SQL query string, which may contain wildcards (?).

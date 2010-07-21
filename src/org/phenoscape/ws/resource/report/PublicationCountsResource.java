@@ -43,14 +43,14 @@ public class PublicationCountsResource extends AbstractPhenoscapeResource {
                 result.append(taxon.getLabel());
             }
             result.append(System.getProperty("line.separator"));
-            result.append(this.getDataStore().getCountOfPublications(this.config));
+            result.append(this.getDataStore().getCountOfAnnotatedPublications(this.config));
             for (String taxonID : TTO.HIGHER_LEVEL_TAXA) {
                 result.append("\t");
                 final TaxonAnnotationsQueryConfig taxonConfig = this.copyConfig(this.config);
                 if (!taxonConfig.getTaxonIDs().contains(taxonID)) {
                     taxonConfig.addTaxonID(taxonID);    
                 }
-                final int count = this.getDataStore().getCountOfPublications(taxonConfig);
+                final int count = this.getDataStore().getCountOfAnnotatedPublications(taxonConfig);
                 result.append(count);
             }
             result.append(System.getProperty("line.separator"));
