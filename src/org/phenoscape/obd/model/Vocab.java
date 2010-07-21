@@ -18,6 +18,15 @@ public class Vocab {
     public static class TTO {
 
         public static final String NAMESPACE = "teleost-taxonomy";
+        public static final String CYPRINIFORMES = "TTO:1360";
+        public static final String SILURIFORMES = "TTO:1380";
+        public static final String CHARACIFORMES = "TTO:1370";
+        public static final String GYMNOTIFORMES = "TTO:1390";
+        public static final String GONORYNCHIFORMES = "TTO:1350";
+        public static final String CLUPEIFORMES = "TTO:1340";
+        public static final String EUTELEOSTEI = "TTO:254";
+        
+        public static final String[] HIGHER_LEVEL_TAXA = {CHARACIFORMES, CLUPEIFORMES, CYPRINIFORMES, GONORYNCHIFORMES, GYMNOTIFORMES, SILURIFORMES, EUTELEOSTEI};
     }
     
     public static class PATO {

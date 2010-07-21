@@ -11,6 +11,7 @@ import org.phenoscape.ws.resource.KBStatisticsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
+import org.phenoscape.ws.resource.report.PublicationCountsResource;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystemAndClade;
@@ -42,6 +43,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
+        router.attach("/report/count/publications", PublicationCountsResource.class);
         // These resources generate data consistency reports
         router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities", DataConsistencyReportGeneratorForQuestion21A.class);
         router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities", DataConsistencyReportGeneratorForQuestion21B.class);

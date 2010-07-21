@@ -319,6 +319,19 @@ public class PhenoscapeDataStore {
         };
         return queryExecutor.executeQuery();
     }
+    
+    public int getCountOfAnnotatedPublications(String taxonID) throws SQLException {
+        final QueryBuilder query = new PublicationCountQueryBuilder(taxonID);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }            
+        }).executeQuery();
+    }
 
     public AutocompleteResult getAutocompleteMatches(final SearchConfig config) throws SQLException {
         final AutocompleteResult matches = new AutocompleteResult(config);
