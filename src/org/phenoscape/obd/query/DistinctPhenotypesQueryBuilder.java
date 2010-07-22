@@ -58,7 +58,9 @@ public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ";    
+            //baseQuery = "SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ";
+            baseQuery = "SELECT DISTINCT phenotype.node_id, phenotype.uid, phenotype.label FROM phenotype JOIN queryable_taxon_annotation ON (queryable_taxon_annotation.phenotype_node_id = phenotype.node_id) " +
+            String.format("WHERE queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations());
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
