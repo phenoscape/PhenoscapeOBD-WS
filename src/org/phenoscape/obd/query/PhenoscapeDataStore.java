@@ -334,6 +334,19 @@ public class PhenoscapeDataStore {
         return queryExecutor.executeQuery();
     }
     
+    public int getCountOfDistinctPhenotypes(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new DistinctPhenotypesQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
     public List<Term> getAnnotatedPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {

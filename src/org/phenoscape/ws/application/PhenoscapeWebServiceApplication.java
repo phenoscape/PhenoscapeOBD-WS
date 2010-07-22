@@ -13,6 +13,7 @@ import org.phenoscape.ws.resource.TermInfoResource;
 import org.phenoscape.ws.resource.report.AnnotatedCharacterCountsResource;
 import org.phenoscape.ws.resource.report.AnnotatedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.CuratedPhenotypeCountsResource;
+import org.phenoscape.ws.resource.report.DistinctPhenotypeCountsResource;
 import org.phenoscape.ws.resource.report.KBStatisticsResource;
 import org.phenoscape.ws.resource.report.OTUCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
@@ -50,6 +51,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/report/count/taxa/annotated", TaxonCountsResource.class);
         router.attach("/report/count/otus/published", OTUCountsResource.class);
         router.attach("/report/count/phenotypes/curated", CuratedPhenotypeCountsResource.class);
+        router.attach("/report/count/phenotypes/annotated", DistinctPhenotypeCountsResource.class);
         router.attach("/statistics", KBStatisticsResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         return router;
     }
