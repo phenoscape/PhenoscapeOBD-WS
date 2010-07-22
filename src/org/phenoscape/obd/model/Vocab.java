@@ -55,6 +55,7 @@ public class Vocab {
 
     public static class CDAO {
         public static final String CHARACTER = "cdao:Character";
+        public static final String CHARACTER_STATE = "cdao:CharacterStateDomain";
         public static final String OTU = "cdao:TU";
     }
 

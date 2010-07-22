@@ -5,16 +5,18 @@ import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
-import org.phenoscape.ws.resource.AnnotatedCharacterCountsResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.KBStatisticsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
-import org.phenoscape.ws.resource.report.CharacterCountsResource;
+import org.phenoscape.ws.resource.report.AnnotatedCharacterCountsResource;
+import org.phenoscape.ws.resource.report.AnnotatedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.OTUCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
+import org.phenoscape.ws.resource.report.PublishedCharacterCountsResource;
+import org.phenoscape.ws.resource.report.PublishedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.TaxonCountsResource;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
 import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem;
@@ -48,8 +50,10 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
-        router.attach("/report/count/characters/published", CharacterCountsResource.class);
+        router.attach("/report/count/characters/published", PublishedCharacterCountsResource.class);
         router.attach("/report/count/characters/annotated", AnnotatedCharacterCountsResource.class);
+        router.attach("/report/count/characterstates/published", PublishedCharacterStateCountsResource.class);
+        router.attach("/report/count/characterstates/annotated", AnnotatedCharacterStateCountsResource.class);
         router.attach("/report/count/taxa/annotated", TaxonCountsResource.class);
         router.attach("/report/count/otus/published", OTUCountsResource.class);
         // These resources generate data consistency reports

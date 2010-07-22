@@ -1,10 +1,11 @@
-package org.phenoscape.ws.resource;
+package org.phenoscape.ws.resource.report;
 
 import java.sql.SQLException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Language;
 import org.restlet.data.MediaType;

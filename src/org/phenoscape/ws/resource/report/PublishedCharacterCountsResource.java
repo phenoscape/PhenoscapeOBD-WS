@@ -11,7 +11,7 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
 
-public class CharacterCountsResource extends AbstractPhenoscapeResource {
+public class PublishedCharacterCountsResource extends AbstractPhenoscapeResource {
 
     @Get("tsv")
     public Representation getTable() {
