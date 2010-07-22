@@ -15,6 +15,7 @@ import org.phenoscape.ws.resource.report.AnnotatedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.CuratedPhenotypeCountsResource;
 import org.phenoscape.ws.resource.report.CuratedTaxonAnnotationCountsResource;
 import org.phenoscape.ws.resource.report.DistinctPhenotypeCountsResource;
+import org.phenoscape.ws.resource.report.DistinctTaxonAnnotationCountsResource;
 import org.phenoscape.ws.resource.report.KBStatisticsResource;
 import org.phenoscape.ws.resource.report.OTUCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
@@ -54,6 +55,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/report/count/phenotypes/curated", CuratedPhenotypeCountsResource.class);
         router.attach("/report/count/phenotypes/annotated", DistinctPhenotypeCountsResource.class);
         router.attach("/report/count/annotations/taxa/curated", CuratedTaxonAnnotationCountsResource.class);
+        router.attach("/report/count/annotations/taxa/distinct", DistinctTaxonAnnotationCountsResource.class);
         router.attach("/statistics", KBStatisticsResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         return router;
     }
