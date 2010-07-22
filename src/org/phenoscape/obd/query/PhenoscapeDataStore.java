@@ -453,6 +453,20 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
+    public int getCountOfAllCuratedPhenotypes() throws SQLException {
+        final String hasPhenotype = String.format(QueryBuilder.NODE_S, CDAO.HAS_PHENOTYPE);
+        final QueryBuilder query = new SimpleQuery(String.format("SELECT count(*) FROM link WHERE link.predicate_id = %s AND link.is_inferred = false", hasPhenotype));
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
     private Term createPublicationTerm(ResultSet result) throws SQLException {
         final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
         term.setLabel(result.getString("publication_label"));
