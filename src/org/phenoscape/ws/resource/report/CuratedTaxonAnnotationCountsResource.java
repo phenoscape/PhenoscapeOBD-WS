@@ -15,8 +15,8 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
-public class AnnotatedCharacterCountsResource extends AbstractPhenoscapeResource {
-
+public class CuratedTaxonAnnotationCountsResource extends AbstractPhenoscapeResource {
+    
     private TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
 
     @Override
@@ -34,16 +34,16 @@ public class AnnotatedCharacterCountsResource extends AbstractPhenoscapeResource
     public Representation getTable() {
         try {
             final StringBuffer result = new StringBuffer();
-            result.append("Annotated Characters");
+            result.append("Count of curated taxon annotations");
             result.append(System.getProperty("line.separator"));
-            result.append(this.getDataStore().getCountOfAnnotatedCharacters(this.config));
+            result.append(this.getDataStore().getCountOfCuratedTaxonomicAnnotations(this.config));
             result.append(System.getProperty("line.separator"));
             return new StringRepresentation(result.toString(), MediaType.TEXT_TSV, Language.DEFAULT, CharacterSet.UTF_8);
         } catch (SQLException e) {
-            log().error("Error querying character counts", e);
+            log().error("Error querying taxon annotation counts", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
     }
-
+    
 }

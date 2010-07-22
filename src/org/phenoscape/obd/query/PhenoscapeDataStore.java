@@ -252,6 +252,20 @@ public class PhenoscapeDataStore {
         };
         return queryExecutor.executeQuery();
     }
+    
+    public int getCountOfCuratedTaxonomicAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
+    
     public List<TaxonTerm> getAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, true);
         return (new QueryExecutor<List<TaxonTerm>>(this.dataSource, query) {
