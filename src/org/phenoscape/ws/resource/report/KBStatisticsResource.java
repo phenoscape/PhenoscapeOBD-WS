@@ -1,4 +1,4 @@
-package org.phenoscape.ws.resource;
+package org.phenoscape.ws.resource.report;
 
 import java.sql.SQLException;
 
@@ -6,6 +6,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;

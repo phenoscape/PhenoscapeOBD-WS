@@ -7,25 +7,18 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
-import org.phenoscape.ws.resource.KBStatisticsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
 import org.phenoscape.ws.resource.report.AnnotatedCharacterCountsResource;
 import org.phenoscape.ws.resource.report.AnnotatedCharacterStateCountsResource;
+import org.phenoscape.ws.resource.report.CuratedPhenotypeCountsResource;
+import org.phenoscape.ws.resource.report.KBStatisticsResource;
 import org.phenoscape.ws.resource.report.OTUCountsResource;
 import org.phenoscape.ws.resource.report.PublicationCountsResource;
 import org.phenoscape.ws.resource.report.PublishedCharacterCountsResource;
 import org.phenoscape.ws.resource.report.PublishedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.TaxonCountsResource;
-import org.phenoscape.ws.resource.statistics.CharactersAndGenesByAttribute;
-import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystem;
-import org.phenoscape.ws.resource.statistics.CharactersAndGenesBySystemAndClade;
-import org.phenoscape.ws.resource.statistics.CharactersDatasetsAndTaxaByClade;
-import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion13;
-import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21A;
-import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion21B;
-import org.phenoscape.ws.resource.statistics.reports.DataConsistencyReportGeneratorForQuestion9;
 import org.restlet.Application;
 import org.restlet.Restlet;
 import org.restlet.routing.Router;
@@ -56,16 +49,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/report/count/characterstates/annotated", AnnotatedCharacterStateCountsResource.class);
         router.attach("/report/count/taxa/annotated", TaxonCountsResource.class);
         router.attach("/report/count/otus/published", OTUCountsResource.class);
-        // These resources generate data consistency reports
-        router.attach("/statistics/consistencyreports/relationalqualitieswithoutrelatedentities", DataConsistencyReportGeneratorForQuestion21A.class);
-        router.attach("/statistics/consistencyreports/nonrelationalqualitieswithrelatedentities", DataConsistencyReportGeneratorForQuestion21B.class);
-        router.attach("/statistics/consistencyreports/characterswithonlyoneannotatedstate", DataConsistencyReportGeneratorForQuestion9.class);
-        router.attach("/statistics/consistencyreports/characterswithonlyoneoftwopossibleannotations", DataConsistencyReportGeneratorForQuestion13.class);
-        // These resources generate summary statistics of the data
-        router.attach("/statistics/countsofgenesandcharactersbyattribute", CharactersAndGenesByAttribute.class);
-        router.attach("/statistics/countsofgenesandcharactersbysystem", CharactersAndGenesBySystem.class);
-        router.attach("/statistics/countsofgenesandcharactersbysystemandclade", CharactersAndGenesBySystemAndClade.class);
-        router.attach("/statistics/countsofcharactersdatasetsandtaxabyclade", CharactersDatasetsAndTaxaByClade.class);
+        router.attach("/report/count/phenotypes/curated", CuratedPhenotypeCountsResource.class);
         router.attach("/statistics", KBStatisticsResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         return router;
     }
