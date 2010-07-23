@@ -335,7 +335,7 @@ public class PhenoscapeDataStore {
 
     public int getCountOfGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, true);
-        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
@@ -343,13 +343,12 @@ public class PhenoscapeDataStore {
                 }
                 return Integer.valueOf(0);
             }
-        };
-        return queryExecutor.executeQuery();
+        }).executeQuery();
     }
 
-    public int getCountOfAnnotatedGenes() throws SQLException {
-        final QueryBuilder query = new SimpleQuery("SELECT count(DISTINCT gene_node_id) FROM gene_annotation");
-        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
+    public int getCountOfAnnotatedGenes(GeneAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
             public Integer processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
@@ -357,8 +356,7 @@ public class PhenoscapeDataStore {
                 }
                 return Integer.valueOf(0);
             }
-        };
-        return queryExecutor.executeQuery();
+        }).executeQuery();
     }
     
     public int getCountOfDistinctPhenotypes(TaxonAnnotationsQueryConfig config) throws SQLException {

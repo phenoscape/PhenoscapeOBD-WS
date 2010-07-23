@@ -3,29 +3,19 @@ package org.phenoscape.obd.query;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
-import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
 
-public class GeneAnnotationsQueryBuilder extends QueryBuilder {
+public class AnnotatedGenesQueryBuilder extends QueryBuilder {
 
     private final GeneAnnotationsQueryConfig config;
     private final boolean totalOnly;
-    private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
-    static {
-        COLUMNS.put(SORT_COLUMN.GENE, "gene_label");
-        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_label");
-        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_label");
-        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
-    }
 
-    public GeneAnnotationsQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
+    public AnnotatedGenesQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }
@@ -66,15 +56,15 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation ";    
+            baseQuery = "SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation ";    
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
         final String query;
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
-        } else {
-            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+        } else { //TODO get ordering from config
+            query = baseQuery + "ORDER BY " + "gene_label" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         log().debug("Query: " + query);
         return query;
@@ -86,7 +76,7 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
 
     private String getGenesQuery(List<String> genes) {
         final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation WHERE ");
+        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation WHERE ");
         query.append("distinct_gene_annotation.gene_uid IN ");
         query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
         query.append(")");
@@ -107,7 +97,7 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
 
     private String getPhenotypeQuery(PhenotypeSpec phenotype) {
         final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT distinct_gene_annotation.* FROM distinct_gene_annotation ");
+        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation ");
         if (phenotype.getEntityID() != null) {
             if (phenotype.includeEntityParts()) {
                 query.append(String.format("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = %s) ", this.node(OBO.INHERES_IN_PART_OF)));    

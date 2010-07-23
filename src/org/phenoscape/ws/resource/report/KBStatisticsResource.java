@@ -33,7 +33,7 @@ public class KBStatisticsResource extends AbstractPhenoscapeResource {
         //e.g. The Knowledgebase currently contains 333,987 phenotype statements about 2310 taxa, 
         //sourced from 51 publications. as well as 11,267 phenotype statements about 2953 genes
         final JSONObject json = new JSONObject();
-        final int genesCount = this.getDataStore().getCountOfAnnotatedGenes();
+        final int genesCount = this.getDataStore().getCountOfAnnotatedGenes(new GeneAnnotationsQueryConfig());
         final int geneAnnotationsCount = this.getDataStore().getCountOfGeneAnnotations(new GeneAnnotationsQueryConfig());
         final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(new TaxonAnnotationsQueryConfig());
         final int taxonAnnotationsCount = this.getDataStore().getCountOfTaxonomicAnnotations(false);
