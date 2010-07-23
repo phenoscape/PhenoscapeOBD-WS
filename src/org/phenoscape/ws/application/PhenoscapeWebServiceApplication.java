@@ -15,6 +15,7 @@ import org.phenoscape.ws.resource.report.AnnotatedCharacterStateCountsResource;
 import org.phenoscape.ws.resource.report.CuratedGenotypeAnnotationCountsResource;
 import org.phenoscape.ws.resource.report.CuratedPhenotypeCountsResource;
 import org.phenoscape.ws.resource.report.CuratedTaxonAnnotationCountsResource;
+import org.phenoscape.ws.resource.report.DistinctGeneAnnotationCountsResource;
 import org.phenoscape.ws.resource.report.DistinctPhenotypeCountsResource;
 import org.phenoscape.ws.resource.report.DistinctTaxonAnnotationCountsResource;
 import org.phenoscape.ws.resource.report.GeneCountsResource;
@@ -60,7 +61,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/report/count/annotations/taxa/distinct", DistinctTaxonAnnotationCountsResource.class);
         router.attach("/report/count/genes/annotated", GeneCountsResource.class);
         router.attach("/report/count/annotations/genotypes/curated", CuratedGenotypeAnnotationCountsResource.class);
-//        router.attach("/report/count/annotations/genes/distinct", DistinctGeneAnnotationCountsResource.class);
+        router.attach("/report/count/annotations/genes/distinct", DistinctGeneAnnotationCountsResource.class);
 //        router.attach("/report/count/phenotypes/genes/annotated", DistinctGenePhenotypeCountsResource.class);
         router.attach("/statistics", KBStatisticsResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         return router;
