@@ -4,7 +4,7 @@ import java.sql.SQLException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.obd.query.GeneAnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Language;
@@ -15,15 +15,15 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
-public class DistinctPhenotypeCountsResource extends AbstractPhenoscapeResource {
+public class DistinctGenePhenotypeCountsResource extends AbstractPhenoscapeResource {
 
-    private TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+    private GeneAnnotationsQueryConfig config = new GeneAnnotationsQueryConfig();
        
        @Override
        protected void doInit() throws ResourceException {
            super.doInit();
            try {
-               this.config = this.initializeTaxonQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
+               this.config = this.initializeGeneQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
            } catch (JSONException e) {
                log().error("Bad JSON format", e);
                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
@@ -34,13 +34,13 @@ public class DistinctPhenotypeCountsResource extends AbstractPhenoscapeResource 
        public Representation getTable() {
            try {
                final StringBuffer result = new StringBuffer();
-               result.append("Distinct Phenotypes");
+               result.append("Gene Phenotypes");
                result.append(System.getProperty("line.separator"));
-               result.append(this.getDataStore().getCountOfDistinctPhenotypesAnnotatedToTaxa(this.config));
+               result.append(this.getDataStore().getCountOfDistinctPhenotypesAnnotatedToGenes(this.config));
                result.append(System.getProperty("line.separator"));
                return new StringRepresentation(result.toString(), MediaType.TEXT_TSV, Language.DEFAULT, CharacterSet.UTF_8);
            } catch (SQLException e) {
-               log().error("Error querying character counts", e);
+               log().error("Error querying gene phenotype counts", e);
                this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
                return null;
            }

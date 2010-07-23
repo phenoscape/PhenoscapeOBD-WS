@@ -10,12 +10,12 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
-public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
+public class DistinctGenePhenotypesQueryBuilder extends QueryBuilder {
 
-    private final TaxonAnnotationsQueryConfig config;
+    private final GeneAnnotationsQueryConfig config;
     private final boolean totalOnly;
 
-    public DistinctPhenotypesQueryBuilder(TaxonAnnotationsQueryConfig config, boolean totalOnly) {
+    public DistinctGenePhenotypesQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }
@@ -23,8 +23,8 @@ public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
     @Override
     protected void fillStatement(PreparedStatement statement) throws SQLException {
         int index = 1;
-        for (String taxonID : this.config.getTaxonIDs()) {
-            statement.setString(index++, taxonID);
+        for (String geneID : this.config.getGeneIDs()) {
+            statement.setString(index++, geneID);
         }
         if (!this.config.getPhenotypes().isEmpty()) {
             for (PhenotypeSpec phenotype : this.config.getPhenotypes()) {
@@ -48,17 +48,15 @@ public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
     @Override
     protected String getQuery() {
         final List<String> intersects = new ArrayList<String>();
-        if (!this.config.getTaxonIDs().isEmpty()) {
-            intersects.add(this.getTaxaQuery(this.config.getTaxonIDs()));
+        if (!this.config.getGeneIDs().isEmpty()) {
+            intersects.add(this.getGenesQuery(this.config.getGeneIDs()));
         }
         if (!this.config.getPhenotypes().isEmpty()) {
             intersects.add(this.getPhenotypesQuery(this.config.getPhenotypes()));
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            //baseQuery = "SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ";
-            baseQuery = "SELECT DISTINCT phenotype.node_id, phenotype.uid, phenotype.label FROM phenotype JOIN queryable_taxon_annotation ON (queryable_taxon_annotation.phenotype_node_id = phenotype.node_id) " +
-            String.format("WHERE queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations());
+            baseQuery = "SELECT DISTINCT distinct_gene_annotation.phenotype_node_id, distinct_gene_annotation.phenotype_uid, distinct_gene_annotation.phenotype_label FROM distinct_gene_annotation ";    
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
@@ -71,29 +69,17 @@ public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
         log().debug("Query: " + query);
         return query;
     }
-    
+
     private String getSortText() {
         return this.config.sortDescending() ? "DESC " : ""; 
     }
 
-    private String getTaxaQuery(List<String> taxonIDs) {
+    private String getGenesQuery(List<String> genes) {
         final StringBuffer query = new StringBuffer();
-        query.append("(");
-        final List<String> unions = new ArrayList<String>();
-        for (String taxonID : taxonIDs) {
-            unions.add(this.getTaxonQuery(taxonID));
-        }
-        query.append(StringUtils.join(unions, " UNION "));
+        query.append("(SELECT DISTINCT distinct_gene_annotation.phenotype_node_id, distinct_gene_annotation.phenotype_uid, distinct_gene_annotation.phenotype_label FROM distinct_gene_annotation WHERE ");
+        query.append("distinct_gene_annotation.gene_uid IN ");
+        query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
         query.append(")");
-        return query.toString();
-    }
-    
-    private String getTaxonQuery(String taxonID) {
-        final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ");
-        query.append(String.format("JOIN link taxon_is_a ON (taxon_is_a.node_id = queryable_taxon_annotation.taxon_node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.object_id = %s) ", this.node(OBO.IS_A), NODE));
-        query.append(String.format("WHERE queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations()));
-        query.append(") ");
         return query.toString();
     }
 
@@ -111,23 +97,22 @@ public class DistinctPhenotypesQueryBuilder extends QueryBuilder {
 
     private String getPhenotypeQuery(PhenotypeSpec phenotype) {
         final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ");
+        query.append("(SELECT DISTINCT distinct_gene_annotation.phenotype_node_id, distinct_gene_annotation.phenotype_uid, distinct_gene_annotation.phenotype_label FROM distinct_gene_annotation ");
         if (phenotype.getEntityID() != null) {
             if (phenotype.includeEntityParts()) {
-                query.append(String.format("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = queryable_taxon_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = %s) ", this.node(OBO.INHERES_IN_PART_OF)));    
+                query.append(String.format("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = %s) ", this.node(OBO.INHERES_IN_PART_OF)));    
             } else {
-                query.append(String.format("JOIN link phenotype_inheres_in ON (phenotype_inheres_in.node_id = queryable_taxon_annotation.phenotype_node_id AND phenotype_inheres_in.predicate_id = %s) ", this.node(OBO.INHERES_IN)));
+                query.append(String.format("JOIN link phenotype_inheres_in ON (phenotype_inheres_in.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in.predicate_id = %s) ", this.node(OBO.INHERES_IN)));
             }
         }
         if (phenotype.getQualityID() != null) {
-            query.append(String.format("JOIN link quality_is_a ON (quality_is_a.node_id = queryable_taxon_annotation.quality_node_id AND quality_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));
+            query.append(String.format("JOIN link quality_is_a ON (quality_is_a.node_id = distinct_gene_annotation.quality_node_id AND quality_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));
         }
         if (phenotype.getRelatedEntityID() != null) {
-            query.append(String.format("JOIN link related_entity_is_a ON (related_entity_is_a.node_id = queryable_taxon_annotation.related_entity_node_id AND related_entity_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));  
+            query.append(String.format("JOIN link related_entity_is_a ON (related_entity_is_a.node_id = distinct_gene_annotation.related_entity_node_id AND related_entity_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));  
         }
         query.append("WHERE ");
         query.append(this.translate(phenotype));
-        query.append(String.format("AND queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations()));
         query.append(") ");
         return query.toString();
     }
