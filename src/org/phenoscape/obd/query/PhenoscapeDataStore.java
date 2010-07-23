@@ -345,6 +345,19 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
+    
+    public int getCountOfGenotypeAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new GenotypeAnnotationsQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
+            }
+        }).executeQuery();
+    }
 
     public int getCountOfAnnotatedGenes(GeneAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, true);
