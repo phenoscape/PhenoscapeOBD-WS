@@ -34,7 +34,7 @@ public class GeneCountsResource extends AbstractPhenoscapeResource {
        public Representation getTable() {
            try {
                final StringBuffer result = new StringBuffer();
-               result.append("Annotated Taxa");
+               result.append("Annotated Genes");
                result.append(System.getProperty("line.separator"));
                result.append(this.getDataStore().getCountOfAnnotatedGenes(this.config));
                result.append(System.getProperty("line.separator"));
