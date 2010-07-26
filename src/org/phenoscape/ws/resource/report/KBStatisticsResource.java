@@ -36,7 +36,7 @@ public class KBStatisticsResource extends AbstractPhenoscapeResource {
         final int genesCount = this.getDataStore().getCountOfAnnotatedGenes(new GeneAnnotationsQueryConfig());
         final int geneAnnotationsCount = this.getDataStore().getCountOfGeneAnnotations(new GeneAnnotationsQueryConfig());
         final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(new TaxonAnnotationsQueryConfig());
-        final int taxonAnnotationsCount = this.getDataStore().getCountOfTaxonomicAnnotations(false);
+        final int taxonAnnotationsCount = this.getDataStore().getCountOfCuratedTaxonomicAnnotations(new TaxonAnnotationsQueryConfig());
         json.put("annotated_genes", genesCount);
         json.put("gene_annotations", geneAnnotationsCount);
         json.put("annotated_taxa", taxaCount);

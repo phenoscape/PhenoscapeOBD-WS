@@ -82,8 +82,8 @@ public class AbstractPhenoscapeResource extends ServerResource {
     protected TaxonAnnotationsQueryConfig initializeTaxonQueryConfig(JSONObject query) throws JSONException, QueryException {
         final TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
         if (query.has("taxon")) {
-            for (JSONObject gene : this.toIterable(query.getJSONArray("taxon"))) {
-                config.addTaxonID(gene.getString("id"));
+            for (JSONObject taxon : this.toIterable(query.getJSONArray("taxon"))) {
+                config.addTaxonID(taxon.getString("id"));
             } 
         }
         if (query.has("phenotype")) {
@@ -106,6 +106,11 @@ public class AbstractPhenoscapeResource extends ServerResource {
                 }
                 config.addPhenotype(spec);
             }
+        }
+        if (query.has("publication")) {
+            for (JSONObject publication : this.toIterable(query.getJSONArray("publication"))) {
+                config.addPublicationID(publication.getString("id"));
+            } 
         }
         if (query.has("include_inferred")) {
             config.setIncludeInferredAnnotations(query.getBoolean("include_inferred"));

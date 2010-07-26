@@ -144,10 +144,12 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         quality.put("id", annotation.getQuality().getUID());
         quality.put("name", annotation.getQuality().getLabel());
         json.put("quality", quality);
-        final JSONObject relatedEntity = new JSONObject();
-        relatedEntity.put("id", annotation.getRelatedEntity().getUID());
-        relatedEntity.put("name", annotation.getRelatedEntity().getLabel());
-        json.put("related_entity", relatedEntity);
+        if (annotation.getRelatedEntity() != null) {
+            final JSONObject relatedEntity = new JSONObject();
+            relatedEntity.put("id", annotation.getRelatedEntity().getUID());
+            relatedEntity.put("name", annotation.getRelatedEntity().getLabel());
+            json.put("related_entity", relatedEntity);
+        }
         return json;
     }
 

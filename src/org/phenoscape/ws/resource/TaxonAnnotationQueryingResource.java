@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
@@ -185,8 +184,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     protected abstract int queryForItemsCount(TaxonAnnotationsQueryConfig config) throws SQLException;
 
     private TaxonAnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
-        //TODO inferred
-        final TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+        final TaxonAnnotationsQueryConfig config = this.initializeTaxonQueryConfig(this.query);
         config.setIndex(this.index);
         //TODO config.setSortColumn(COLUMNS.get(this.sortColumn));
         config.setSortDescending(this.sortDescending);
@@ -194,32 +192,6 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
             config.setLimit(Math.min(this.limit, QUERY_LIMIT));
         } else {
             config.setLimit(QUERY_LIMIT);
-        }
-        if (this.query.has("taxon")) {
-            for (JSONObject gene : this.toIterable(this.query.getJSONArray("taxon"))) {
-                config.addTaxonID(gene.getString("id"));
-            } 
-        }
-        if (this.query.has("phenotype")) {
-            for (JSONObject phenotype : this.toIterable(this.query.getJSONArray("phenotype"))) {
-                final PhenotypeSpec spec = new PhenotypeSpec();
-                if (phenotype.has("entity")) {
-                    final JSONObject entity = phenotype.getJSONObject("entity");
-                    spec.setEntityID(entity.getString("id"));
-                    if (entity.has("including_parts")) {
-                        spec.setIncludeEntityParts(entity.getBoolean("including_parts"));
-                    }
-                }
-                if (phenotype.has("quality")) {
-                    final JSONObject quality = phenotype.getJSONObject("quality");
-                    spec.setQualityID(quality.getString("id"));
-                }
-                if (phenotype.has("related_entity")) {
-                    final JSONObject relatedEntity = phenotype.getJSONObject("related_entity");
-                    spec.setRelatedEntityID(relatedEntity.getString("id"));
-                }
-                config.addPhenotype(spec);
-            }
         }
         return config;
     }

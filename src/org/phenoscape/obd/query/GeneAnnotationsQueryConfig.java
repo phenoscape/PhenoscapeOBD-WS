@@ -9,7 +9,7 @@ import org.phenoscape.obd.model.PhenotypeSpec;
 public class GeneAnnotationsQueryConfig {
 
     public static enum SORT_COLUMN {GENE, ENTITY, QUALITY, RELATED_ENTITY};
-    private SORT_COLUMN sortColumn;
+    private SORT_COLUMN sortColumn = SORT_COLUMN.GENE;
     private int limit = 0;
     private int index = 0;
     private boolean sortDescending = false;

@@ -24,6 +24,7 @@ import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Synonym;
+import org.phenoscape.obd.model.TaxonAnnotation;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.CDAO;
@@ -237,22 +238,6 @@ public class PhenoscapeDataStore {
         return synonym;
     }
     
-
-    public int getCountOfTaxonomicAnnotations(boolean includeInferredAnnotations) throws SQLException {
-        //TODO revise
-        final QueryBuilder query = new SimpleQuery("SELECT count(*) FROM taxon_annotation");
-        final QueryExecutor<Integer> queryExecutor = new QueryExecutor<Integer>(this.dataSource, query) {
-            @Override
-            public Integer processResult(ResultSet result) throws SQLException {
-                while (result.next()) {
-                    return Integer.valueOf(result.getInt(1));
-                }
-                return Integer.valueOf(0);
-            }
-        };
-        return queryExecutor.executeQuery();
-    }
-    
     public int getCountOfCuratedTaxonomicAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -264,6 +249,40 @@ public class PhenoscapeDataStore {
                 return Integer.valueOf(0);
             }
         }).executeQuery();
+    }
+    
+    public List<TaxonAnnotation> getDistinctTaxonAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, false);
+        return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
+            @Override
+            public List<TaxonAnnotation> processResult(ResultSet result) throws SQLException {
+                final List<TaxonAnnotation> annotations = new ArrayList<TaxonAnnotation>();
+                while (result.next()) {
+                    annotations.add(createTaxonAnnotation(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
+    }
+    
+    private TaxonAnnotation createTaxonAnnotation(ResultSet result) throws SQLException {
+        final TaxonAnnotation annotation = new TaxonAnnotation();
+        final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
+        taxon.setUID(result.getString("taxon_uid"));
+        taxon.setLabel(result.getString("taxon_label"));
+        final Term rank = new SimpleTerm(result.getString("taxon_rank_uid"), result.getString("taxon_rank_label"));
+        if (rank.getUID() != null) {
+            taxon.setRank(rank);
+        }
+        taxon.setExtinct(result.getBoolean("taxon_is_extinct"));
+        annotation.setTaxon(taxon);
+        annotation.setEntity(new SimpleTerm(result.getString("entity_uid"), result.getString("entity_label")));
+        annotation.setQuality(new SimpleTerm(result.getString("quality_uid"), result.getString("quality_label")));
+        final Term relatedEntity = new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label"));
+        if (relatedEntity.getUID() != null) {
+            annotation.setRelatedEntity(relatedEntity);
+        }
+        return annotation;
     }
     
     public int getCountOfDistinctTaxonomicAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {

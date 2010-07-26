@@ -9,12 +9,13 @@ import org.phenoscape.obd.model.PhenotypeSpec;
 public class TaxonAnnotationsQueryConfig {
 
     public static enum SORT_COLUMN {TAXON, ENTITY, QUALITY, RELATED_ENTITY};
-    private SORT_COLUMN sortColumn;
+    private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
     private int limit = 0;
     private int index = 0;
     private boolean sortDescending = false;
     private final List<String> taxonIDs = new ArrayList<String>();
     private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
+    private final List<String> publicationIDs = new ArrayList<String>();
     private boolean includeInferredAnnotations = false;
 
     public SORT_COLUMN getSortColumn() {
@@ -67,6 +68,18 @@ public class TaxonAnnotationsQueryConfig {
 
     public void addAllTaxonIDs(List<String> taxonIDs) {
         this.taxonIDs.addAll(taxonIDs);
+    }
+    
+    public List<String> getPublicationIDs() {
+        return Collections.unmodifiableList(this.publicationIDs);
+    }
+
+    public void addPublicationID(String publicationID) {
+        this.publicationIDs.add(publicationID);
+    }
+
+    public void addAllPublicationIDs(List<String> publicationIDs) {
+        this.publicationIDs.addAll(publicationIDs);
     }
 
     public List<PhenotypeSpec> getPhenotypes() {
