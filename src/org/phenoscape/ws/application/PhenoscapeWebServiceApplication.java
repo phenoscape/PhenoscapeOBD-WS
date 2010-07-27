@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
+import org.phenoscape.ws.resource.TaxaResource;
 import org.phenoscape.ws.resource.TaxonAnnotationsResource;
 import org.phenoscape.ws.resource.TaxonTermResource;
 import org.phenoscape.ws.resource.TermInfoResource;
@@ -51,6 +52,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/annotation/taxon/distinct", TaxonAnnotationsResource.class);
+        router.attach("/taxa/annotated", TaxaResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
         router.attach("/report/count/characters/published", PublishedCharacterCountsResource.class);
         router.attach("/report/count/characters/annotated", AnnotatedCharacterCountsResource.class);

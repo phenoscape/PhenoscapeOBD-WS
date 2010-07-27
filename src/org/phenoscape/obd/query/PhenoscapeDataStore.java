@@ -207,7 +207,7 @@ public class PhenoscapeDataStore {
         taxon.setLabel(result.getString("label"));
         taxon.setExtinct(result.getBoolean("is_extinct"));
         if (result.getString("rank_uid") != null) {
-            final Term rank = new DefaultTerm(result.getInt("node_id"), null);
+            final Term rank = new DefaultTerm(result.getInt("rank_node_id"), null);
             rank.setUID(result.getString("rank_uid"));
             rank.setLabel(result.getString("rank_label"));
             taxon.setRank(rank);
@@ -299,13 +299,23 @@ public class PhenoscapeDataStore {
     }
     
     public List<TaxonTerm> getAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
-        final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, true);
+        final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonTerm>>(this.dataSource, query) {
             @Override
             public List<TaxonTerm> processResult(ResultSet result) throws SQLException {
                 final List<TaxonTerm> taxa = new ArrayList<TaxonTerm>();
                 while (result.next()) {
-                    taxa.add(createTaxonTermWithProperties(result));
+                    final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
+                    taxon.setUID(result.getString("taxon_uid"));
+                    taxon.setLabel(result.getString("taxon_label"));
+                    taxon.setExtinct(result.getBoolean("taxon_is_extinct"));
+                    if (result.getString("taxon_rank_uid") != null) {
+                        final Term rank = new DefaultTerm(result.getInt("taxon_rank_node_id"), null);
+                        rank.setUID(result.getString("taxon_rank_uid"));
+                        rank.setLabel(result.getString("taxon_rank_label"));
+                        taxon.setRank(rank);
+                    }
+                    taxa.add(taxon);
                 }
                 return taxa;
             }

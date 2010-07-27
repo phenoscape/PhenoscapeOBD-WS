@@ -107,10 +107,16 @@ public class AbstractPhenoscapeResource extends ServerResource {
                 config.addPhenotype(spec);
             }
         }
+        if (query.has("match_all_phenotypes")) {
+            config.setMatchAllPhenotypes(query.getBoolean("match_all_phenotypes"));
+        }
         if (query.has("publication")) {
             for (JSONObject publication : this.toIterable(query.getJSONArray("publication"))) {
                 config.addPublicationID(publication.getString("id"));
             } 
+        }
+        if (query.has("match_all_publications")) {
+            config.setMatchAllPublications(query.getBoolean("match_all_publications"));
         }
         if (query.has("include_inferred")) {
             config.setIncludeInferredAnnotations(query.getBoolean("include_inferred"));

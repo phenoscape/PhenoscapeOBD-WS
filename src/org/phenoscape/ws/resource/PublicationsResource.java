@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
 
 public class PublicationsResource extends TaxonAnnotationQueryingResource<Term> {
 
@@ -32,6 +33,18 @@ public class PublicationsResource extends TaxonAnnotationQueryingResource<Term> 
 
     @Override
     protected String translateToText(Term item) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    protected String getItemsKey() {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    protected SORT_COLUMN getSortColumn() {
         // TODO Auto-generated method stub
         return null;
     }

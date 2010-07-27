@@ -8,6 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
 import org.phenoscape.ws.representation.StreamableTextRepresentation;
 import org.restlet.data.MediaType;
@@ -47,11 +48,11 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
-            final Iterator<JSONObject> annotations = this.translateToJSON(this.queryForItems());
+            final Iterator<JSONObject> items = this.translateToJSON(this.queryForItems());
             final int total = this.queryForItemsCount(this.createInitialQueryConfig());
             final JSONObject otherValues = new JSONObject();
             otherValues.put("total", total);
-            return new StreamableJSONRepresentation(annotations, "annotations", otherValues);
+            return new StreamableJSONRepresentation(items, this.getItemsKey(), otherValues);
         } catch (JSONException e) {
             this.log().error("Error creating JSON object", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
@@ -70,8 +71,8 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     @Get("tsv")
     public Representation getTabDelimitedRepresentation() {
         try {
-            final Iterator<String> annotations = this.translateToText(this.queryForItems());
-            return new StreamableTextRepresentation(annotations, MediaType.TEXT_TSV);
+            final Iterator<String> items = this.translateToText(this.queryForItems());
+            return new StreamableTextRepresentation(items, MediaType.TEXT_TSV);
         } catch (JSONException e) {
             this.log().error("Invalid annotation query", e);
             this.setStatus(Status.CLIENT_ERROR_BAD_REQUEST, e);
@@ -87,16 +88,16 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
         }
     }
 
-    protected final Iterator<JSONObject> translateToJSON(final Iterator<T> annotations) {
+    protected final Iterator<JSONObject> translateToJSON(final Iterator<T> items) {
         return new Iterator<JSONObject>() {
             @Override
             public boolean hasNext() {
-                return annotations.hasNext();
+                return items.hasNext();
             }
             @Override
             public JSONObject next() {
                 try {
-                    return translateToJSON(annotations.next());
+                    return translateToJSON(items.next());
                 } catch (JSONException e) {
                     log().error("Could not create JSON object from annotation", e);
                     return new JSONObject();
@@ -104,7 +105,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
             }
             @Override
             public void remove() {
-                annotations.remove();
+                items.remove();
             }
         };
     }
@@ -139,12 +140,12 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
         final TaxonAnnotationsQueryConfig config = this.createInitialQueryConfig();
         final List<T> initialResults = this.queryForItemsSubset(config);
         return new Iterator<T>() {
-            private Iterator<T> currentAnnotations = initialResults.iterator();
+            private Iterator<T> currentItems = initialResults.iterator();
             private int gotten = QUERY_LIMIT;
             private boolean stop = initialResults.size() < QUERY_LIMIT;
             @Override
             public boolean hasNext() {
-                if (this.currentAnnotations.hasNext()) {
+                if (this.currentItems.hasNext()) {
                     return true; 
                 } else if (this.needMore()) {
                     config.setIndex(config.getIndex() + QUERY_LIMIT);
@@ -152,8 +153,8 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
                         List<T> nextResults = queryForItemsSubset(config);
                         this.gotten += QUERY_LIMIT;
                         this.stop = nextResults.size() < QUERY_LIMIT;
-                        this.currentAnnotations = nextResults.iterator();
-                        return this.currentAnnotations.hasNext();
+                        this.currentItems = nextResults.iterator();
+                        return this.currentItems.hasNext();
                     } catch (SQLException e) {
                         throw new QueryException(e);
                     }
@@ -163,7 +164,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
             }
             @Override
             public T next() {
-                return this.currentAnnotations.next();
+                return this.currentItems.next();
             }
             @Override
             public void remove() {}
@@ -186,7 +187,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     private TaxonAnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
         final TaxonAnnotationsQueryConfig config = this.initializeTaxonQueryConfig(this.query);
         config.setIndex(this.index);
-        //TODO config.setSortColumn(COLUMNS.get(this.sortColumn));
+        config.setSortColumn(this.getSortColumn());
         config.setSortDescending(this.sortDescending);
         if (this.limit > 0) {
             config.setLimit(Math.min(this.limit, QUERY_LIMIT));
@@ -195,5 +196,9 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
         }
         return config;
     }
+    
+    protected abstract String getItemsKey();
+    
+    protected abstract SORT_COLUMN getSortColumn();
 
 }

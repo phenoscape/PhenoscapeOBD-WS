@@ -10,6 +10,8 @@ public class TaxonTerm extends DefaultTerm {
     private TaxonTerm parent = null;
     private Set<TaxonTerm> children = new HashSet<TaxonTerm>();
     private Term rank = null;
+    private TaxonTerm taxonomicFamily = null;
+    private TaxonTerm taxonomicOrder = null;
 
     public TaxonTerm(int nodeID, Integer sourceID) {
         super(nodeID, sourceID);
@@ -25,11 +27,27 @@ public class TaxonTerm extends DefaultTerm {
      * null, this taxon may either not have a parent or this object may not know about it.
      */
     public TaxonTerm getParent() {
-        return parent;
+        return this.parent;
     }
     
     public void setParent(TaxonTerm parent) {
         this.parent = parent;
+    }
+    
+    public TaxonTerm getTaxonomicFamily() {
+        return this.taxonomicFamily;
+    }
+    
+    public void setTaxonomicFamily(TaxonTerm taxonomicClass) {
+        this.taxonomicFamily = taxonomicClass;
+    }
+    
+    public TaxonTerm getTaxonomicOrder() {
+        return this.taxonomicOrder;
+    }
+    
+    public void setTaxonomicOrder(TaxonTerm taxonomicOrder) {
+        this.taxonomicOrder = taxonomicOrder;
     }
 
     /**

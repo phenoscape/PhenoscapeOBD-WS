@@ -8,7 +8,7 @@ import org.phenoscape.obd.model.PhenotypeSpec;
 
 public class TaxonAnnotationsQueryConfig {
 
-    public static enum SORT_COLUMN {TAXON, ENTITY, QUALITY, RELATED_ENTITY};
+    public static enum SORT_COLUMN {TAXON, ENTITY, QUALITY, RELATED_ENTITY, FAMILY, ORDER};
     private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
     private int limit = 0;
     private int index = 0;
@@ -17,6 +17,24 @@ public class TaxonAnnotationsQueryConfig {
     private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
     private final List<String> publicationIDs = new ArrayList<String>();
     private boolean includeInferredAnnotations = false;
+    private boolean matchAllPhenotypes = false;
+    private boolean matchAllPublications = false;
+
+    public boolean matchAllPhenotypes() {
+        return matchAllPhenotypes;
+    }
+
+    public void setMatchAllPhenotypes(boolean matchAllPhenotypes) {
+        this.matchAllPhenotypes = matchAllPhenotypes;
+    }
+
+    public boolean matchAllPublications() {
+        return matchAllPublications;
+    }
+
+    public void setMatchAllPublications(boolean matchAllPublications) {
+        this.matchAllPublications = matchAllPublications;
+    }
 
     public SORT_COLUMN getSortColumn() {
         return this.sortColumn;
