@@ -1,18 +1,40 @@
 package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
+import org.restlet.data.Status;
+import org.restlet.resource.ResourceException;
 
 public class TaxaResource extends TaxonAnnotationQueryingResource<TaxonTerm> {
     
-    //TODO allow other sorting
+    private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
+    static {
+        COLUMNS.put("taxon", SORT_COLUMN.TAXON);
+        COLUMNS.put("family", SORT_COLUMN.FAMILY);
+        COLUMNS.put("order", SORT_COLUMN.ORDER);
+    }
     private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
+    
+    @Override
+    protected void doInit() throws ResourceException {
+        super.doInit();
+        final String sortBy = this.getFirstQueryValue("sortby");
+        if (sortBy != null) {
+            if (COLUMNS.containsKey(sortBy)) {
+                this.sortColumn = COLUMNS.get(sortBy);
+            } else {
+                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
+            }
+        }
+    }
 
     @Override
     protected int queryForItemsCount(TaxonAnnotationsQueryConfig config) throws SQLException {

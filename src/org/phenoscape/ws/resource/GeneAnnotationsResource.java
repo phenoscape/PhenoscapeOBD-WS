@@ -54,7 +54,7 @@ public class GeneAnnotationsResource extends AbstractPhenoscapeResource {
         }
         final String column = this.getFirstQueryValue("sortby");
         if (column != null) {
-            if (COLUMNS.keySet().contains(column)) {
+            if (COLUMNS.containsKey(column)) {
                 this.sortColumn = column;
             } else {
                 throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");

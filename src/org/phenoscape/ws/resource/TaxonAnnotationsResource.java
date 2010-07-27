@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonAnnotation;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
+import org.restlet.data.Status;
 import org.restlet.resource.ResourceException;
 
 public class TaxonAnnotationsResource extends TaxonAnnotationQueryingResource<TaxonAnnotation> {
@@ -27,8 +28,12 @@ public class TaxonAnnotationsResource extends TaxonAnnotationQueryingResource<Ta
     protected void doInit() throws ResourceException {
         super.doInit();
         final String sortBy = this.getFirstQueryValue("sortby");
-        if ((sortBy != null) && (COLUMNS.containsKey(sortBy))) {
-            this.sortColumn = COLUMNS.get(sortBy);
+        if (sortBy != null) {
+            if (COLUMNS.containsKey(sortBy)) {
+                this.sortColumn = COLUMNS.get(sortBy);
+            } else {
+                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
+            }
         }
     }
 
