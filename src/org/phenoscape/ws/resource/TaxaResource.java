@@ -90,7 +90,6 @@ public class TaxaResource extends TaxonAnnotationQueryingResource<TaxonTerm> {
 
     @Override
     protected String translateToText(TaxonTerm taxon) {
-        //TODO rank, etc.
         final StringBuffer buffer = new StringBuffer();
         final String tab = "\t";
         buffer.append(taxon.getUID());

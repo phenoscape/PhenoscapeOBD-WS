@@ -31,7 +31,7 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
-            final TaxonTerm taxon = this.getDataStore().getTaxonTerm(this.termID);
+            final TaxonTerm taxon = this.getDataStore().getTaxonTerm(this.termID, true, true);
             if (taxon == null) {
                 this.setStatus(Status.CLIENT_ERROR_NOT_FOUND);
                 return null;

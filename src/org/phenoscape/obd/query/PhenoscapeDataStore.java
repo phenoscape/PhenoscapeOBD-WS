@@ -151,7 +151,8 @@ public class PhenoscapeDataStore {
      * Return a TaxonTerm object for the given UID. Returns null if no taxon with that UID exists. 
      * The TaxonTerm will include references to its synonyms, parent, and children taxa.
      */
-    public TaxonTerm getTaxonTerm(String uid) throws SQLException {
+    public TaxonTerm getTaxonTerm(final String uid, final boolean includeChildren, final boolean includeSynonyms) throws SQLException {
+        //TODO add order and family to TaxonTerms?
         final QueryBuilder query = new TaxonQueryBuilder(uid);
         final TaxonTerm taxonTerm = (new QueryExecutor<TaxonTerm>(this.dataSource, query) {
             @Override
@@ -171,8 +172,8 @@ public class PhenoscapeDataStore {
                         }
                         taxon.setParent(parent);
                     }
-                    addChildrenToTaxon(taxon);
-                    addSynonymsToTerm(taxon);
+                    if (includeChildren) { addChildrenToTaxon(taxon); }
+                    if (includeSynonyms) { addSynonymsToTerm(taxon); }
                     return taxon;
                 }
                 //no taxon with this ID
@@ -314,6 +315,20 @@ public class PhenoscapeDataStore {
                         rank.setUID(result.getString("taxon_rank_uid"));
                         rank.setLabel(result.getString("taxon_rank_label"));
                         taxon.setRank(rank);
+                    }
+                    if (result.getString("taxon_family_uid") != null) {
+                        final TaxonTerm family = new TaxonTerm(result.getInt("taxon_family_node_id"), null);
+                        family.setUID(result.getString("taxon_family_uid"));
+                        family.setLabel(result.getString("taxon_family_label"));
+                        family.setExtinct(result.getBoolean("taxon_family_is_extinct"));
+                        taxon.setTaxonomicFamily(family);
+                    }
+                    if (result.getString("taxon_order_uid") != null) {
+                        final TaxonTerm order = new TaxonTerm(result.getInt("taxon_order_node_id"), null);
+                        order.setUID(result.getString("taxon_order_uid"));
+                        order.setLabel(result.getString("taxon_order_label"));
+                        order.setExtinct(result.getBoolean("taxon_order_is_extinct"));
+                        taxon.setTaxonomicOrder(order);
                     }
                     taxa.add(taxon);
                 }
