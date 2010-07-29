@@ -11,11 +11,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
 
-    private final TaxonAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
     private static final String TABLE = "queryable_taxon_annotation";
     private static final String SELECT = "SELECT DISTINCT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct, queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label, queryable_taxon_annotation.entity_node_id, queryable_taxon_annotation.entity_uid, queryable_taxon_annotation.entity_label, queryable_taxon_annotation.quality_node_id, queryable_taxon_annotation.quality_uid, queryable_taxon_annotation.quality_label, queryable_taxon_annotation.related_entity_node_id, queryable_taxon_annotation.related_entity_uid, queryable_taxon_annotation.related_entity_label FROM queryable_taxon_annotation ";
@@ -27,7 +27,7 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
     }
 
-    public DistinctTaxonomicAnnotationsQueryBuilder(TaxonAnnotationsQueryConfig config, boolean totalOnly) {
+    public DistinctTaxonomicAnnotationsQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

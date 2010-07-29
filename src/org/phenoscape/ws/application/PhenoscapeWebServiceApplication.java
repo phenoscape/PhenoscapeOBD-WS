@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
+import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxaResource;
 import org.phenoscape.ws.resource.TaxonAnnotationsResource;
@@ -53,6 +54,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/annotation/taxon/distinct", TaxonAnnotationsResource.class);
         router.attach("/taxa/annotated", TaxaResource.class);
+        router.attach("/gene/annotated", GenesResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
         router.attach("/report/count/characters/published", PublishedCharacterCountsResource.class);
         router.attach("/report/count/characters/annotated", AnnotatedCharacterCountsResource.class);

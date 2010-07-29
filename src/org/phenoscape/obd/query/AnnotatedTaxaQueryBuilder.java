@@ -11,11 +11,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
 
-    private final TaxonAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
     private static final String SELECT = "SELECT DISTINCT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct FROM queryable_taxon_annotation ";
     private static final String SELECT_WITH_TAXONOMY = "SELECT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct, family_taxon.node_id AS taxon_family_node_id, family_taxon.uid AS taxon_family_uid, family_taxon.label AS taxon_family_label, family_taxon.is_extinct AS taxon_family_is_extinct, order_taxon.node_id AS taxon_order_node_id, order_taxon.uid AS taxon_order_uid, order_taxon.label AS taxon_order_label, order_taxon.is_extinct AS taxon_order_is_extinct FROM ";
@@ -28,7 +28,7 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
     }
     private static final String TAXONOMY_JOIN = " LEFT JOIN taxon family_taxon ON (family_taxon.node_id = queryable_taxon_annotation.taxon_family_node_id) JOIN taxon order_taxon ON (order_taxon.node_id = queryable_taxon_annotation.taxon_order_node_id) ";
 
-    public AnnotatedTaxaQueryBuilder(TaxonAnnotationsQueryConfig config, boolean totalOnly) {
+    public AnnotatedTaxaQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

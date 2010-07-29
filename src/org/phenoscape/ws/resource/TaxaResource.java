@@ -8,12 +8,10 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonTerm;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
-import org.restlet.data.Status;
-import org.restlet.resource.ResourceException;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
-public class TaxaResource extends TaxonAnnotationQueryingResource<TaxonTerm> {
+public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
     
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
@@ -21,28 +19,14 @@ public class TaxaResource extends TaxonAnnotationQueryingResource<TaxonTerm> {
         COLUMNS.put("family", SORT_COLUMN.FAMILY);
         COLUMNS.put("order", SORT_COLUMN.ORDER);
     }
-    private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
     
     @Override
-    protected void doInit() throws ResourceException {
-        super.doInit();
-        final String sortBy = this.getFirstQueryValue("sortby");
-        if (sortBy != null) {
-            if (COLUMNS.containsKey(sortBy)) {
-                this.sortColumn = COLUMNS.get(sortBy);
-            } else {
-                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
-            }
-        }
-    }
-
-    @Override
-    protected int queryForItemsCount(TaxonAnnotationsQueryConfig config) throws SQLException {
+    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfAnnotatedTaxa(config);
     }
 
     @Override
-    protected List<TaxonTerm> queryForItemsSubset(TaxonAnnotationsQueryConfig config) throws SQLException {
+    protected List<TaxonTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getAnnotatedTaxa(config);
     }
 
@@ -118,8 +102,13 @@ public class TaxaResource extends TaxonAnnotationQueryingResource<TaxonTerm> {
     }
 
     @Override
-    protected SORT_COLUMN getSortColumn() {
-        return this.sortColumn;
+    protected SORT_COLUMN getDefaultSortColumn() {
+        return SORT_COLUMN.TAXON;
+    }
+
+    @Override
+    protected Map<String, SORT_COLUMN> getSortColumns() {
+        return COLUMNS;
     }
 
 }

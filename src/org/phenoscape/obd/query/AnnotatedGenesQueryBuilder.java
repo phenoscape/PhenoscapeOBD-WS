@@ -10,12 +10,13 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
+//TODO add union vs. intersect option
 public class AnnotatedGenesQueryBuilder extends QueryBuilder {
 
-    private final GeneAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
 
-    public AnnotatedGenesQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
+    public AnnotatedGenesQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

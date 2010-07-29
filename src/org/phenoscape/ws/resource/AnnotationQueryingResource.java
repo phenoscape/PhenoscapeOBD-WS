@@ -3,12 +3,13 @@ package org.phenoscape.ws.resource;
 import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.QueryException;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
 import org.phenoscape.ws.representation.StreamableTextRepresentation;
 import org.restlet.data.MediaType;
@@ -17,7 +18,7 @@ import org.restlet.representation.Representation;
 import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
-public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenoscapeResource {
+public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeResource {
 
     /**
      * The maximum number of annotations to pull out of the database in one query.
@@ -28,6 +29,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     private int limit;
     private int index;
     private boolean sortDescending;
+    private SORT_COLUMN sortColumn;
 
     @Override
     protected void doInit() throws ResourceException {
@@ -38,6 +40,15 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
                 this.query = new JSONObject(jsonQuery);
             } catch (JSONException e) {
                 throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
+            }
+        }
+        this.sortColumn = this.getDefaultSortColumn();
+        final String sortBy = this.getFirstQueryValue("sortby");
+        if (sortBy != null) {
+            if (this.getSortColumns().containsKey(sortBy)) {
+                this.sortColumn = this.getSortColumns().get(sortBy);
+            } else {
+                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
             }
         }
         this.limit = this.getIntegerQueryValue("limit", 0);
@@ -137,7 +148,7 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
      * @throws QueryException
      */
     protected final Iterator<T> queryForItems() throws JSONException, SQLException, QueryException {
-        final TaxonAnnotationsQueryConfig config = this.createInitialQueryConfig();
+        final AnnotationsQueryConfig config = this.createInitialQueryConfig();
         final List<T> initialResults = this.queryForItemsSubset(config);
         return new Iterator<T>() {
             private Iterator<T> currentItems = initialResults.iterator();
@@ -180,12 +191,12 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
         };
     }
     
-    protected abstract List<T> queryForItemsSubset(TaxonAnnotationsQueryConfig config) throws SQLException;
+    protected abstract List<T> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException;
 
-    protected abstract int queryForItemsCount(TaxonAnnotationsQueryConfig config) throws SQLException;
+    protected abstract int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException;
 
-    private TaxonAnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
-        final TaxonAnnotationsQueryConfig config = this.initializeTaxonQueryConfig(this.query);
+    private AnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
+        final AnnotationsQueryConfig config = this.initializeQueryConfig(this.query);
         config.setIndex(this.index);
         config.setSortColumn(this.getSortColumn());
         config.setSortDescending(this.sortDescending);
@@ -199,6 +210,12 @@ public abstract class TaxonAnnotationQueryingResource<T> extends AbstractPhenosc
     
     protected abstract String getItemsKey();
     
-    protected abstract SORT_COLUMN getSortColumn();
+    protected abstract SORT_COLUMN getDefaultSortColumn();
+    
+    protected abstract Map<String,SORT_COLUMN> getSortColumns();
+    
+    protected SORT_COLUMN getSortColumn() {
+        return this.sortColumn;
+    }
 
 }

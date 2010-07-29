@@ -12,10 +12,10 @@ import org.phenoscape.obd.model.Vocab.OBO;
 
 public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
 
-    private final TaxonAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
 
-    public DistinctTaxonPhenotypesQueryBuilder(TaxonAnnotationsQueryConfig config, boolean totalOnly) {
+    public DistinctTaxonPhenotypesQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

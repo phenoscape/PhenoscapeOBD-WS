@@ -12,10 +12,10 @@ import org.phenoscape.obd.model.Vocab.OBO;
 
 public class DistinctGenePhenotypesQueryBuilder extends QueryBuilder {
 
-    private final GeneAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
 
-    public DistinctGenePhenotypesQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
+    public DistinctGenePhenotypesQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

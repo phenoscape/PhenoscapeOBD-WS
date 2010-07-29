@@ -11,11 +11,11 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
-import org.phenoscape.obd.query.GeneAnnotationsQueryConfig.SORT_COLUMN;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class GenotypeAnnotationsQueryBuilder extends QueryBuilder {
 
-    private final GeneAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
@@ -25,7 +25,7 @@ public class GenotypeAnnotationsQueryBuilder extends QueryBuilder {
         COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
     }
 
-    public GenotypeAnnotationsQueryBuilder(GeneAnnotationsQueryConfig config, boolean totalOnly) {
+    public GenotypeAnnotationsQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }

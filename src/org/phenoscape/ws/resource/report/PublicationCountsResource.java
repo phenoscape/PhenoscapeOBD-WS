@@ -6,7 +6,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.TTO;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Language;
@@ -19,13 +19,13 @@ import org.restlet.resource.ResourceException;
 
 public class PublicationCountsResource extends AbstractPhenoscapeResource {
     
-    private TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+    private AnnotationsQueryConfig config = new AnnotationsQueryConfig();
     
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
         try {
-            this.config = this.initializeTaxonQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
+            this.config = this.initializeQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
         } catch (JSONException e) {
             log().error("Bad JSON format", e);
             throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
@@ -46,7 +46,7 @@ public class PublicationCountsResource extends AbstractPhenoscapeResource {
             result.append(this.getDataStore().getCountOfAnnotatedPublications(this.config));
             for (String taxonID : TTO.HIGHER_LEVEL_TAXA) {
                 result.append("\t");
-                final TaxonAnnotationsQueryConfig taxonConfig = this.copyConfig(this.config);
+                final AnnotationsQueryConfig taxonConfig = this.copyConfig(this.config);
                 if (!taxonConfig.getTaxonIDs().contains(taxonID)) {
                     taxonConfig.addTaxonID(taxonID);    
                 }
@@ -62,8 +62,8 @@ public class PublicationCountsResource extends AbstractPhenoscapeResource {
         }
     }
     
-    private TaxonAnnotationsQueryConfig copyConfig(TaxonAnnotationsQueryConfig oldConfig) {
-        final TaxonAnnotationsQueryConfig newConfig = new TaxonAnnotationsQueryConfig();
+    private AnnotationsQueryConfig copyConfig(AnnotationsQueryConfig oldConfig) {
+        final AnnotationsQueryConfig newConfig = new AnnotationsQueryConfig();
         newConfig.addAllPhenotypes(oldConfig.getPhenotypes());
         newConfig.setIncludeInferredAnnotations(oldConfig.includeInferredAnnotations());
         newConfig.addAllTaxonIDs(oldConfig.getTaxonIDs());

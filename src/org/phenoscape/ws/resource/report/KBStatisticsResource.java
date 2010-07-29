@@ -4,8 +4,8 @@ import java.sql.SQLException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.GeneAnnotationsQueryConfig;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -35,8 +35,8 @@ public class KBStatisticsResource extends AbstractPhenoscapeResource {
         final JSONObject json = new JSONObject();
         final int genesCount = this.getDataStore().getCountOfAnnotatedGenes(new GeneAnnotationsQueryConfig());
         final int geneAnnotationsCount = this.getDataStore().getCountOfGeneAnnotations(new GeneAnnotationsQueryConfig());
-        final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(new TaxonAnnotationsQueryConfig());
-        final int taxonAnnotationsCount = this.getDataStore().getCountOfCuratedTaxonomicAnnotations(new TaxonAnnotationsQueryConfig());
+        final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(new AnnotationsQueryConfig());
+        final int taxonAnnotationsCount = this.getDataStore().getCountOfCuratedTaxonomicAnnotations(new AnnotationsQueryConfig());
         json.put("annotated_genes", genesCount);
         json.put("gene_annotations", geneAnnotationsCount);
         json.put("annotated_taxa", taxaCount);

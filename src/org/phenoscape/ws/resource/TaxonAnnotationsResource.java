@@ -8,12 +8,10 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonAnnotation;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig.SORT_COLUMN;
-import org.restlet.data.Status;
-import org.restlet.resource.ResourceException;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
-public class TaxonAnnotationsResource extends TaxonAnnotationQueryingResource<TaxonAnnotation> {
+public class TaxonAnnotationsResource extends AnnotationQueryingResource<TaxonAnnotation> {
 
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
@@ -22,28 +20,14 @@ public class TaxonAnnotationsResource extends TaxonAnnotationQueryingResource<Ta
         COLUMNS.put("quality", SORT_COLUMN.QUALITY);
         COLUMNS.put("relatedentity", SORT_COLUMN.RELATED_ENTITY);
     }
-    private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
 
     @Override
-    protected void doInit() throws ResourceException {
-        super.doInit();
-        final String sortBy = this.getFirstQueryValue("sortby");
-        if (sortBy != null) {
-            if (COLUMNS.containsKey(sortBy)) {
-                this.sortColumn = COLUMNS.get(sortBy);
-            } else {
-                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
-            }
-        }
-    }
-
-    @Override
-    protected int queryForItemsCount(TaxonAnnotationsQueryConfig config) throws SQLException {
+    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfDistinctTaxonomicAnnotations(config);
     }
 
     @Override
-    protected List<TaxonAnnotation> queryForItemsSubset(TaxonAnnotationsQueryConfig config) throws SQLException {
+    protected List<TaxonAnnotation> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getDistinctTaxonAnnotations(config);
     }
 
@@ -106,8 +90,14 @@ public class TaxonAnnotationsResource extends TaxonAnnotationQueryingResource<Ta
     }
 
     @Override
-    protected SORT_COLUMN getSortColumn() {
-        return this.sortColumn;
+    protected SORT_COLUMN getDefaultSortColumn() {
+        return SORT_COLUMN.TAXON;
     }
+
+    @Override
+    protected Map<String, SORT_COLUMN> getSortColumns() {
+        return COLUMNS;
+    }
+
 
 }

@@ -6,14 +6,15 @@ import java.util.List;
 
 import org.phenoscape.obd.model.PhenotypeSpec;
 
-public class TaxonAnnotationsQueryConfig {
+public class AnnotationsQueryConfig {
 
-    public static enum SORT_COLUMN {TAXON, ENTITY, QUALITY, RELATED_ENTITY, FAMILY, ORDER};
-    private SORT_COLUMN sortColumn = SORT_COLUMN.TAXON;
+    public static enum SORT_COLUMN {TAXON, GENE, ENTITY, QUALITY, RELATED_ENTITY, FAMILY, ORDER};
+    private SORT_COLUMN sortColumn = SORT_COLUMN.ENTITY;
     private int limit = 0;
     private int index = 0;
     private boolean sortDescending = false;
     private final List<String> taxonIDs = new ArrayList<String>();
+    private final List<String> geneIDs = new ArrayList<String>();
     private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
     private final List<String> publicationIDs = new ArrayList<String>();
     private boolean includeInferredAnnotations = false;
@@ -86,6 +87,18 @@ public class TaxonAnnotationsQueryConfig {
 
     public void addAllTaxonIDs(List<String> taxonIDs) {
         this.taxonIDs.addAll(taxonIDs);
+    }
+    
+    public List<String> getGeneIDs() {
+        return Collections.unmodifiableList(this.geneIDs);
+    }
+
+    public void addGeneID(String geneID) {
+        this.geneIDs.add(geneID);
+    }
+
+    public void addAllGeneIDs(List<String> geneIDs) {
+        this.geneIDs.addAll(geneIDs);
     }
     
     public List<String> getPublicationIDs() {

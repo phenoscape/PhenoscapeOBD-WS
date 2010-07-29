@@ -239,7 +239,7 @@ public class PhenoscapeDataStore {
         return synonym;
     }
     
-    public int getCountOfCuratedTaxonomicAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -252,7 +252,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<TaxonAnnotation> getDistinctTaxonAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public List<TaxonAnnotation> getDistinctTaxonAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
             @Override
@@ -286,7 +286,7 @@ public class PhenoscapeDataStore {
         return annotation;
     }
     
-    public int getCountOfDistinctTaxonomicAnnotations(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfDistinctTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -299,7 +299,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<TaxonTerm> getAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public List<TaxonTerm> getAnnotatedTaxa(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonTerm>>(this.dataSource, query) {
             @Override
@@ -337,7 +337,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public int getCountOfAnnotatedTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedTaxa(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -350,7 +350,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public List<GeneAnnotation> getGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
+    public List<GeneAnnotation> getGeneAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
             @Override
@@ -377,7 +377,7 @@ public class PhenoscapeDataStore {
         return annotation;
     }
 
-    public int getCountOfGeneAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfGeneAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -390,7 +390,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfGenotypeAnnotations(GeneAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfGenotypeAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GenotypeAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -402,8 +402,26 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
+    
+    public List<GeneTerm> getAnnotatedGenes(AnnotationsQueryConfig config) throws SQLException {
+        //TODO in progress - need gene full name added to query
+        final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, false);
+        return (new QueryExecutor<List<GeneTerm>>(this.dataSource, query) {
+            @Override
+            public List<GeneTerm> processResult(ResultSet result) throws SQLException {
+                final List<GeneTerm> genes = new ArrayList<GeneTerm>();
+                while (result.next()) {
+                    final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
+                    gene.setUID(result.getString("gene_uid"));
+                    gene.setLabel(result.getString("gene_label"));
+                    genes.add(gene);
+                }
+                return genes;
+            }
+        }).executeQuery();
+    }
 
-    public int getCountOfAnnotatedGenes(GeneAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedGenes(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -416,7 +434,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfDistinctPhenotypesAnnotatedToGenes(GeneAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfDistinctPhenotypesAnnotatedToGenes(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctGenePhenotypesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -429,7 +447,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfDistinctPhenotypesAnnotatedToTaxa(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfDistinctPhenotypesAnnotatedToTaxa(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonPhenotypesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -442,7 +460,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<Term> getAnnotatedPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public List<Term> getAnnotatedPublications(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {
             @Override
@@ -456,7 +474,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfAnnotatedPublications(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedPublications(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -469,7 +487,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<Term> getAnnotatedCharacters(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public List<Term> getAnnotatedCharacters(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharactersQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {
             @Override
@@ -483,7 +501,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfAnnotatedCharacters(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedCharacters(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharactersQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -518,7 +536,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfAnnotatedCharacterStates(TaxonAnnotationsQueryConfig config) throws SQLException {
+    public int getCountOfAnnotatedCharacterStates(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharacterStatesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override

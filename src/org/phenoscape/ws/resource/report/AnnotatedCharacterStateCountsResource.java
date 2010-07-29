@@ -4,7 +4,7 @@ import java.sql.SQLException;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.phenoscape.obd.query.TaxonAnnotationsQueryConfig;
+import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.CharacterSet;
 import org.restlet.data.Language;
@@ -17,13 +17,13 @@ import org.restlet.resource.ResourceException;
 
 public class AnnotatedCharacterStateCountsResource extends AbstractPhenoscapeResource {
 
-    private TaxonAnnotationsQueryConfig config = new TaxonAnnotationsQueryConfig();
+    private AnnotationsQueryConfig config = new AnnotationsQueryConfig();
        
        @Override
        protected void doInit() throws ResourceException {
            super.doInit();
            try {
-               this.config = this.initializeTaxonQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
+               this.config = this.initializeQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
            } catch (JSONException e) {
                log().error("Bad JSON format", e);
                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);

@@ -12,12 +12,12 @@ import org.phenoscape.obd.model.Vocab.OBO;
 
 public class CharactersQueryBuilder extends QueryBuilder {
 
-    private final TaxonAnnotationsQueryConfig config;
+    private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
     private static final String NODE = "(SELECT node.node_id FROM node WHERE node.uid=?)";
     private static final String NODE_S = "(SELECT node.node_id FROM node WHERE node.uid='%s')";
 
-    public CharactersQueryBuilder(TaxonAnnotationsQueryConfig config, boolean totalOnly) {
+    public CharactersQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }
