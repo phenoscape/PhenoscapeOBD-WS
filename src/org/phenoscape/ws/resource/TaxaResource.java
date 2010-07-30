@@ -54,7 +54,7 @@ public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
 //                rank.put("name", taxon.getTaxonomicClass().getRank().getLabel());
 //                taxonomicClass.put("rank", rank);
 //            }
-            json.put("class", taxonomicFamily);
+            json.put("family", taxonomicFamily);
         }
         if (taxon.getTaxonomicOrder() != null) {
             final JSONObject taxonomicOrder = new JSONObject();
