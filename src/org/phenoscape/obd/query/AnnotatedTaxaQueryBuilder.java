@@ -17,8 +17,8 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
-    private static final String SELECT = "SELECT DISTINCT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct FROM queryable_taxon_annotation ";
-    private static final String SELECT_WITH_TAXONOMY = "SELECT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct, family_taxon.node_id AS taxon_family_node_id, family_taxon.uid AS taxon_family_uid, family_taxon.label AS taxon_family_label, family_taxon.is_extinct AS taxon_family_is_extinct, order_taxon.node_id AS taxon_order_node_id, order_taxon.uid AS taxon_order_uid, order_taxon.label AS taxon_order_label, order_taxon.is_extinct AS taxon_order_is_extinct FROM ";
+    private static final String SELECT = "SELECT DISTINCT queryable_taxon_annotation.taxon_node_id, queryable_taxon_annotation.taxon_uid, queryable_taxon_annotation.taxon_label, queryable_taxon_annotation.taxon_rank_node_id, queryable_taxon_annotation.taxon_rank_uid, queryable_taxon_annotation.taxon_rank_label, queryable_taxon_annotation.taxon_is_extinct, queryable_taxon_annotation.taxon_family_node_id, queryable_taxon_annotation.taxon_order_node_id FROM queryable_taxon_annotation ";
+    private static final String SELECT_WITH_TAXONOMY = "SELECT taxon_node_id, taxon_uid, taxon_label, taxon_rank_node_id, taxon_rank_uid, taxon_rank_label, taxon_is_extinct, family_taxon.node_id AS taxon_family_node_id, family_taxon.uid AS taxon_family_uid, family_taxon.label AS taxon_family_label, family_taxon.is_extinct AS taxon_family_is_extinct, order_taxon.node_id AS taxon_order_node_id, order_taxon.uid AS taxon_order_uid, order_taxon.label AS taxon_order_label, order_taxon.is_extinct AS taxon_order_is_extinct FROM ";
     private static final String TABLE = "queryable_taxon_annotation";
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
@@ -26,7 +26,7 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         COLUMNS.put(SORT_COLUMN.FAMILY, "taxon_family_label");
         COLUMNS.put(SORT_COLUMN.ORDER, "taxon_order_label");
     }
-    private static final String TAXONOMY_JOIN = " LEFT JOIN taxon family_taxon ON (family_taxon.node_id = queryable_taxon_annotation.taxon_family_node_id) JOIN taxon order_taxon ON (order_taxon.node_id = queryable_taxon_annotation.taxon_order_node_id) ";
+    private static final String TAXONOMY_JOIN = " LEFT JOIN taxon family_taxon ON (family_taxon.node_id = taxon_family_node_id) LEFT JOIN taxon order_taxon ON (order_taxon.node_id = taxon_order_node_id) ";
 
     public AnnotatedTaxaQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
@@ -85,8 +85,7 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
         } else {
-            //TODO may need to add an AS
-            query = SELECT_WITH_TAXONOMY + baseQuery + TAXONOMY_JOIN + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = SELECT_WITH_TAXONOMY + "(" + baseQuery + ") AS query " + TAXONOMY_JOIN + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         log().debug("Query: " + query);
         return query;

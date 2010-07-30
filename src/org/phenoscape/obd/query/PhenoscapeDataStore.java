@@ -365,7 +365,6 @@ public class PhenoscapeDataStore {
     }
     
     private GeneAnnotation createGeneAnnotation(ResultSet result) throws SQLException {
-        //TODO this needs to check for empty strings before creating terms
         final GeneAnnotation annotation = new GeneAnnotation();
         final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
         gene.setUID(result.getString("gene_uid"));
@@ -373,7 +372,9 @@ public class PhenoscapeDataStore {
         annotation.setGene(gene);
         annotation.setEntity(new SimpleTerm(result.getString("entity_uid"), result.getString("entity_label")));
         annotation.setQuality(new SimpleTerm(result.getString("quality_uid"), result.getString("quality_label")));
-        annotation.setRelatedEntity(new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label")));
+        if (result.getString("related_entity_uid") != null) {
+            annotation.setRelatedEntity(new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label")));    
+        }
         return annotation;
     }
 

@@ -53,7 +53,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/annotation/taxon/distinct", TaxonAnnotationsResource.class);
-        router.attach("/taxa/annotated", TaxaResource.class);
+        router.attach("/taxon/annotated", TaxaResource.class);
         router.attach("/gene/annotated", GenesResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
         router.attach("/report/count/characters/published", PublishedCharacterCountsResource.class);
