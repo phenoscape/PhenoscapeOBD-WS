@@ -45,10 +45,9 @@ public class TTOTaxonomy {
 	/** This structure keeps track of extinct taxa */
 	private Set<NodeDTO> setOfExtinctTaxa;
 	
-	private static final String TTO_URL_STRING = 
-			"http://obo.cvs.sourceforge.net/viewvc/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo?revision=1.51";
-	private static final String TAXONOMIC_RANK_URL_STRING = 
-			"http://phenoscape.svn.sourceforge.net/viewvc/phenoscape/trunk/vocab/taxonomic_rank.obo";
+	//private static final String TTO_URL_STRING = "http://obo.cvs.sourceforge.net/viewvc/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo?revision=1.51";
+	private static final String TTO_URL_STRING = "http://obo.cvs.sourceforge.net/viewvc/*checkout*/obo/obo/ontology/taxonomy/teleost_taxonomy.obo";
+	private static final String TAXONOMIC_RANK_URL_STRING = "http://phenoscape.svn.sourceforge.net/viewvc/phenoscape/trunk/vocab/taxonomic_rank.obo";
 	
 	private static final String TTO_FILE_NAME = "/tmp/teleost_taxonomy.obo";
 	private static final String TAXONOMIC_RANK_FILE_NAME = "/tmp/taxonomic_rank.obo";
