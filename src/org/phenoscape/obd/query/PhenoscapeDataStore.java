@@ -16,6 +16,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
@@ -29,6 +30,7 @@ import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -683,6 +685,35 @@ public class PhenoscapeDataStore {
         }
         final SearchHit hit = new SearchHit(term, matchText, type);
         return hit;
+    }
+    
+    public List<Term> getNamesForIDs(List<String> ids) throws SQLException {
+        final List<Term> terms = new ArrayList<Term>();
+        for (String id : ids) {
+            final QueryBuilder query = new BulkTermNameQueryBuilder(id);
+            terms.add((new QueryExecutor<Term>(this.dataSource, query) {
+                @Override
+                public Term processResult(ResultSet result) throws SQLException {
+                    while (result.next()) {
+                        final String sourceUID = result.getString("source_uid");
+                        if (ObjectUtils.equals(sourceUID, TTO.NAMESPACE)) {
+                            final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"), result.getInt("source_node_id"));
+                            taxon.setUID(result.getString("uid"));
+                            taxon.setLabel(result.getString("label"));
+                            taxon.setExtinct(result.getBoolean("is_extinct"));
+                            if (result.getString("rank_uid") != null) {
+                                taxon.setRank(new SimpleTerm(result.getString("rank_uid"), result.getString("rank_label")));
+                            }
+                            return taxon;
+                        } else {
+                            return new SimpleTerm(result.getString("uid"), result.getString("label"));
+                        }
+                    }
+                    return null;
+                }
+            }).executeQuery());
+        }
+        return terms;
     }
 
     private Logger log() {

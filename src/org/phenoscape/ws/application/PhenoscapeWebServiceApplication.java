@@ -6,6 +6,7 @@ import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
 import org.phenoscape.ws.resource.AutocompleteResource;
+import org.phenoscape.ws.resource.BulkTermNameResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
@@ -49,6 +50,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         // URL mappings
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
         router.attach("/term/search", AutocompleteResource.class);
+        router.attach("/term/names", BulkTermNameResource.class);
         router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
