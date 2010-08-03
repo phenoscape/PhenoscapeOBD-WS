@@ -407,7 +407,6 @@ public class PhenoscapeDataStore {
     }
     
     public List<GeneTerm> getAnnotatedGenes(AnnotationsQueryConfig config) throws SQLException {
-        //TODO in progress - need gene full name added to query
         final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneTerm>>(this.dataSource, query) {
             @Override
@@ -417,6 +416,7 @@ public class PhenoscapeDataStore {
                     final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
                     gene.setUID(result.getString("gene_uid"));
                     gene.setLabel(result.getString("gene_label"));
+                    gene.setFullName(result.getString("gene_full_name"));
                     genes.add(gene);
                 }
                 return genes;

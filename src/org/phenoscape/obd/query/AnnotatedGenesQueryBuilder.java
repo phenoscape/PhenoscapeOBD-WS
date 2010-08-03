@@ -3,18 +3,25 @@ package org.phenoscape.obd.query;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
-//TODO add union vs. intersect option
 public class AnnotatedGenesQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
+    private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
+    static {
+        COLUMNS.put(SORT_COLUMN.GENE, "gene_label");
+        COLUMNS.put(SORT_COLUMN.GENE_FULLNAME, "gene_full_name");
+    }
 
     public AnnotatedGenesQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
@@ -57,27 +64,27 @@ public class AnnotatedGenesQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation ";    
+            baseQuery = "SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label, distinct_gene_annotation.gene_full_name FROM distinct_gene_annotation ";    
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
         final String query;
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
-        } else { //TODO get ordering from config
-            query = baseQuery + "ORDER BY " + "gene_label" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+        } else {
+            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         log().debug("Query: " + query);
         return query;
     }
-    
+
     private String getSortText() {
         return this.config.sortDescending() ? "DESC " : ""; 
     }
 
     private String getGenesQuery(List<String> genes) {
         final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation WHERE ");
+        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label, distinct_gene_annotation.gene_full_name FROM distinct_gene_annotation WHERE ");
         query.append("distinct_gene_annotation.gene_uid IN ");
         query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
         query.append(")");
@@ -87,18 +94,18 @@ public class AnnotatedGenesQueryBuilder extends QueryBuilder {
     private String getPhenotypesQuery(List<PhenotypeSpec> phenotypes) {
         final StringBuffer query = new StringBuffer();
         query.append("(");
-        final List<String> unions = new ArrayList<String>();
+        final List<String> subQueries = new ArrayList<String>();
         for (PhenotypeSpec phenotype : phenotypes) {
-            unions.add(this.getPhenotypeQuery(phenotype));
+            subQueries.add(this.getPhenotypeQuery(phenotype));
         }
-        query.append(StringUtils.join(unions, " UNION "));
+        query.append(StringUtils.join(subQueries, (this.config.matchAllPhenotypes() ? " INTERSECT " : " UNION ")));
         query.append(")");
         return query.toString();
     }
 
     private String getPhenotypeQuery(PhenotypeSpec phenotype) {
         final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label FROM distinct_gene_annotation ");
+        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label, distinct_gene_annotation.gene_full_name FROM distinct_gene_annotation ");
         if (phenotype.getEntityID() != null) {
             if (phenotype.includeEntityParts()) {
                 query.append(String.format("JOIN link phenotype_inheres_in_part_of ON (phenotype_inheres_in_part_of.node_id = distinct_gene_annotation.phenotype_node_id AND phenotype_inheres_in_part_of.predicate_id = %s) ", this.node(OBO.INHERES_IN_PART_OF)));    

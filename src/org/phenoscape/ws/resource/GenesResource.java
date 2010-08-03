@@ -16,6 +16,7 @@ public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
         COLUMNS.put("gene", SORT_COLUMN.GENE);
+        COLUMNS.put("fullname", SORT_COLUMN.GENE_FULLNAME);
     }
 
     @Override
@@ -43,8 +44,7 @@ public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
         final JSONObject json = new JSONObject();
         json.put("id", gene.getUID());
         json.put("name", gene.getLabel());
-        //TODO fullname
-        json.put("fullname", "GENE FULL NAME");
+        json.put("fullname", gene.getFullName());
         return json;
     }
 

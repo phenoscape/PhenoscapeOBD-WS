@@ -46,6 +46,7 @@ public class Vocab {
 
     public static class ZFIN {
         public static final String GENE_NAMESPACE = "zfin_gene";
+        public static final String FULL_NAME_SYNONYM_CATEGORY = "FULLNAME";
     }
 
     public static class PHENOSCAPE {
