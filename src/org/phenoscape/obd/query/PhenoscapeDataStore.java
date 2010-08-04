@@ -645,6 +645,7 @@ public class PhenoscapeDataStore {
 
     private Term createPublicationTerm(ResultSet result) throws SQLException {
         final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
+        term.setUID(result.getString("publication_uid"));
         term.setLabel(result.getString("publication_label"));
         return term;
     }

@@ -10,12 +10,11 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
+//TODO fix usage of 'inferred', allow intersection of phenotypes and taxa (correct mockup for taxa as well).
 public class PublicationsQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
-    private static final String NODE = "(SELECT node.node_id FROM node WHERE node.uid=?)";
-    private static final String NODE_S = "(SELECT node.node_id FROM node WHERE node.uid='%s')";
 
     public PublicationsQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;

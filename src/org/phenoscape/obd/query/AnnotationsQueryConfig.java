@@ -8,7 +8,7 @@ import org.phenoscape.obd.model.PhenotypeSpec;
 
 public class AnnotationsQueryConfig {
 
-    public static enum SORT_COLUMN {TAXON, GENE, GENE_FULLNAME, ENTITY, QUALITY, RELATED_ENTITY, FAMILY, ORDER};
+    public static enum SORT_COLUMN {TAXON, GENE, GENE_FULLNAME, ENTITY, QUALITY, RELATED_ENTITY, FAMILY, ORDER, PUBLICATION};
     private SORT_COLUMN sortColumn = SORT_COLUMN.ENTITY;
     private int limit = 0;
     private int index = 0;

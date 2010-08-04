@@ -9,6 +9,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.PhenotypeSpec;
+import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.PhenoscapeDataStore;
 import org.phenoscape.obd.query.QueryException;
@@ -156,6 +157,13 @@ public class AbstractPhenoscapeResource extends ServerResource {
                 };
             }
         };
+    }
+    
+    protected JSONObject createBasicJSONTerm(Term term) throws JSONException {
+        final JSONObject json = new JSONObject();
+        json.put("id", term.getUID());
+        json.put("name", term.getLabel());
+        return json;
     }
     
     /**

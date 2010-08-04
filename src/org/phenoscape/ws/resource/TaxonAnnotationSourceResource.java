@@ -8,7 +8,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.TaxonAnnotation;
-import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -102,13 +101,6 @@ public class TaxonAnnotationSourceResource extends AbstractPhenoscapeResource {
         json.put("state", state);
         json.put("otu", taxonAnnotation.getOtu().getLabel());
         return json;    
-    }
-
-    private JSONObject createBasicJSONTerm(Term term) throws JSONException {
-        final JSONObject json = new JSONObject();
-        json.put("id", term.getUID());
-        json.put("name", term.getLabel());
-        return json;
     }
 
 }
