@@ -377,6 +377,28 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public List<GeneAnnotation> getSupportingGenotypeAnnotations(AnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new SupportingGenotypeAnnotationsQueryBuilder(config);
+        return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
+            @Override
+            public List<GeneAnnotation> processResult(ResultSet result) throws SQLException {
+                final List<GeneAnnotation> annotations = new ArrayList<GeneAnnotation>();
+                while (result.next()) {
+                    annotations.add(createSupportingGenotypeAnnotation(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
+    }
+
+    public GeneAnnotation createSupportingGenotypeAnnotation(ResultSet result) throws SQLException {
+        final GeneAnnotation annotation = this.createGeneAnnotation(result);
+        annotation.setGenotype(new SimpleTerm(result.getString("genotype_uid"), result.getString("genotype_label")));
+        annotation.setGenotypeClass(new SimpleTerm(result.getString("type_uid"), result.getString("type_label")));
+        annotation.setPublication(new SimpleTerm(result.getString("publication_uid"), result.getString("publication_label")));
+        return annotation;
+    }
+
     public List<GeneAnnotation> getGeneAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {

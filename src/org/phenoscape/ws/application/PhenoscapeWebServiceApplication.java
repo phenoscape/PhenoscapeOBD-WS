@@ -9,6 +9,7 @@ import org.phenoscape.obd.sparql.SPARQLResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.BulkTermNameResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
+import org.phenoscape.ws.resource.GeneAnnotationsSourceResource;
 import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.TaxaResource;
@@ -56,6 +57,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
+        router.attach("/annotation/gene/source", GeneAnnotationsSourceResource.class);
         router.attach("/annotation/taxon/distinct", TaxonAnnotationsResource.class);
         router.attach("/annotation/taxon/source", TaxonAnnotationSourceResource.class);
         router.attach("/taxon/annotated", TaxaResource.class);
