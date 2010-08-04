@@ -18,6 +18,7 @@ import javax.sql.DataSource;
 
 import org.apache.commons.lang.ObjectUtils;
 import org.apache.log4j.Logger;
+import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.GeneTerm;
@@ -240,7 +241,7 @@ public class PhenoscapeDataStore {
         synonym.setLabel(result.getString("label"));
         return synonym;
     }
-    
+
     public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -253,7 +254,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<TaxonAnnotation> getDistinctTaxonAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
@@ -267,7 +268,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     private TaxonAnnotation createTaxonAnnotation(ResultSet result) throws SQLException {
         final TaxonAnnotation annotation = new TaxonAnnotation();
         final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
@@ -287,7 +288,17 @@ public class PhenoscapeDataStore {
         }
         return annotation;
     }
-    
+
+    private TaxonAnnotation createSupportingTaxonAnnotation(ResultSet result) throws SQLException {
+        final TaxonAnnotation annotation = this.createTaxonAnnotation(result);
+        annotation.setPublication(new SimpleTerm(result.getString("publication_uid"), result.getString("publication_label")));
+        annotation.setOtu(new SimpleTerm(result.getString("otu_uid"), result.getString("otu_label")));
+        final Character character = new Character(null, result.getString("character_label"), result.getString("character_number"));
+        annotation.setCharacter(character);
+        annotation.setState(new SimpleTerm(null, result.getString("state_label")));
+        return annotation;
+    }
+
     public int getCountOfDistinctTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -300,7 +311,21 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
+    public List<TaxonAnnotation> getSupportingTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new SupportingTaxonomicAnnotationsQueryBuilder(config);
+        return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
+            @Override
+            public List<TaxonAnnotation> processResult(ResultSet result) throws SQLException {
+                final List<TaxonAnnotation> annotations = new ArrayList<TaxonAnnotation>();
+                while (result.next()) {
+                    annotations.add(createSupportingTaxonAnnotation(result));
+                }
+                return annotations;
+            }
+        }).executeQuery();
+    }
+
     public List<TaxonTerm> getAnnotatedTaxa(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedTaxaQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonTerm>>(this.dataSource, query) {
@@ -365,7 +390,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     private GeneAnnotation createGeneAnnotation(ResultSet result) throws SQLException {
         final GeneAnnotation annotation = new GeneAnnotation();
         final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
@@ -392,7 +417,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfGenotypeAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GenotypeAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -405,7 +430,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<GeneTerm> getAnnotatedGenes(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneTerm>>(this.dataSource, query) {
@@ -436,7 +461,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfDistinctPhenotypesAnnotatedToGenes(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctGenePhenotypesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -449,7 +474,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfDistinctPhenotypesAnnotatedToTaxa(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonPhenotypesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -462,7 +487,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<Term> getAnnotatedPublications(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {
@@ -476,7 +501,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAnnotatedPublications(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -489,7 +514,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<Term> getAnnotatedCharacters(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharactersQueryBuilder(config, false);
         return (new QueryExecutor<List<Term>>(this.dataSource, query) {
@@ -503,7 +528,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAnnotatedCharacters(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharactersQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -516,14 +541,14 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     private Term createCharacterTerm(ResultSet result) throws SQLException {
         //TODO should create a Character object with character number, etc.
         final DefaultTerm term = new DefaultTerm(result.getInt("character_node_id"), null);
         term.setLabel(result.getString("character_label"));
         return term;
     }
-    
+
     public int getCountOfAllCharacters() throws SQLException {
         final String instanceOf = String.format(QueryBuilder.NODE_S, OBO.INSTANCE_OF);
         final String characterType = String.format(QueryBuilder.NODE_S, CDAO.CHARACTER);
@@ -538,7 +563,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAnnotatedCharacterStates(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CharacterStatesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -551,7 +576,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAllCharacterStates() throws SQLException {
         final String instanceOf = String.format(QueryBuilder.NODE_S, OBO.INSTANCE_OF);
         final String characterStateType = String.format(QueryBuilder.NODE_S, CDAO.CHARACTER_STATE);
@@ -566,7 +591,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAllOTUs() throws SQLException {
         final String instanceOf = String.format(QueryBuilder.NODE_S, OBO.INSTANCE_OF);
         final String characterType = String.format(QueryBuilder.NODE_S, CDAO.OTU);
@@ -581,7 +606,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfAllCuratedPhenotypes() throws SQLException {
         final String hasPhenotype = String.format(QueryBuilder.NODE_S, CDAO.HAS_PHENOTYPE);
         final QueryBuilder query = new SimpleQuery(String.format("SELECT count(*) FROM link WHERE link.predicate_id = %s AND link.is_inferred = false", hasPhenotype));
@@ -595,7 +620,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     private Term createPublicationTerm(ResultSet result) throws SQLException {
         final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
         term.setLabel(result.getString("publication_label"));
@@ -686,7 +711,7 @@ public class PhenoscapeDataStore {
         final SearchHit hit = new SearchHit(term, matchText, type);
         return hit;
     }
-    
+
     public List<Term> getNamesForIDs(List<String> ids) throws SQLException {
         final List<Term> terms = new ArrayList<Term>();
         for (String id : ids) {

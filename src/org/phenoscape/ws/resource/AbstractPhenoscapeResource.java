@@ -161,7 +161,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
     /**
      * Retrieve the JDBC DataSource from the application context.
      */
-    private DataSource getDataSource() {
+    protected DataSource getDataSource() {
         return (DataSource)(this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.DATA_SOURCE_KEY));
     }
     

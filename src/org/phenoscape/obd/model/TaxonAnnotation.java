@@ -6,6 +6,10 @@ public class TaxonAnnotation {
     private Term entity;
     private Term quality;
     private Term relatedEntity;
+    private Term publication;
+    private Character character;
+    private Term state;
+    private Term otu;
 
     public TaxonTerm getTaxon() {
         return this.taxon;
@@ -37,6 +41,38 @@ public class TaxonAnnotation {
 
     public void setRelatedEntity(Term relatedEntity) {
         this.relatedEntity = relatedEntity;
+    }
+    
+    public Character getCharacter() {
+        return this.character;
+    }
+    
+    public void setCharacter(Character character) {
+        this.character = character;
+    }
+    
+    public Term getState() {
+        return this.state;
+    }
+    
+    public void setState(Term state) {
+        this.state = state;
+    }
+
+    public Term getPublication() {
+        return publication;
+    }
+
+    public void setPublication(Term publication) {
+        this.publication = publication;
+    }
+
+    public Term getOtu() {
+        return otu;
+    }
+
+    public void setOtu(Term otu) {
+        this.otu = otu;
     }
 
 }
