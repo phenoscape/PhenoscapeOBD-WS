@@ -10,7 +10,6 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
-//TODO fix usage of 'inferred', allow intersection of phenotypes and taxa (correct mockup for taxa as well).
 public class PublicationsQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
@@ -78,11 +77,11 @@ public class PublicationsQueryBuilder extends QueryBuilder {
     private String getTaxaQuery(List<String> taxonIDs) {
         final StringBuffer query = new StringBuffer();
         query.append("(");
-        final List<String> unions = new ArrayList<String>();
+        final List<String> subQueries = new ArrayList<String>();
         for (String taxonID : taxonIDs) {
-            unions.add(this.getTaxonQuery(taxonID));
+            subQueries.add(this.getTaxonQuery(taxonID));
         }
-        query.append(StringUtils.join(unions, " UNION "));
+        query.append(StringUtils.join(subQueries, (this.config.matchAllTaxa() ? " INTERSECT " : " UNION ")));
         query.append(")");
         return query.toString();
     }
@@ -91,7 +90,7 @@ public class PublicationsQueryBuilder extends QueryBuilder {
         final StringBuffer query = new StringBuffer();
         query.append("(SELECT DISTINCT queryable_taxon_annotation.publication_node_id, queryable_taxon_annotation.publication_uid, queryable_taxon_annotation.publication_label FROM queryable_taxon_annotation ");
         query.append(String.format("JOIN link taxon_is_a ON (taxon_is_a.node_id = queryable_taxon_annotation.taxon_node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.object_id = %s) ", this.node(OBO.IS_A), NODE));
-        query.append(String.format("WHERE queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations()));
+        query.append(" WHERE queryable_taxon_annotation.is_inferred = false ");
         query.append(") ");
         return query.toString();
     }
@@ -99,11 +98,11 @@ public class PublicationsQueryBuilder extends QueryBuilder {
     private String getPhenotypesQuery(List<PhenotypeSpec> phenotypes) {
         final StringBuffer query = new StringBuffer();
         query.append("(");
-        final List<String> unions = new ArrayList<String>();
+        final List<String> subQueries = new ArrayList<String>();
         for (PhenotypeSpec phenotype : phenotypes) {
-            unions.add(this.getPhenotypeQuery(phenotype));
+            subQueries.add(this.getPhenotypeQuery(phenotype));
         }
-        query.append(StringUtils.join(unions, " UNION "));
+        query.append(StringUtils.join(subQueries, (this.config.matchAllPhenotypes() ? " INTERSECT " : " UNION ")));
         query.append(")");
         return query.toString();
     }
@@ -124,9 +123,9 @@ public class PublicationsQueryBuilder extends QueryBuilder {
         if (phenotype.getRelatedEntityID() != null) {
             query.append(String.format("JOIN link related_entity_is_a ON (related_entity_is_a.node_id = queryable_taxon_annotation.related_entity_node_id AND related_entity_is_a.predicate_id = %s) ", this.node(OBO.IS_A)));  
         }
-        query.append("WHERE ");
+        query.append(" WHERE ");
         query.append(this.translate(phenotype));
-        query.append(String.format("AND queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations()));
+        query.append(" AND queryable_taxon_annotation.is_inferred = false ");
         query.append(") ");
         return query.toString();
     }

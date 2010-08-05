@@ -20,6 +20,7 @@ public class AnnotationsQueryConfig {
     private boolean includeInferredAnnotations = false;
     private boolean matchAllPhenotypes = false;
     private boolean matchAllPublications = false;
+    private boolean matchAllTaxa = false;
 
     public boolean matchAllPhenotypes() {
         return matchAllPhenotypes;
@@ -123,6 +124,14 @@ public class AnnotationsQueryConfig {
 
     public void addAllPhenotypes(List<PhenotypeSpec> phenotypes) {
         this.phenotypes.addAll(phenotypes);
+    }
+
+    public boolean matchAllTaxa() {
+        return this.matchAllTaxa;
+    }
+    
+    public void setMatchAllTaxa(boolean matchAll) {
+        this.matchAllTaxa = matchAll;
     }
 
 }

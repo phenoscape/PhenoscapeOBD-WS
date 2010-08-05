@@ -86,6 +86,9 @@ public class AbstractPhenoscapeResource extends ServerResource {
                 config.addTaxonID(taxon.getString("id"));
             } 
         }
+        if (query.has("match_all_taxa")) {
+            config.setMatchAllTaxa(query.getBoolean("match_all_taxa"));
+        }
         if (query.has("gene")) {
             for (JSONObject gene : this.toIterable(query.getJSONArray("gene"))) {
                 config.addGeneID(gene.getString("id"));
