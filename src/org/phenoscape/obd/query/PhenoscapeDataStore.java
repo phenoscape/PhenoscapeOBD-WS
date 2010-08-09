@@ -743,9 +743,9 @@ public class PhenoscapeDataStore {
                 @Override
                 public Term processResult(ResultSet result) throws SQLException {
                     while (result.next()) {
-                        final String sourceUID = result.getString("source_uid");
-                        if (ObjectUtils.equals(sourceUID, TTO.NAMESPACE)) {
-                            final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"), result.getInt("source_node_id"));
+                        final String taxonUID = result.getString("taxon_uid");
+                        if (taxonUID != null) {
+                            final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"), null);
                             taxon.setUID(result.getString("uid"));
                             taxon.setLabel(result.getString("label"));
                             taxon.setExtinct(result.getBoolean("is_extinct"));

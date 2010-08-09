@@ -18,12 +18,9 @@ public class BulkTermNameQueryBuilder extends QueryBuilder {
 
     @Override
     protected String getQuery() {
-        return "SELECT term.*, source.node_id AS source_node_id, source.uid AS source_uid, rank.node_id AS rank_node_id, rank.uid AS rank_uid, rank.label AS rank_label, CAST (tagval.val AS BOOLEAN) AS is_extinct " +
+        return "SELECT term.*, taxon.uid AS taxon_uid, taxon.rank_node_id AS rank_node_id, taxon.rank_uid AS rank_uid, taxon.rank_label AS rank_label, taxon.is_extinct AS is_extinct " +
         " FROM node term " +
-        " JOIN node source ON (source.node_id = term.source_id) " +
-        " LEFT JOIN link has_rank_link ON (has_rank_link.node_id = term.node_id AND has_rank_link.predicate_id = (SELECT node.node_id FROM node WHERE node.uid='has_rank') AND has_rank_link.is_inferred = false) " +
-        " LEFT JOIN node rank ON (rank.node_id = has_rank_link.object_id) " +
-        " LEFT JOIN tagval ON (tagval.node_id = term.node_id AND tagval.tag_id = (SELECT node.node_id FROM node WHERE node.uid='is_extinct')) " +
+        " LEFT JOIN taxon ON (taxon.node_id = term.node_id) " +
         " WHERE term.uid = ?"; 
     }
 
