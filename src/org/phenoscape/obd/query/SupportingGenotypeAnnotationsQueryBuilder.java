@@ -41,7 +41,6 @@ public class SupportingGenotypeAnnotationsQueryBuilder extends QueryBuilder {
             wheres.add(String.format(" %s.related_entity_uid = ? ", TABLE));
         }        
         query.append(StringUtils.join(wheres, " AND "));
-        log().debug("Query: " + query.toString());
         return query.toString();
     }
 

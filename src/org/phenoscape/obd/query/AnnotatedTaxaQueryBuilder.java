@@ -87,7 +87,6 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         } else {
             query = SELECT_WITH_TAXONOMY + "(" + baseQuery + ") AS query " + TAXONOMY_JOIN + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
 

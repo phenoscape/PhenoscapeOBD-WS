@@ -55,10 +55,8 @@ public class AnnotatedGenesQueryBuilder extends QueryBuilder {
 
     @Override
     protected String getQuery() {
+        //TODO can get rid of this intersect logic
         final List<String> intersects = new ArrayList<String>();
-        if (!this.config.getGeneIDs().isEmpty()) {
-            intersects.add(this.getGenesQuery(this.config.getGeneIDs()));
-        }
         if (!this.config.getPhenotypes().isEmpty()) {
             intersects.add(this.getPhenotypesQuery(this.config.getPhenotypes()));
         }
@@ -80,15 +78,6 @@ public class AnnotatedGenesQueryBuilder extends QueryBuilder {
 
     private String getSortText() {
         return this.config.sortDescending() ? "DESC " : ""; 
-    }
-
-    private String getGenesQuery(List<String> genes) {
-        final StringBuffer query = new StringBuffer();
-        query.append("(SELECT DISTINCT distinct_gene_annotation.gene_node_id, distinct_gene_annotation.gene_uid, distinct_gene_annotation.gene_label, distinct_gene_annotation.gene_full_name FROM distinct_gene_annotation WHERE ");
-        query.append("distinct_gene_annotation.gene_uid IN ");
-        query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
-        query.append(")");
-        return query.toString();
     }
 
     private String getPhenotypesQuery(List<PhenotypeSpec> phenotypes) {

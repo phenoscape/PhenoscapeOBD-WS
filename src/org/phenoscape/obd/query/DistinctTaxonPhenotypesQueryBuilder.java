@@ -68,7 +68,6 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         } else {
             query = baseQuery + "ORDER BY " + "phenotype_uid" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
     

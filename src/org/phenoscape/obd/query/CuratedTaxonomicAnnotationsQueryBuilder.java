@@ -67,7 +67,6 @@ public class CuratedTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         } else { //TODO get sort column from config
             query = baseQuery + "ORDER BY " + "taxon_label" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
     

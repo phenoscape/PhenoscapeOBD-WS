@@ -66,7 +66,6 @@ public class PublicationsQueryBuilder extends QueryBuilder {
         } else {
             query = baseQuery + "ORDER BY " + "publication_label" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
     

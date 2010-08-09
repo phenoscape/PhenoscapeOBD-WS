@@ -86,7 +86,6 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         } else {
             query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
 

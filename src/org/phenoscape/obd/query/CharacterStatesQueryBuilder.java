@@ -68,7 +68,6 @@ public class CharacterStatesQueryBuilder extends QueryBuilder {
         } else {
             query = baseQuery + "ORDER BY " + "state_label" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
-        log().debug("Query: " + query);
         return query;
     }
     

@@ -7,6 +7,8 @@ import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
+import org.apache.log4j.Logger;
+
 /**
  * QueryExecutor encapsulates proper closing of open SQL statements and connections 
  * after executing a query in which SQLExceptions may be thrown.
@@ -45,6 +47,7 @@ public abstract class QueryExecutor<T> {
             ResultSet result = null;
             try {
                 statement = builder.prepareStatement(connection);
+                log().debug("Query: " + statement.toString());
                 result = statement.executeQuery();
                 return this.processResult(result);
             } finally {
@@ -53,6 +56,10 @@ public abstract class QueryExecutor<T> {
         } finally {
             if (connection != null) { connection.close(); }
         } 
+    }
+    
+    private Logger log() {
+        return Logger.getLogger(this.getClass());
     }
 
 }

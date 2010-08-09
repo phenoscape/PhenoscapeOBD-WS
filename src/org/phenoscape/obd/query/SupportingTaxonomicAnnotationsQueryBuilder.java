@@ -27,13 +27,18 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         if (this.config.getPhenotypes().get(0).getRelatedEntityID() != null) {
             statement.setString(index++, this.config.getPhenotypes().get(0).getRelatedEntityID());
         }
-        
+        for (String publicationID : this.config.getPublicationIDs()) {
+            statement.setString(index++, publicationID);
+        }
         //these are for the extra exact query and are temporary -- this is due to a problem in OBD with annotated taxa not having reflexive is_a links 
         statement.setString(index++, this.config.getTaxonIDs().get(0));
         statement.setString(index++, this.config.getPhenotypes().get(0).getEntityID());
         statement.setString(index++, this.config.getPhenotypes().get(0).getQualityID());
         if (this.config.getPhenotypes().get(0).getRelatedEntityID() != null) {
             statement.setString(index++, this.config.getPhenotypes().get(0).getRelatedEntityID());
+        }
+        for (String publicationID : this.config.getPublicationIDs()) {
+            statement.setString(index++, publicationID);
         }
     }
 
@@ -55,14 +60,14 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         if (this.config.getPhenotypes().get(0).getRelatedEntityID() != null) {
             wheres.add(String.format(" %s.related_entity_uid = ? ", TABLE));
         }
-        
+        if (!this.config.getPublicationIDs().isEmpty()) {
+            wheres.add(String.format(" %s.publication_uid IN %s", TABLE, this.createPlaceholdersList(this.config.getPublicationIDs().size())));
+        }
         wheres.add(String.format(" %s.is_inferred = false ", TABLE));
-        query.append(StringUtils.join(wheres, " AND "));
-        
+        query.append(StringUtils.join(wheres, " AND "));        
         final String mainQuery = "(" + query.toString() + ")";
         final String exactQuery = "(" + this.getTempExactTaxonQuery() + ")";
         final String union = mainQuery + " UNION " + exactQuery;
-        log().debug("Query: " + union.toString());
         return union;
     }
     
@@ -77,7 +82,9 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         if (this.config.getPhenotypes().get(0).getRelatedEntityID() != null) {
             wheres.add(String.format(" %s.related_entity_uid = ? ", TABLE));
         }
-
+        if (!this.config.getPublicationIDs().isEmpty()) {
+            wheres.add(String.format(" %s.publication_uid IN %s", TABLE, this.createPlaceholdersList(this.config.getPublicationIDs().size())));
+        }
         wheres.add(String.format(" %s.is_inferred = false ", TABLE));
         query.append(StringUtils.join(wheres, " AND "));
         return query.toString();
