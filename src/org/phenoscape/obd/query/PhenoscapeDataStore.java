@@ -10,13 +10,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
@@ -31,7 +33,6 @@ import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
-import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -39,6 +40,22 @@ import com.eekboom.utils.Strings;
 public class PhenoscapeDataStore {
 
     private final DataSource dataSource;
+    public enum POSTCOMP_OPTION { STRUCTURE, SEMANTIC_LABEL, SIMPLE_LABEL, NONE };
+    /**
+     * Mapping for how to represent relations used in post-comp differentia when generating a human-readable label.
+     * If the relation is not in this map, use "of".
+     */
+    private static final Map<String, String> POSTCOMP_RELATIONS = new HashMap<String, String>();
+    static {
+        POSTCOMP_RELATIONS.put("OBO_REL:connected_to", "on");
+        POSTCOMP_RELATIONS.put("connected_to", "on");
+        POSTCOMP_RELATIONS.put("anterior_to", "anterior to");
+        POSTCOMP_RELATIONS.put("BSPO:0000096", "anterior to");
+        POSTCOMP_RELATIONS.put("posterior_to", "posterior to");
+        POSTCOMP_RELATIONS.put("BSPO:0000099", "posterior to");
+        POSTCOMP_RELATIONS.put("adjacent_to", "adjacent to");
+        POSTCOMP_RELATIONS.put("OBO_REL:adjacent_to", "adjacent to");
+    }
 
     public PhenoscapeDataStore(DataSource dataSource) {
         this.dataSource = dataSource;
@@ -255,21 +272,21 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public List<TaxonAnnotation> getDistinctTaxonAnnotations(AnnotationsQueryConfig config) throws SQLException {
+    public List<TaxonAnnotation> getDistinctTaxonAnnotations(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
             @Override
             public List<TaxonAnnotation> processResult(ResultSet result) throws SQLException {
                 final List<TaxonAnnotation> annotations = new ArrayList<TaxonAnnotation>();
                 while (result.next()) {
-                    annotations.add(createTaxonAnnotation(result));
+                    annotations.add(createTaxonAnnotation(result, config.getPostcompositionOption()));
                 }
                 return annotations;
             }
         }).executeQuery();
     }
 
-    private TaxonAnnotation createTaxonAnnotation(ResultSet result) throws SQLException {
+    private TaxonAnnotation createTaxonAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
         final TaxonAnnotation annotation = new TaxonAnnotation();
         final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
         taxon.setUID(result.getString("taxon_uid"));
@@ -280,17 +297,17 @@ public class PhenoscapeDataStore {
         }
         taxon.setExtinct(result.getBoolean("taxon_is_extinct"));
         annotation.setTaxon(taxon);
-        annotation.setEntity(new SimpleTerm(result.getString("entity_uid"), result.getString("entity_label")));
-        annotation.setQuality(new SimpleTerm(result.getString("quality_uid"), result.getString("quality_label")));
-        final Term relatedEntity = new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label"));
-        if (relatedEntity.getUID() != null) {
-            annotation.setRelatedEntity(relatedEntity);
+        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option));
+        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option));
+        final String relatedEntityUID = result.getString("related_entity_uid");
+        if (relatedEntityUID != null) {
+            annotation.setRelatedEntity(this.createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), option));
         }
         return annotation;
     }
 
-    private TaxonAnnotation createSupportingTaxonAnnotation(ResultSet result) throws SQLException {
-        final TaxonAnnotation annotation = this.createTaxonAnnotation(result);
+    private TaxonAnnotation createSupportingTaxonAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
+        final TaxonAnnotation annotation = this.createTaxonAnnotation(result, option);
         annotation.setPublication(new SimpleTerm(result.getString("publication_uid"), result.getString("publication_label")));
         annotation.setOtu(new SimpleTerm(result.getString("otu_uid"), result.getString("otu_label")));
         final Character character = new Character(null, result.getString("character_label"), result.getString("character_number"));
@@ -312,14 +329,14 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public List<TaxonAnnotation> getSupportingTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
+    public List<TaxonAnnotation> getSupportingTaxonomicAnnotations(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new SupportingTaxonomicAnnotationsQueryBuilder(config);
         return (new QueryExecutor<List<TaxonAnnotation>>(this.dataSource, query) {
             @Override
             public List<TaxonAnnotation> processResult(ResultSet result) throws SQLException {
                 final List<TaxonAnnotation> annotations = new ArrayList<TaxonAnnotation>();
                 while (result.next()) {
-                    annotations.add(createSupportingTaxonAnnotation(result));
+                    annotations.add(createSupportingTaxonAnnotation(result, config.getPostcompositionOption()));
                 }
                 return annotations;
             }
@@ -377,52 +394,53 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public List<GeneAnnotation> getSupportingGenotypeAnnotations(AnnotationsQueryConfig config) throws SQLException {
+    public List<GeneAnnotation> getSupportingGenotypeAnnotations(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new SupportingGenotypeAnnotationsQueryBuilder(config);
         return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
             @Override
             public List<GeneAnnotation> processResult(ResultSet result) throws SQLException {
                 final List<GeneAnnotation> annotations = new ArrayList<GeneAnnotation>();
                 while (result.next()) {
-                    annotations.add(createSupportingGenotypeAnnotation(result));
+                    annotations.add(createSupportingGenotypeAnnotation(result, config.getPostcompositionOption()));
                 }
                 return annotations;
             }
         }).executeQuery();
     }
 
-    public GeneAnnotation createSupportingGenotypeAnnotation(ResultSet result) throws SQLException {
-        final GeneAnnotation annotation = this.createGeneAnnotation(result);
+    public GeneAnnotation createSupportingGenotypeAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
+        final GeneAnnotation annotation = this.createGeneAnnotation(result, option);
         annotation.setGenotype(new SimpleTerm(result.getString("genotype_uid"), result.getString("genotype_label")));
         annotation.setGenotypeClass(new SimpleTerm(result.getString("type_uid"), result.getString("type_label")));
         annotation.setPublication(new SimpleTerm(result.getString("publication_uid"), result.getString("publication_label")));
         return annotation;
     }
 
-    public List<GeneAnnotation> getGeneAnnotations(AnnotationsQueryConfig config) throws SQLException {
+    public List<GeneAnnotation> getGeneAnnotations(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new GeneAnnotationsQueryBuilder(config, false);
         return (new QueryExecutor<List<GeneAnnotation>>(this.dataSource, query) {
             @Override
             public List<GeneAnnotation> processResult(ResultSet result) throws SQLException {
                 final List<GeneAnnotation> annotations = new ArrayList<GeneAnnotation>();
                 while (result.next()) {
-                    annotations.add(createGeneAnnotation(result));
+                    annotations.add(createGeneAnnotation(result, config.getPostcompositionOption()));
                 }
                 return annotations;
             }
         }).executeQuery();
     }
 
-    private GeneAnnotation createGeneAnnotation(ResultSet result) throws SQLException {
+    private GeneAnnotation createGeneAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
         final GeneAnnotation annotation = new GeneAnnotation();
         final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);
         gene.setUID(result.getString("gene_uid"));
         gene.setLabel(result.getString("gene_label"));
         annotation.setGene(gene);
-        annotation.setEntity(new SimpleTerm(result.getString("entity_uid"), result.getString("entity_label")));
-        annotation.setQuality(new SimpleTerm(result.getString("quality_uid"), result.getString("quality_label")));
-        if (result.getString("related_entity_uid") != null) {
-            annotation.setRelatedEntity(new SimpleTerm(result.getString("related_entity_uid"), result.getString("related_entity_label")));    
+        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option));
+        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option));
+        final String relatedEntityUID = result.getString("related_entity_uid");
+        if (relatedEntityUID != null) {
+            annotation.setRelatedEntity(this.createBasicTerm(result.getString("related_entity_uid"), result.getString("related_entity_label"), option));    
         }
         return annotation;
     }
@@ -735,9 +753,9 @@ public class PhenoscapeDataStore {
         return hit;
     }
 
-    public List<Term> getNamesForIDs(List<String> ids) throws SQLException {
+    public List<Term> getNamesForIDs(final Collection<String> ids, final POSTCOMP_OPTION option) throws SQLException {
         final List<Term> terms = new ArrayList<Term>();
-        for (String id : ids) {
+        for (final String id : ids) {
             final QueryBuilder query = new BulkTermNameQueryBuilder(id);
             terms.add((new QueryExecutor<Term>(this.dataSource, query) {
                 @Override
@@ -754,7 +772,7 @@ public class PhenoscapeDataStore {
                             }
                             return taxon;
                         } else {
-                            return new SimpleTerm(result.getString("uid"), result.getString("label"));
+                            return createBasicTerm(result.getString("uid"), result.getString("label"), option);
                         }
                     }
                     return null;
@@ -762,6 +780,100 @@ public class PhenoscapeDataStore {
             }).executeQuery());
         }
         return terms;
+    }
+
+    public LinkedTerm renderPostcomposition(final String uid) throws SQLException {
+        final QueryBuilder query = new IntersectionLinksQueryBuilder(uid);
+        return (new QueryExecutor<LinkedTerm>(this.dataSource, query) {
+            @Override
+            public LinkedTerm processResult(ResultSet result) throws SQLException {
+                final LinkedTerm term = new DefaultTerm(-1, null);
+                term.setUID(uid);
+                while (result.next()) {
+                    final Relationship rel = createRelationship(result);
+                    if (rel.getOther().getLabel() == null) {
+                        rel.setOther(renderPostcomposition(rel.getOther().getUID()));
+                    }
+                    term.addSubjectLink(rel);
+                }
+                return term;
+            }
+        }).executeQuery();
+    }
+
+    public String semanticLabel(Term term) {
+        if (term.getLabel() != null) {
+            return term.getLabel();
+        } else if (term instanceof LinkedTerm) {
+            final LinkedTerm linkedTerm = (LinkedTerm)term;
+            final List<String> differentia = new ArrayList<String>();
+            if (linkedTerm.getSubjectLinks().isEmpty()) {
+                log().error("No differentia arguments for: " + linkedTerm.getUID());
+                return linkedTerm.getUID();
+            }
+            Term genus = new SimpleTerm("", null);
+            for (Relationship differentium : linkedTerm.getSubjectLinks()) {
+                if (differentium.getPredicate().getUID().equals(OBO.IS_A)) {
+                    genus = differentium.getOther();
+                } else {
+                    final StringBuffer buffer = new StringBuffer();
+                    buffer.append(semanticLabel(differentium.getPredicate()));
+                    buffer.append("(");
+                    buffer.append(semanticLabel(differentium.getOther()));
+                    buffer.append(")");
+                    differentia.add(buffer.toString());
+                }
+            }
+            return semanticLabel(genus) + "(" + StringUtils.join(differentia, ", ") + ")";
+        } else {
+            return term.getUID();
+        }
+    }
+
+    public String simpleLabel(Term term) {
+        if (term.getLabel() != null) {
+            return term.getLabel();
+        } else if (term instanceof LinkedTerm) {
+            final LinkedTerm linkedTerm = (LinkedTerm)term;
+            final List<String> differentia = new ArrayList<String>();
+            if (linkedTerm.getSubjectLinks().isEmpty()) {
+                log().error("No differentia arguments for: " + linkedTerm.getUID());
+                return linkedTerm.getUID();
+            }
+            Term genus = new SimpleTerm("", null);
+            for (Relationship differentium : linkedTerm.getSubjectLinks()) {
+                if (differentium.getPredicate().getUID().equals(OBO.IS_A)) {
+                    genus = differentium.getOther();
+                } else {
+                    final String relationID = differentium.getPredicate().getUID();
+                    final String relationSubstitute = POSTCOMP_RELATIONS.containsKey(relationID) ? POSTCOMP_RELATIONS.get(relationID) : "of";
+                    final StringBuffer buffer = new StringBuffer();
+                    buffer.append(" ");
+                    buffer.append(relationSubstitute);
+                    buffer.append(" ");
+                    buffer.append(simpleLabel(differentium.getOther()));
+                    differentia.add(buffer.toString());
+                }
+            }
+            return simpleLabel(genus) + StringUtils.join(differentia, ", ");
+        } else {
+            return term.getUID();
+        }
+    }
+
+    private Term createBasicTerm(String uid, String label, POSTCOMP_OPTION option) throws SQLException {
+        if ((label == null) && (!option.equals(POSTCOMP_OPTION.NONE))) {
+            final LinkedTerm postComp = this.renderPostcomposition(uid);
+            if (option.equals(POSTCOMP_OPTION.SEMANTIC_LABEL)) {
+                return new SimpleTerm(postComp.getUID(), this.semanticLabel(postComp));
+            } else if (option.equals(POSTCOMP_OPTION.SIMPLE_LABEL)) {
+                return new SimpleTerm(postComp.getUID(), this.simpleLabel(postComp));
+            } else {
+                return postComp;
+            }
+        } else {
+            return new SimpleTerm(uid, label);
+        }
     }
 
     private Logger log() {

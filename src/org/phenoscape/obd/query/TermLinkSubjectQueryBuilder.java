@@ -25,7 +25,7 @@ public class TermLinkSubjectQueryBuilder extends QueryBuilder {
         "FROM link " +
         "JOIN node relation ON (relation.node_id = link.predicate_id) " +
         "JOIN node target ON (target.node_id = link.object_id) " +
-        "WHERE link.node_id = ? AND link.source_id = ?"; //TODO
+        "WHERE link.node_id = ? AND link.source_id = ?";
     }
 
 }

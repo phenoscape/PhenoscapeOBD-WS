@@ -34,29 +34,19 @@ public class TaxonAnnotationsResource extends AnnotationQueryingResource<TaxonAn
     @Override
     protected JSONObject translateToJSON(TaxonAnnotation annotation) throws JSONException {
         final JSONObject json = new JSONObject();
-        final JSONObject taxon = new JSONObject();
-        taxon.put("id", annotation.getTaxon().getUID());
-        taxon.put("name", annotation.getTaxon().getLabel());
+        final JSONObject taxon = this.createBasicJSONTerm(annotation.getTaxon());
         taxon.put("extinct", annotation.getTaxon().isExtinct());
         if (annotation.getTaxon().getRank() != null) {
-            final JSONObject rank = new JSONObject();
-            rank.put("id", annotation.getTaxon().getRank().getUID());
-            rank.put("name", annotation.getTaxon().getRank().getLabel());
+            final JSONObject rank = this.createBasicJSONTerm(annotation.getTaxon().getRank());
             taxon.put("rank", rank);
         }
         json.put("taxon", taxon);
-        final JSONObject entity = new JSONObject();
-        entity.put("id", annotation.getEntity().getUID());
-        entity.put("name", annotation.getEntity().getLabel());
+        final JSONObject entity = this.createBasicJSONTerm(annotation.getEntity());
         json.put("entity", entity);
-        final JSONObject quality = new JSONObject();
-        quality.put("id", annotation.getQuality().getUID());
-        quality.put("name", annotation.getQuality().getLabel());
+        final JSONObject quality = this.createBasicJSONTerm(annotation.getQuality());
         json.put("quality", quality);
         if (annotation.getRelatedEntity() != null) {
-            final JSONObject relatedEntity = new JSONObject();
-            relatedEntity.put("id", annotation.getRelatedEntity().getUID());
-            relatedEntity.put("name", annotation.getRelatedEntity().getLabel());
+            final JSONObject relatedEntity = this.createBasicJSONTerm(annotation.getRelatedEntity());
             json.put("related_entity", relatedEntity);
         }
         return json;    

@@ -1,6 +1,7 @@
 package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import org.json.JSONObject;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
+import org.phenoscape.obd.query.PhenoscapeDataStore.POSTCOMP_OPTION;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
 import org.phenoscape.ws.representation.StreamableTextRepresentation;
 import org.restlet.data.MediaType;
@@ -30,6 +32,13 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
     private int index;
     private boolean sortDescending;
     private SORT_COLUMN sortColumn;
+    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.STRUCTURE;
+    private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
+    static {
+        POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
+        POSTCOMP_OPTIONS.put("semantic", POSTCOMP_OPTION.SEMANTIC_LABEL);
+        POSTCOMP_OPTIONS.put("simple", POSTCOMP_OPTION.SIMPLE_LABEL);
+    }
 
     @Override
     protected void doInit() throws ResourceException {
@@ -49,6 +58,14 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
                 this.sortColumn = this.getSortColumns().get(sortBy);
             } else {
                 throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid sort column");
+            }
+        }
+        final String pcOption = this.getFirstQueryValue("postcompositions");
+        if (pcOption != null) {
+            if (POSTCOMP_OPTIONS.containsKey(pcOption)) {
+                this.postcompOption = POSTCOMP_OPTIONS.get(pcOption);
+            } else {
+                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid postcomposition option");
             }
         }
         this.limit = this.getIntegerQueryValue("limit", 0);
@@ -197,6 +214,7 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
 
     private AnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
         final AnnotationsQueryConfig config = this.initializeQueryConfig(this.query);
+        config.setPostcompositionOption(this.postcompOption);
         config.setIndex(this.index);
         config.setSortColumn(this.getSortColumn());
         config.setSortDescending(this.sortDescending);

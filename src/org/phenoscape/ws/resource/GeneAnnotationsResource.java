@@ -24,22 +24,14 @@ public class GeneAnnotationsResource extends AnnotationQueryingResource<GeneAnno
     @Override
     protected JSONObject translateToJSON(GeneAnnotation annotation) throws JSONException {
         final JSONObject json = new JSONObject();
-        final JSONObject gene = new JSONObject();
-        gene.put("id", annotation.getGene().getUID());
-        gene.put("name", annotation.getGene().getLabel());
+        final JSONObject gene = this.createBasicJSONTerm(annotation.getGene());
         json.put("gene", gene);
-        final JSONObject entity = new JSONObject();
-        entity.put("id", annotation.getEntity().getUID());
-        entity.put("name", annotation.getEntity().getLabel());
+        final JSONObject entity = this.createBasicJSONTerm(annotation.getEntity());
         json.put("entity", entity);
-        final JSONObject quality = new JSONObject();
-        quality.put("id", annotation.getQuality().getUID());
-        quality.put("name", annotation.getQuality().getLabel());
+        final JSONObject quality = this.createBasicJSONTerm(annotation.getQuality());
         json.put("quality", quality);
         if (annotation.getRelatedEntity() != null) {
-            final JSONObject relatedEntity = new JSONObject();
-            relatedEntity.put("id", annotation.getRelatedEntity().getUID());
-            relatedEntity.put("name", annotation.getRelatedEntity().getLabel());
+            final JSONObject relatedEntity = this.createBasicJSONTerm(annotation.getRelatedEntity());
             json.put("related_entity", relatedEntity);
         }
         return json;

@@ -41,9 +41,7 @@ public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
 
     @Override
     protected JSONObject translateToJSON(GeneTerm gene) throws JSONException {
-        final JSONObject json = new JSONObject();
-        json.put("id", gene.getUID());
-        json.put("name", gene.getLabel());
+        final JSONObject json = this.createBasicJSONTerm(gene);
         json.put("fullname", gene.getFullName());
         return json;
     }

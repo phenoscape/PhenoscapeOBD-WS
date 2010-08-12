@@ -32,41 +32,20 @@ public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
 
     @Override
     protected JSONObject translateToJSON(TaxonTerm taxon) throws JSONException {
-        //TODO should rank terms for order and class be included? seems redundant
-        final JSONObject json = new JSONObject();
-        json.put("id", taxon.getUID());
-        json.put("name", taxon.getLabel());
+        final JSONObject json = this.createBasicJSONTerm(taxon);
         json.put("extinct", taxon.isExtinct());
         if (taxon.getRank() != null) {
-            final JSONObject rank = new JSONObject();
-            rank.put("id", taxon.getRank().getUID());
-            rank.put("name", taxon.getRank().getLabel());
+            final JSONObject rank = this.createBasicJSONTerm(taxon.getRank());
             json.put("rank", rank);
         }
         if (taxon.getTaxonomicFamily() != null) {
-            final JSONObject taxonomicFamily = new JSONObject();
-            taxonomicFamily.put("id", taxon.getTaxonomicFamily().getUID());
-            taxonomicFamily.put("name", taxon.getTaxonomicFamily().getLabel());
+            final JSONObject taxonomicFamily = this.createBasicJSONTerm(taxon.getTaxonomicFamily());
             taxonomicFamily.put("extinct", taxon.getTaxonomicFamily().isExtinct());
-//            if (taxon.getRank() != null) {
-//                final JSONObject rank = new JSONObject();
-//                rank.put("id", taxon.getTaxonomicClass().getRank().getUID());
-//                rank.put("name", taxon.getTaxonomicClass().getRank().getLabel());
-//                taxonomicClass.put("rank", rank);
-//            }
             json.put("family", taxonomicFamily);
         }
         if (taxon.getTaxonomicOrder() != null) {
-            final JSONObject taxonomicOrder = new JSONObject();
-            taxonomicOrder.put("id", taxon.getTaxonomicOrder().getUID());
-            taxonomicOrder.put("name", taxon.getTaxonomicOrder().getLabel());
+            final JSONObject taxonomicOrder = this.createBasicJSONTerm(taxon.getTaxonomicOrder());
             taxonomicOrder.put("extinct", taxon.getTaxonomicOrder().isExtinct());
-//            if (taxon.getRank() != null) {
-//                final JSONObject rank = new JSONObject();
-//                rank.put("id", taxon.getTaxonomicOrder().getRank().getUID());
-//                rank.put("name", taxon.getTaxonomicOrder().getRank().getLabel());
-//                taxonomicOrder.put("rank", rank);
-//            }
             json.put("order", taxonomicOrder);
         }
         return json;    

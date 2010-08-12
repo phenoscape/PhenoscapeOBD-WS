@@ -1,6 +1,7 @@
 package org.phenoscape.ws.resource;
 
 import java.util.Iterator;
+import java.util.Set;
 
 import javax.sql.DataSource;
 
@@ -8,7 +9,9 @@ import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.PhenotypeSpec;
+import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.PhenoscapeDataStore;
@@ -22,9 +25,9 @@ import org.restlet.resource.ServerResource;
  * @author Jim Balhoff
  */
 public class AbstractPhenoscapeResource extends ServerResource {
-    
+
     private PhenoscapeDataStore dataStore = null;
-    
+
     /**
      * Get an instance of PhenoscapeDataStore initialized with this application's JDBC connection.
      */
@@ -34,7 +37,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
         }
         return this.dataStore;
     }
-    
+
     /**
      * Return first value of the given query parameter, decoded, or null if not present.
      */
@@ -45,7 +48,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
             return null;
         }
     }
-    
+
     /**
      * Return first value of the given query parameter as a boolean, or the given default value if not present.
      */
@@ -57,7 +60,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
             return defaultValue;
         }
     }
-    
+
     /**
      * Return first value of the given query parameter as an integer, or the given default value if not present.
      */
@@ -69,7 +72,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
             return defaultValue;
         }
     }
-    
+
     protected JSONObject getJSONQueryValue(String parameter, JSONObject defaultValue) throws JSONException {
         if (this.getQuery().getFirstValue(parameter) != null) {
             final String queryValue = this.getFirstQueryValue(parameter);
@@ -78,7 +81,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
             return defaultValue;
         }
     }
-    
+
     protected AnnotationsQueryConfig initializeQueryConfig(JSONObject query) throws JSONException, QueryException {
         final AnnotationsQueryConfig config = new AnnotationsQueryConfig();
         if (query.has("taxon")) {
@@ -131,7 +134,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
         }
         return config;
     }
-    
+
     /**
      * @throws QueryException
      */
@@ -161,21 +164,49 @@ public class AbstractPhenoscapeResource extends ServerResource {
             }
         };
     }
-    
+
     protected JSONObject createBasicJSONTerm(Term term) throws JSONException {
         final JSONObject json = new JSONObject();
         json.put("id", term.getUID());
-        json.put("name", term.getLabel());
+        if ((term.getLabel() == null) && (term instanceof LinkedTerm)) {
+            final LinkedTerm linkedTerm = (LinkedTerm)term;
+            if (!linkedTerm.getSubjectLinks().isEmpty()) {
+                json.put("parents", this.translateRelationships(linkedTerm.getSubjectLinks()));
+            }
+        } else {
+            json.put("name", term.getLabel());
+            //            if (term instanceof TaxonTerm) {
+            //                final TaxonTerm taxon = (TaxonTerm)term;
+            //                json.put("extinct", taxon.isExtinct());
+            //                if (taxon.getRank() != null) {
+            //                    final JSONObject rank = new JSONObject();
+            //                    rank.put("id", taxon.getRank().getUID());
+            //                    rank.put("name", taxon.getRank().getLabel());
+            //                    json.put("rank", rank);
+            //                }
+            //            }
+        }
         return json;
     }
-    
+
+    private JSONArray translateRelationships(Set<Relationship> relationships) throws JSONException {
+        final JSONArray links = new JSONArray();
+        for (Relationship relationship : relationships) {
+            final JSONObject link = new JSONObject();
+            link.put("target", this.createBasicJSONTerm(relationship.getOther()));
+            link.put("relation", this.createBasicJSONTerm(relationship.getPredicate()));
+            links.put(link);
+        }
+        return links;
+    }
+
     /**
      * Retrieve the JDBC DataSource from the application context.
      */
     protected DataSource getDataSource() {
         return (DataSource)(this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.DATA_SOURCE_KEY));
     }
-    
+
     protected Logger log() {
         return Logger.getLogger(this.getClass());
     }

@@ -2,30 +2,51 @@ package org.phenoscape.ws.resource;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
+import org.phenoscape.obd.query.PhenoscapeDataStore.POSTCOMP_OPTION;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
 import org.restlet.resource.Post;
 
+//TODO should change output to a map instead of a list
 public class BulkTermNameResource extends AbstractPhenoscapeResource {
+    
+    public static String RENDER_POSTCOMPOSITIONS = "render_postcompositions";
+    private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
+    static {
+        POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
+        POSTCOMP_OPTIONS.put("semantic_label", POSTCOMP_OPTION.SEMANTIC_LABEL);
+        POSTCOMP_OPTIONS.put("simple_label", POSTCOMP_OPTION.SIMPLE_LABEL);
+    }
 
     @Post("json")
     public Representation acceptJSON(Representation json) {
-        log().debug(json.getClass());
-        log().debug(json);
         try {
             final JSONObject input = (new JsonRepresentation(json)).getJsonObject();
+            POSTCOMP_OPTION postCompOption = POSTCOMP_OPTION.NONE;
+            if (input.has(RENDER_POSTCOMPOSITIONS)) {
+                final String option = input.getString(RENDER_POSTCOMPOSITIONS);
+                if (!POSTCOMP_OPTIONS.containsKey(option)) {
+                    throw new JSONException("Invalid JSON contents");
+                }
+                postCompOption = POSTCOMP_OPTIONS.get(option);
+            }
             if (input.has("ids")) {
-                final List<String> ids = this.extractIDs(input.getJSONArray("ids"));
-                final JSONObject output = this.translate(this.getDataStore().getNamesForIDs(ids));
+                final Set<String> ids = this.extractIDs(input.getJSONArray("ids"));
+                final JSONObject output = this.translate(this.getDataStore().getNamesForIDs(ids, postCompOption));
                 return new JsonRepresentation(output);
             } else {
                 throw new JSONException("Invalid JSON contents");
@@ -45,8 +66,8 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
         }
     }
 
-    private List<String> extractIDs(JSONArray jsonIDs) throws JSONException {
-        final List<String> ids = new ArrayList<String>();
+    private Set<String> extractIDs(JSONArray jsonIDs) throws JSONException {
+        final Set<String> ids = new HashSet<String>();
         for (int i = 0; i < jsonIDs.length(); i++) {
             ids.add(jsonIDs.getString(i));
         }
@@ -57,8 +78,18 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
         final JSONObject json = new JSONObject();
         final JSONArray jsonTerms = new JSONArray();
         for (Term term : terms) {
-            final JSONObject jsonTerm = new JSONObject();
-            jsonTerm.put("id", term.getUID());
+            jsonTerms.put(this.translate(term));
+        }
+        json.put("terms", jsonTerms);
+        return json;
+    }
+    
+    private JSONObject translate(Term term) throws JSONException {
+        final JSONObject jsonTerm = new JSONObject();
+        jsonTerm.put("id", term.getUID());
+        if ((term.getLabel() == null) && (term instanceof LinkedTerm)) {
+            jsonTerm.put("parents", this.translateRelationships(((LinkedTerm)term).getSubjectLinks()));
+        } else {
             jsonTerm.put("name", term.getLabel());
             if (term instanceof TaxonTerm) {
                 final TaxonTerm taxon = (TaxonTerm)term;
@@ -70,10 +101,18 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
                     jsonTerm.put("rank", rank);
                 }
             }
-            jsonTerms.put(jsonTerm);
         }
-        json.put("terms", jsonTerms);
-        return json;
+        return jsonTerm;
     }
 
+    private JSONArray translateRelationships(Set<Relationship> relationships) throws JSONException {
+        final JSONArray links = new JSONArray();
+        for (Relationship relationship : relationships) {
+            final JSONObject link = new JSONObject();
+            link.put("target", this.translate(relationship.getOther()));
+            link.put("relation", this.createBasicJSONTerm(relationship.getPredicate()));
+            links.put(link);
+        }
+        return links;
+    }
 }

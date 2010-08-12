@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.phenoscape.obd.model.PhenotypeSpec;
+import org.phenoscape.obd.query.PhenoscapeDataStore.POSTCOMP_OPTION;
 
 public class AnnotationsQueryConfig {
 
@@ -21,6 +22,7 @@ public class AnnotationsQueryConfig {
     private boolean matchAllPhenotypes = false;
     private boolean matchAllPublications = false;
     private boolean matchAllTaxa = false;
+    private POSTCOMP_OPTION postcompositionOption = POSTCOMP_OPTION.NONE;
 
     public boolean matchAllPhenotypes() {
         return matchAllPhenotypes;
@@ -69,11 +71,11 @@ public class AnnotationsQueryConfig {
     public void setSortDescending(boolean sortDescending) {
         this.sortDescending = sortDescending;
     }
-    
+
     public boolean includeInferredAnnotations() {
         return this.includeInferredAnnotations;
     }
-    
+
     public void setIncludeInferredAnnotations(boolean include) {
         this.includeInferredAnnotations = include;
     }
@@ -89,7 +91,7 @@ public class AnnotationsQueryConfig {
     public void addAllTaxonIDs(List<String> taxonIDs) {
         this.taxonIDs.addAll(taxonIDs);
     }
-    
+
     public List<String> getGeneIDs() {
         return Collections.unmodifiableList(this.geneIDs);
     }
@@ -101,7 +103,7 @@ public class AnnotationsQueryConfig {
     public void addAllGeneIDs(List<String> geneIDs) {
         this.geneIDs.addAll(geneIDs);
     }
-    
+
     public List<String> getPublicationIDs() {
         return Collections.unmodifiableList(this.publicationIDs);
     }
@@ -129,9 +131,17 @@ public class AnnotationsQueryConfig {
     public boolean matchAllTaxa() {
         return this.matchAllTaxa;
     }
-    
+
     public void setMatchAllTaxa(boolean matchAll) {
         this.matchAllTaxa = matchAll;
+    }
+
+    public POSTCOMP_OPTION getPostcompositionOption() {
+        return this.postcompositionOption;
+    }
+
+    public void setPostcompositionOption(POSTCOMP_OPTION option) {
+        this.postcompositionOption = option;
     }
 
 }
