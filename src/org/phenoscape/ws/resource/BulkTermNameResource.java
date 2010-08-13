@@ -30,6 +30,7 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
         POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
         POSTCOMP_OPTIONS.put("semantic_label", POSTCOMP_OPTION.SEMANTIC_LABEL);
         POSTCOMP_OPTIONS.put("simple_label", POSTCOMP_OPTION.SIMPLE_LABEL);
+        POSTCOMP_OPTIONS.put("none", POSTCOMP_OPTION.NONE);
     }
 
     @Post("json")

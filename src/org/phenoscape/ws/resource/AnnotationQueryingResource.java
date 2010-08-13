@@ -32,12 +32,13 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
     private int index;
     private boolean sortDescending;
     private SORT_COLUMN sortColumn;
-    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.STRUCTURE;
+    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.NONE;
     private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
     static {
         POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
         POSTCOMP_OPTIONS.put("semantic", POSTCOMP_OPTION.SEMANTIC_LABEL);
         POSTCOMP_OPTIONS.put("simple", POSTCOMP_OPTION.SIMPLE_LABEL);
+        POSTCOMP_OPTIONS.put("none", POSTCOMP_OPTION.NONE);
     }
 
     @Override

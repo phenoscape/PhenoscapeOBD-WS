@@ -1,7 +1,9 @@
 package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -9,6 +11,7 @@ import org.json.JSONObject;
 import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
+import org.phenoscape.obd.query.PhenoscapeDataStore.POSTCOMP_OPTION;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
 import org.restlet.representation.Representation;
@@ -18,12 +21,29 @@ import org.restlet.resource.ResourceException;
 public class GeneAnnotationsSourceResource extends AbstractPhenoscapeResource {
 
     private AnnotationsQueryConfig config;
+    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.NONE;
+    private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
+    static {
+        POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
+        POSTCOMP_OPTIONS.put("semantic", POSTCOMP_OPTION.SEMANTIC_LABEL);
+        POSTCOMP_OPTIONS.put("simple", POSTCOMP_OPTION.SIMPLE_LABEL);
+        POSTCOMP_OPTIONS.put("none", POSTCOMP_OPTION.NONE);
+    }
 
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
+        final String pcOption = this.getFirstQueryValue("postcompositions");
+        if (pcOption != null) {
+            if (POSTCOMP_OPTIONS.containsKey(pcOption)) {
+                this.postcompOption = POSTCOMP_OPTIONS.get(pcOption);
+            } else {
+                throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Invalid postcomposition option");
+            }
+        }
         try {
             this.config = this.initializeQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
+            this.config.setPostcompositionOption(this.postcompOption);
             this.validateConfig(this.config);
         } catch (JSONException e) {
             throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, e);
