@@ -39,6 +39,11 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
                 }
             }
         }
+        if (!this.config.getPublicationIDs().isEmpty()) {
+            for (String publicationID : this.config.getPublicationIDs()) {
+                statement.setString(index++, publicationID);
+            }
+        }
         if (!this.totalOnly) {
             statement.setInt(index++, this.config.getLimit());
             statement.setInt(index++, this.config.getIndex());
@@ -53,6 +58,9 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         }
         if (!this.config.getPhenotypes().isEmpty()) {
             intersects.add(this.getPhenotypesQuery(this.config.getPhenotypes()));
+        }
+        if (!this.config.getPublicationIDs().isEmpty()) {
+            intersects.add(this.getPublicationsQuery(this.config.getPublicationIDs()));
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
@@ -151,6 +159,18 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         buffer.append(StringUtils.join(terms, " AND "));
         buffer.append(")");
         return buffer.toString();
+    }
+    
+    private String getPublicationsQuery(List<String> publicationIDs) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        query.append("(SELECT DISTINCT queryable_taxon_annotation.phenotype_node_id, queryable_taxon_annotation.phenotype_uid, queryable_taxon_annotation.phenotype_label FROM queryable_taxon_annotation ");
+        query.append("WHERE ");
+        query.append("publication_uid IN ");
+        query.append(this.createPlaceholdersList(publicationIDs.size()));
+        query.append(this.config.includeInferredAnnotations() ? "" : " AND queryable_taxon_annotation.is_inferred = false ");
+        query.append(") ");
+        return query.toString();
     }
 
     private String node(String uid) {
