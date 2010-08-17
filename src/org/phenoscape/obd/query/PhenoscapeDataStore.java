@@ -119,6 +119,7 @@ public class PhenoscapeDataStore {
         term.setLabel(result.getString("label"));
         term.setDefinition(result.getString("definition"));
         term.setComment(result.getString("comment"));
+        term.setSourceUID(result.getString("source_uid"));
         this.addSynonymsToTerm(term);
         return term;
     }
@@ -743,6 +744,7 @@ public class PhenoscapeDataStore {
         term.setUID(nodeResult.getString("uid"));
         final String label = nodeResult.getString("label");
         term.setLabel(label);
+        term.setSourceUID(nodeResult.getString("source_uid"));
         final String matchText;
         if (type == MatchType.SYNONYM) {
             matchText = nodeResult.getString("synonym_label");

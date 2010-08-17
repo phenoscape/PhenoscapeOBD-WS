@@ -28,7 +28,7 @@ public class AutocompleteSynonymQueryBuilder extends QueryBuilder {
     @Override
     protected String getQuery() {
         final String query = 
-            "SELECT term.*, alias.label AS synonym_label " +
+            "SELECT term.*, alias.label AS synonym_label, source.uid AS source_uid " +
             "FROM node term " +
             "JOIN node source ON (term.source_id = source.node_id) " +
             "JOIN alias ON (term.node_id = alias.node_id) " +

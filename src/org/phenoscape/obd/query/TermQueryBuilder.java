@@ -20,11 +20,12 @@ public class TermQueryBuilder extends QueryBuilder {
 
     @Override
     protected String getQuery() {
-        return  "SELECT term.*, description.label AS definition, tagval.val AS comment " +
+        return  "SELECT term.*, description.label AS definition, tagval.val AS comment, source.uid AS source_uid " +
         "FROM node term " +
         "LEFT OUTER JOIN description ON (description.node_id = term.node_id) " +
         "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + OBO.COMMENT + "') " +
         "LEFT OUTER JOIN tagval ON (tagval.tag_id = comment_rel.node_id AND tagval.node_id = term.node_id) " +
+        "LEFT OUTER JOIN node source ON (source.node_id = term.source_id)" +
         "WHERE term.uid = ?";
     }
 

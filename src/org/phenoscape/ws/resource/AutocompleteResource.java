@@ -129,6 +129,7 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         json.put("name", hit.getHit().getLabel());
         json.put("match_type", matchTypes.get(hit.getMatchType()));
         json.put("match_text", hit.getMatchText());
+        json.put("source", hit.getHit().getSourceUID());
         return json;
     }
 

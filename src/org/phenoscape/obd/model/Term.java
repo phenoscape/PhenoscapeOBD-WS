@@ -24,4 +24,8 @@ public interface Term {
 
     public void addSynonym(Synonym synonym);
     
+    public String getSourceUID();
+    
+    public void setSourceUID(String sourceUID);
+    
 }
