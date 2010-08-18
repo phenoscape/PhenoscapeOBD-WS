@@ -31,7 +31,7 @@ public class AutocompleteNameQueryBuilder extends QueryBuilder {
             "SELECT term.*, source.uid AS source_uid " +
             "FROM node term " +
             "JOIN node source ON (term.source_id = source.node_id) " +
-            "WHERE lower(term.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size());
+            "WHERE lower(term.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size()) + " AND term.is_obsolete = false";
         return query;
     }
 

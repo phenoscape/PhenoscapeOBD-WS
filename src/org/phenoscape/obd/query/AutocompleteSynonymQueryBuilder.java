@@ -32,7 +32,7 @@ public class AutocompleteSynonymQueryBuilder extends QueryBuilder {
             "FROM node term " +
             "JOIN node source ON (term.source_id = source.node_id) " +
             "JOIN alias ON (term.node_id = alias.node_id) " +
-            "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createPlaceholdersList(config.getNamespaces().size());
+            "WHERE lower(alias.label) LIKE ? " + "AND source.uid IN " + this.createPlaceholdersList(config.getNamespaces().size()) + " AND term.is_obsolete = false";
         return query;
     }
 
