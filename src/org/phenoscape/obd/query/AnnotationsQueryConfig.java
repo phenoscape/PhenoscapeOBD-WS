@@ -22,7 +22,8 @@ public class AnnotationsQueryConfig {
     private boolean matchAllPhenotypes = false;
     private boolean matchAllPublications = false;
     private boolean matchAllTaxa = false;
-    private POSTCOMP_OPTION postcompositionOption = POSTCOMP_OPTION.NONE;
+    //TODO change this to NONE once web interface begins sending this option
+    private POSTCOMP_OPTION postcompositionOption = POSTCOMP_OPTION.SIMPLE_LABEL;
 
     public boolean matchAllPhenotypes() {
         return matchAllPhenotypes;
