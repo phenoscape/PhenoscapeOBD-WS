@@ -351,28 +351,28 @@ public class PhenoscapeDataStore {
             public List<TaxonTerm> processResult(ResultSet result) throws SQLException {
                 final List<TaxonTerm> taxa = new ArrayList<TaxonTerm>();
                 while (result.next()) {
-                    final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
-                    taxon.setUID(result.getString("taxon_uid"));
-                    taxon.setLabel(result.getString("taxon_label"));
-                    taxon.setExtinct(result.getBoolean("taxon_is_extinct"));
-                    if (result.getString("taxon_rank_uid") != null) {
-                        final Term rank = new DefaultTerm(result.getInt("taxon_rank_node_id"), null);
-                        rank.setUID(result.getString("taxon_rank_uid"));
-                        rank.setLabel(result.getString("taxon_rank_label"));
+                    final TaxonTerm taxon = new TaxonTerm(result.getInt("node_id"), null);
+                    taxon.setUID(result.getString("uid"));
+                    taxon.setLabel(result.getString("label"));
+                    taxon.setExtinct(result.getBoolean("is_extinct"));
+                    if (result.getString("rank_uid") != null) {
+                        final Term rank = new DefaultTerm(result.getInt("rank_node_id"), null);
+                        rank.setUID(result.getString("rank_uid"));
+                        rank.setLabel(result.getString("rank_label"));
                         taxon.setRank(rank);
                     }
-                    if (result.getString("taxon_family_uid") != null) {
-                        final TaxonTerm family = new TaxonTerm(result.getInt("taxon_family_node_id"), null);
-                        family.setUID(result.getString("taxon_family_uid"));
-                        family.setLabel(result.getString("taxon_family_label"));
-                        family.setExtinct(result.getBoolean("taxon_family_is_extinct"));
+                    if (result.getString("family_uid") != null) {
+                        final TaxonTerm family = new TaxonTerm(result.getInt("family_node_id"), null);
+                        family.setUID(result.getString("family_uid"));
+                        family.setLabel(result.getString("family_label"));
+                        family.setExtinct(result.getBoolean("family_is_extinct"));
                         taxon.setTaxonomicFamily(family);
                     }
-                    if (result.getString("taxon_order_uid") != null) {
-                        final TaxonTerm order = new TaxonTerm(result.getInt("taxon_order_node_id"), null);
-                        order.setUID(result.getString("taxon_order_uid"));
-                        order.setLabel(result.getString("taxon_order_label"));
-                        order.setExtinct(result.getBoolean("taxon_order_is_extinct"));
+                    if (result.getString("order_uid") != null) {
+                        final TaxonTerm order = new TaxonTerm(result.getInt("order_node_id"), null);
+                        order.setUID(result.getString("order_uid"));
+                        order.setLabel(result.getString("order_label"));
+                        order.setExtinct(result.getBoolean("order_is_extinct"));
                         taxon.setTaxonomicOrder(order);
                     }
                     taxa.add(taxon);
@@ -663,9 +663,9 @@ public class PhenoscapeDataStore {
     }
 
     private Term createPublicationTerm(ResultSet result) throws SQLException {
-        final DefaultTerm term = new DefaultTerm(result.getInt("publication_node_id"), null);
-        term.setUID(result.getString("publication_uid"));
-        term.setLabel(result.getString("publication_label"));
+        final DefaultTerm term = new DefaultTerm(result.getInt("node_id"), null);
+        term.setUID(result.getString("uid"));
+        term.setLabel(result.getString("label"));
         return term;
     }
 

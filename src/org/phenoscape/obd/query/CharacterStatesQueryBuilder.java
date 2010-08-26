@@ -153,10 +153,6 @@ public class CharacterStatesQueryBuilder extends QueryBuilder {
         return buffer.toString();
     }
 
-    private String node(String uid) {
-        return String.format(NODE_S, uid);
-    }
-
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }

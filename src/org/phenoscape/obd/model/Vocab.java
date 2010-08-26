@@ -9,6 +9,7 @@ public class Vocab {
         public static final String INHERES_IN = "OBO_REL:inheres_in";
         public static final String INHERES_IN_PART_OF = "OBO_REL:inheres_in_part_of";
         public static final String INSTANCE_OF = "OBO_REL:instance_of";
+        public static final String TOWARDS = "OBO_REL:towards";
     }
 
     public static class TAO {

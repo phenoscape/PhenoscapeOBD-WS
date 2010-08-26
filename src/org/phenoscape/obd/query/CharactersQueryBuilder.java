@@ -14,8 +14,6 @@ public class CharactersQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
-    private static final String NODE = "(SELECT node.node_id FROM node WHERE node.uid=?)";
-    private static final String NODE_S = "(SELECT node.node_id FROM node WHERE node.uid='%s')";
 
     public CharactersQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
@@ -151,10 +149,6 @@ public class CharactersQueryBuilder extends QueryBuilder {
         buffer.append(StringUtils.join(terms, " AND "));
         buffer.append(")");
         return buffer.toString();
-    }
-
-    private String node(String uid) {
-        return String.format(NODE_S, uid);
     }
 
     private Logger log() {

@@ -43,5 +43,9 @@ public abstract class QueryBuilder {
         buffer.append(") ");
         return buffer.toString();
     }
+    
+    protected String node(String uid) {
+        return String.format(NODE_S, uid);
+    }
 
 }
