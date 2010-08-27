@@ -68,6 +68,9 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             synonyms.put(synonymObj);
         }
         json.put("synonyms", synonyms);
+        final JSONObject source = new JSONObject();
+        source.put("id",taxon.getSourceUID());
+        json.put("source", source);
         return json;
     }
     

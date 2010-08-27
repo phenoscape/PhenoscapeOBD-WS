@@ -180,6 +180,7 @@ public class PhenoscapeDataStore {
             public TaxonTerm processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
                     final TaxonTerm taxon = createTaxonTermWithProperties(result);
+                    taxon.setSourceUID(result.getString("source_uid"));
                     if (result.getString("parent_uid") != null) {
                         final TaxonTerm parent = new TaxonTerm(result.getInt("parent_node_id"), null);
                         parent.setUID(result.getString("parent_uid"));

@@ -64,6 +64,9 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
         json.put("synonyms", synonyms);
         json.put("definition", term.getDefinition());
         json.put("comment", term.getComment());
+        final JSONObject source = new JSONObject();
+        source.put("id", term.getSourceUID());
+        json.put("source", source);
         return json;
     }
 
