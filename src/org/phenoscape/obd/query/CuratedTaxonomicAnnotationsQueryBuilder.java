@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
+//TODO finish updating to new DB schema
 public class CuratedTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
@@ -56,8 +57,7 @@ public class CuratedTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT * FROM queryable_taxon_annotation " +
-            String.format("WHERE queryable_taxon_annotation.is_inferred = %s ", this.config.includeInferredAnnotations());
+            baseQuery = "SELECT * FROM annotation_source ";
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
