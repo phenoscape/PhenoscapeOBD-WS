@@ -74,14 +74,14 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT * FROM taxon ";    
+            baseQuery = String.format("SELECT * FROM taxon WHERE taxon.node_id in (SELECT taxon_node_id FROM %s) ", this.annotationTable);    
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
         final String query;
         if (this.totalOnly) {
             if (intersects.isEmpty()) {
-                query = "SELECT count(*) FROM taxon ";    
+                query = String.format("SELECT count(*) FROM taxon WHERE taxon.node_id in (SELECT taxon_node_id FROM %s) ", this.annotationTable);    
             } else {
                 query = "SELECT count(*) FROM " + "(" + baseQuery + ")" + "AS query";
             }

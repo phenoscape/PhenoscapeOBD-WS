@@ -56,7 +56,7 @@ public class PublicationsQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = String.format("SELECT * FROM node publication WHERE publication.source_id = %s", this.node(PHENOSCAPE.PUB_NAMESPACE));    
+            baseQuery = String.format("SELECT * FROM node publication WHERE publication.source_id = %s AND publication.node_id IN (SELECT publication_node_id FROM annotation_source) ", this.node(PHENOSCAPE.PUB_NAMESPACE));    
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
