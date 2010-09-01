@@ -25,6 +25,7 @@ import org.restlet.resource.Post;
 public class BulkTermNameResource extends AbstractPhenoscapeResource {
     
     public static String RENDER_POSTCOMPOSITIONS = "render_postcompositions";
+    POSTCOMP_OPTION postCompOption = POSTCOMP_OPTION.SIMPLE_LABEL;
     private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
     static {
         POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
@@ -37,17 +38,16 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
     public Representation acceptJSON(Representation json) {
         try {
             final JSONObject input = (new JsonRepresentation(json)).getJsonObject();
-            POSTCOMP_OPTION postCompOption = POSTCOMP_OPTION.NONE;
             if (input.has(RENDER_POSTCOMPOSITIONS)) {
                 final String option = input.getString(RENDER_POSTCOMPOSITIONS);
                 if (!POSTCOMP_OPTIONS.containsKey(option)) {
                     throw new JSONException("Invalid JSON contents");
                 }
-                postCompOption = POSTCOMP_OPTIONS.get(option);
+                this.postCompOption = POSTCOMP_OPTIONS.get(option);
             }
             if (input.has("ids")) {
                 final Set<String> ids = this.extractIDs(input.getJSONArray("ids"));
-                final JSONObject output = this.translate(this.getDataStore().getNamesForIDs(ids, postCompOption));
+                final JSONObject output = this.translate(this.getDataStore().getNamesForIDs(ids, this.postCompOption));
                 return new JsonRepresentation(output);
             } else {
                 throw new JSONException("Invalid JSON contents");

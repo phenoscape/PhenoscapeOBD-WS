@@ -21,7 +21,7 @@ import org.restlet.resource.ResourceException;
 public class TaxonAnnotationSourceResource extends AbstractPhenoscapeResource {
 
     private AnnotationsQueryConfig config;
-    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.NONE;
+    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.SIMPLE_LABEL;
     private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
     static {
         POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
