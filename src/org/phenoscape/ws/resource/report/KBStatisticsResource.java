@@ -5,7 +5,6 @@ import java.sql.SQLException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
-import org.phenoscape.obd.query.GeneAnnotationsQueryConfig;
 import org.phenoscape.ws.resource.AbstractPhenoscapeResource;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -32,15 +31,18 @@ public class KBStatisticsResource extends AbstractPhenoscapeResource {
     private JSONObject queryStatistics() throws JSONException, SQLException {
         //e.g. The Knowledgebase currently contains 333,987 phenotype statements about 2310 taxa, 
         //sourced from 51 publications. as well as 11,267 phenotype statements about 2953 genes
+        final AnnotationsQueryConfig defaultConfig = new AnnotationsQueryConfig();
         final JSONObject json = new JSONObject();
-        final int genesCount = this.getDataStore().getCountOfAnnotatedGenes(new GeneAnnotationsQueryConfig());
-        final int geneAnnotationsCount = this.getDataStore().getCountOfGeneAnnotations(new GeneAnnotationsQueryConfig());
-        final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(new AnnotationsQueryConfig());
-        final int taxonAnnotationsCount = this.getDataStore().getCountOfCuratedTaxonomicAnnotations(new AnnotationsQueryConfig());
+        final int genesCount = this.getDataStore().getCountOfAnnotatedGenes(defaultConfig);
+        final int geneAnnotationsCount = this.getDataStore().getCountOfGeneAnnotations(defaultConfig);
+        final int taxaCount = this.getDataStore().getCountOfAnnotatedTaxa(defaultConfig);
+        final int taxonAnnotationsCount = this.getDataStore().getCountOfCuratedTaxonomicAnnotations(defaultConfig);
+        final int annotatedPublicationsCount = this.getDataStore().getCountOfAnnotatedPublications(defaultConfig);
         json.put("annotated_genes", genesCount);
         json.put("gene_annotations", geneAnnotationsCount);
         json.put("annotated_taxa", taxaCount);
         json.put("taxon_annotations", taxonAnnotationsCount);
+        json.put("annotated_publications", annotatedPublicationsCount);
         return json;
     }
 
