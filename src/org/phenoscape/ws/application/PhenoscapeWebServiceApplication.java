@@ -12,6 +12,7 @@ import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.GeneAnnotationsSourceResource;
 import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
+import org.phenoscape.ws.resource.PathToRootResource;
 import org.phenoscape.ws.resource.PublicationsResource;
 import org.phenoscape.ws.resource.TaxaResource;
 import org.phenoscape.ws.resource.TaxonAnnotationSourceResource;
@@ -56,6 +57,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/names", BulkTermNameResource.class);
         router.attach("/term/{termID}", TermInfoResource.class);
+        router.attach("/term/{termID}/path", PathToRootResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/annotation/gene/source", GeneAnnotationsSourceResource.class);

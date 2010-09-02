@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.log4j.Logger;
 
 public class SupportingGenotypeAnnotationsQueryBuilder extends QueryBuilder {
 
@@ -44,7 +43,4 @@ public class SupportingGenotypeAnnotationsQueryBuilder extends QueryBuilder {
         return query.toString();
     }
 
-    private Logger log() {
-        return Logger.getLogger(this.getClass());
-    }
 }

@@ -1,8 +1,11 @@
 package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
+import java.util.List;
 
+import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 import org.phenoscape.obd.model.LinkedTerm;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
@@ -11,11 +14,8 @@ import org.restlet.representation.Representation;
 import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
-/**
- * A resource providing term info limited to the properties and relationships defined in source ontologies.
- */
-public class TermInfoResource extends AbstractPhenoscapeResource {
-
+public class PathToRootResource extends AbstractPhenoscapeResource {
+    
     private String termID = null;
 
     @Override
@@ -23,16 +23,16 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
         super.doInit();
         this.termID = Reference.decode((String)(this.getRequestAttributes().get("termID")));
     }
-
+    
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
-            final LinkedTerm term = this.getDataStore().getLinkedTerm(this.termID);
-            if (term == null) {
+            final List<LinkedTerm> terms = this.getDataStore().getPathForTerm(this.termID);
+            if (terms.isEmpty()) {
                 this.setStatus(Status.CLIENT_ERROR_NOT_FOUND);
                 return null;
             }
-            return new JsonRepresentation(TermResourceUtil.translate(term));
+            return new JsonRepresentation(this.translate(terms));
         } catch (JSONException e) {
             log().error("Failed to create JSON object for term: " + this.termID, e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
@@ -42,6 +42,16 @@ public class TermInfoResource extends AbstractPhenoscapeResource {
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
+    }
+    
+    private JSONObject translate(List<LinkedTerm> terms) throws JSONException {
+        final JSONObject json = new JSONObject();
+        final JSONArray path = new JSONArray();
+        for (LinkedTerm term : terms) {
+            path.put(TermResourceUtil.translate(term));
+        }
+        json.put("path", path);
+        return json;
     }
 
 }

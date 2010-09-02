@@ -261,6 +261,24 @@ public class PhenoscapeDataStore {
         return synonym;
     }
 
+    public List<LinkedTerm> getPathForTerm(String uid) throws SQLException {
+        final LinkedTerm term = this.getLinkedTerm(uid);
+        if (term != null) {
+            for (Relationship relationship : term.getSubjectLinks()) {
+                if (relationship.getPredicate().getUID().equals(OBO.IS_A)) {
+                    final List<LinkedTerm> terms = this.getPathForTerm(relationship.getOther().getUID());
+                    terms.add(term);
+                    return terms;
+                }
+            }
+            final List<LinkedTerm> terms = new ArrayList<LinkedTerm>();
+            terms.add(term);
+            return terms;
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
     public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
