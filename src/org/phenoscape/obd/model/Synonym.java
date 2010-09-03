@@ -4,6 +4,9 @@ public class Synonym {
     
     private String label;
     private String language;
+    public static enum SCOPE { BROAD, NARROW, RELATED, EXACT }
+    private SCOPE scope = null;
+    private Term type = null;
     
     public String getLabel() {
         return this.label;
@@ -29,4 +32,20 @@ public class Synonym {
         return this.language;
     }
 
+    public SCOPE getScope() {
+        return this.scope;
+    }
+    
+    public void setScope(SCOPE scope) {
+        this.scope = scope;
+    }
+    
+    public Term getType() {
+        return this.type;
+    }
+    
+    public void setType(Term type) {
+        this.type = type;
+    }
+    
 }

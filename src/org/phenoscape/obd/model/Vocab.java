@@ -27,6 +27,7 @@ public class Vocab {
         public static final String GONORYNCHIFORMES = "TTO:1350";
         public static final String CLUPEIFORMES = "TTO:1340";
         public static final String EUTELEOSTEI = "TTO:254";
+        public static final String COMMONNAME = "COMMONNAME";
 
         public static final String[] HIGHER_LEVEL_TAXA = {CHARACIFORMES, CLUPEIFORMES, CYPRINIFORMES, GONORYNCHIFORMES, GYMNOTIFORMES, SILURIFORMES, EUTELEOSTEI};
     }

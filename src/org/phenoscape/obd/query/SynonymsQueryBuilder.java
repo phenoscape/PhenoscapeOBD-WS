@@ -20,7 +20,7 @@ public class SynonymsQueryBuilder extends QueryBuilder {
 
     @Override
     protected String getQuery() {
-        return  "SELECT * FROM alias WHERE node_id = ?";
+        return  "SELECT alias.*, type.uid AS type_uid FROM alias LEFT JOIN node type ON (alias.type_id = type.node_id) WHERE alias.node_id = ?";
     }
 
 }

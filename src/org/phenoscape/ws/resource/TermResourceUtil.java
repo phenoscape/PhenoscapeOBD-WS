@@ -21,6 +21,10 @@ public class TermResourceUtil {
             final JSONObject synonymObj = new JSONObject();
             synonymObj.put("name", synonym.getLabel());
             synonymObj.put("lang", synonym.getLanguage());
+            synonymObj.put("scope", synonym.getScope());
+            if (synonym.getType() != null) {
+                synonymObj.put("type", translateMinimal(synonym.getType()));
+            }
             synonyms.put(synonymObj);
         }
         json.put("synonyms", synonyms);

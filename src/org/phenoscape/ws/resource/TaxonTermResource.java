@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
+import org.phenoscape.obd.model.Vocab.TTO;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -19,15 +20,15 @@ import org.restlet.resource.ResourceException;
  * @author Jim Balhoff
  */
 public class TaxonTermResource extends AbstractPhenoscapeResource {
-    
+
     private String termID = null;
-    
+
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
         this.termID = Reference.decode((String) (this.getRequestAttributes().get("termID")));
     }
-    
+
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
@@ -47,7 +48,7 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             return null;
         }
     }
-    
+
     private JSONObject translate(TaxonTerm taxon) throws JSONException {
         final JSONObject json = this.translateMinimal(taxon);
         if (taxon.getParent() != null) {
@@ -59,21 +60,31 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             final JSONObject child = this.translateMinimal(childTaxon);
             children.put(child);
         }
-        json.put("children", children);
-        final JSONArray synonyms = new JSONArray();
+        json.put("children", children);        
+        final JSONArray taxonomicSynonyms = new JSONArray();
+        final JSONArray commonNames = new JSONArray();
         for (Synonym synonym : taxon.getSynonyms()) {
             final JSONObject synonymObj = new JSONObject();
             synonymObj.put("name", synonym.getLabel());
             synonymObj.put("lang", synonym.getLanguage());
-            synonyms.put(synonymObj);
+            synonymObj.put("scope", synonym.getScope());
+            if (synonym.getType() != null) {
+                synonymObj.put("type", TermResourceUtil.translateMinimal(synonym.getType()));
+            }
+            if ((synonym.getType() != null) && (synonym.getType().getUID().equals(TTO.COMMONNAME))) {
+                commonNames.put(synonymObj);
+            } else {
+                taxonomicSynonyms.put(synonymObj);
+            }
         }
-        json.put("synonyms", synonyms);
+        json.put("synonyms", taxonomicSynonyms);
+        json.put("common_names", commonNames);
         final JSONObject source = new JSONObject();
         source.put("id",taxon.getSourceUID());
         json.put("source", source);
         return json;
     }
-    
+
     private JSONObject translateMinimal(TaxonTerm taxon) throws JSONException {
         final JSONObject json = new JSONObject();
         json.put("id", taxon.getUID());

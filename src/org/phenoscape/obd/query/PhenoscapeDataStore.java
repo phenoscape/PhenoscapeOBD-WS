@@ -31,6 +31,7 @@ import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonAnnotation;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
+import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.query.SearchHit.MatchType;
@@ -258,6 +259,16 @@ public class PhenoscapeDataStore {
     private Synonym createSynonym(ResultSet result) throws SQLException {
         final Synonym synonym = new Synonym();
         synonym.setLabel(result.getString("label"));
+        if (result.getString("scope") != null) {
+            final String scope = result.getString("scope");
+            if (scope.equals("B")) { synonym.setScope(SCOPE.BROAD); }
+            else if (scope.equals("N")) { synonym.setScope(SCOPE.NARROW); }
+            else if (scope.equals("E")) { synonym.setScope(SCOPE.EXACT); }
+            else if (scope.equals("R")) { synonym.setScope(SCOPE.RELATED); }
+        }
+        if (result.getString("type_uid") != null) {
+            synonym.setType(new SimpleTerm(result.getString("type_uid"), null));
+        }
         return synonym;
     }
 
