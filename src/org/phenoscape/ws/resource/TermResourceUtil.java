@@ -28,6 +28,11 @@ public class TermResourceUtil {
             synonyms.put(synonymObj);
         }
         json.put("synonyms", synonyms);
+        final JSONArray xrefs = new JSONArray();
+        for (Term xref : term.getXrefs()) {
+            xrefs.put(translateMinimal(xref));
+        }
+        json.put("xrefs", xrefs);
         json.put("definition", term.getDefinition());
         json.put("comment", term.getComment());
         final JSONObject source = new JSONObject();

@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.TaxonTerm;
+import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Vocab.TTO;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
@@ -79,6 +80,11 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
         }
         json.put("synonyms", taxonomicSynonyms);
         json.put("common_names", commonNames);
+        final JSONArray xrefs = new JSONArray();
+        for (Term xref : taxon.getXrefs()) {
+            xrefs.put(TermResourceUtil.translateMinimal(xref));
+        }
+        json.put("xrefs", xrefs);
         final JSONObject source = new JSONObject();
         source.put("id",taxon.getSourceUID());
         json.put("source", source);

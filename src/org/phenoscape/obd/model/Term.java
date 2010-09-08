@@ -1,4 +1,4 @@
-package org.phenoscape.obd.model;
+ package org.phenoscape.obd.model;
 
 import java.util.Set;
 
@@ -27,5 +27,9 @@ public interface Term {
     public String getSourceUID();
     
     public void setSourceUID(String sourceUID);
+    
+    public Set<Term> getXrefs();
+    
+    public void addXref(Term xref);
     
 }

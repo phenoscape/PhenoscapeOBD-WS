@@ -12,6 +12,7 @@ public class DefaultTerm implements LinkedTerm {
     private String comment;
     private String sourceUID;
     private Set<Synonym> synonyms = new HashSet<Synonym>();
+    private Set<Term> xrefs = new HashSet<Term>();
     private Set<Relationship> subjectLinks = new HashSet<Relationship>();
     private Set<Relationship> objectLinks = new HashSet<Relationship>();
     private final int nodeID;
@@ -68,6 +69,14 @@ public class DefaultTerm implements LinkedTerm {
 
     public void addSynonym(Synonym synonym) {
         this.synonyms.add(synonym);
+    }
+    
+    public Set<Term> getXrefs() {
+        return Collections.unmodifiableSet(this.xrefs);
+    }
+
+    public void addXref(Term term) {
+        this.xrefs.add(term);
     }
 
     /**

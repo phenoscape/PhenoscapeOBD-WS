@@ -122,6 +122,7 @@ public class PhenoscapeDataStore {
         term.setComment(result.getString("comment"));
         term.setSourceUID(result.getString("source_uid"));
         this.addSynonymsToTerm(term);
+        this.addXrefsToTerm(term);
         return term;
     }
 
@@ -173,7 +174,7 @@ public class PhenoscapeDataStore {
      * Return a TaxonTerm object for the given UID. Returns null if no taxon with that UID exists. 
      * The TaxonTerm will include references to its synonyms, parent, and children taxa.
      */
-    public TaxonTerm getTaxonTerm(final String uid, final boolean includeChildren, final boolean includeSynonyms) throws SQLException {
+    public TaxonTerm getTaxonTerm(final String uid, final boolean includeChildren, final boolean includeSynonymsAndXrefs) throws SQLException {
         //TODO add order and family to TaxonTerms?
         final QueryBuilder query = new TaxonQueryBuilder(uid);
         final TaxonTerm taxonTerm = (new QueryExecutor<TaxonTerm>(this.dataSource, query) {
@@ -196,7 +197,9 @@ public class PhenoscapeDataStore {
                         taxon.setParent(parent);
                     }
                     if (includeChildren) { addChildrenToTaxon(taxon); }
-                    if (includeSynonyms) { addSynonymsToTerm(taxon); }
+                    if (includeSynonymsAndXrefs) { 
+                        addSynonymsToTerm(taxon);
+                        addXrefsToTerm(taxon); }
                     return taxon;
                 }
                 //no taxon with this ID
@@ -270,6 +273,23 @@ public class PhenoscapeDataStore {
             synonym.setType(new SimpleTerm(result.getString("type_uid"), null));
         }
         return synonym;
+    }
+
+    private void addXrefsToTerm(DefaultTerm term) throws SQLException {
+        final QueryBuilder query = new XrefsQueryBuilder(term);
+        final Set<Term> xrefs = (new QueryExecutor<Set<Term>>(this.dataSource, query) {
+            @Override
+            public Set<Term> processResult(ResultSet result) throws SQLException {
+                final Set<Term> xrefs = new HashSet<Term>();
+                while (result.next()) {
+                    xrefs.add(new SimpleTerm(result.getString("xref_uid"), null));
+                }
+                return xrefs;
+            }
+        }).executeQuery();
+        for (Term xref : xrefs) {
+            term.addXref(xref);
+        }
     }
 
     public List<LinkedTerm> getPathForTerm(String uid) throws SQLException {

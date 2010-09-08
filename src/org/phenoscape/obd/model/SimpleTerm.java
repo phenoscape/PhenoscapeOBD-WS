@@ -15,6 +15,9 @@ public class SimpleTerm implements Term {
 
     @Override
     public void addSynonym(Synonym synonym) {}
+    
+    @Override
+    public void addXref(Term xref) {}
 
     @Override
     public String getComment() {
@@ -33,6 +36,11 @@ public class SimpleTerm implements Term {
 
     @Override
     public Set<Synonym> getSynonyms() {
+        return Collections.emptySet();
+    }
+    
+    @Override
+    public Set<Term> getXrefs() {
         return Collections.emptySet();
     }
 
