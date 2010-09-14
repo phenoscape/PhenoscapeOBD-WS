@@ -24,9 +24,9 @@ public interface Term {
 
     public void addSynonym(Synonym synonym);
     
-    public String getSourceUID();
+    public Term getSource();
     
-    public void setSourceUID(String sourceUID);
+    public void setSource(Term source);
     
     public Set<Term> getXrefs();
     

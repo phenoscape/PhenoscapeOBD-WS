@@ -120,7 +120,7 @@ public class PhenoscapeDataStore {
         term.setLabel(result.getString("label"));
         term.setDefinition(result.getString("definition"));
         term.setComment(result.getString("comment"));
-        term.setSourceUID(result.getString("source_uid"));
+        term.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
         this.addSynonymsToTerm(term);
         this.addXrefsToTerm(term);
         return term;
@@ -182,7 +182,7 @@ public class PhenoscapeDataStore {
             public TaxonTerm processResult(ResultSet result) throws SQLException {
                 while (result.next()) {
                     final TaxonTerm taxon = createTaxonTermWithProperties(result);
-                    taxon.setSourceUID(result.getString("source_uid"));
+                    taxon.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
                     if (result.getString("parent_uid") != null) {
                         final TaxonTerm parent = new TaxonTerm(result.getInt("parent_node_id"), null);
                         parent.setUID(result.getString("parent_uid"));
@@ -794,7 +794,7 @@ public class PhenoscapeDataStore {
         term.setUID(nodeResult.getString("uid"));
         final String label = nodeResult.getString("label");
         term.setLabel(label);
-        term.setSourceUID(nodeResult.getString("source_uid"));
+        term.setSource(new SimpleTerm(nodeResult.getString("source_uid"), nodeResult.getString("source_label")));
         final String matchText;
         if (type == MatchType.SYNONYM) {
             matchText = nodeResult.getString("synonym_label");

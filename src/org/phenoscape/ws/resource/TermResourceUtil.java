@@ -35,9 +35,7 @@ public class TermResourceUtil {
         json.put("xrefs", xrefs);
         json.put("definition", term.getDefinition());
         json.put("comment", term.getComment());
-        final JSONObject source = new JSONObject();
-        source.put("id", term.getSourceUID());
-        json.put("source", source);
+        json.put("source", TermResourceUtil.translateMinimal(term.getSource()));
         return json;
     }
 

@@ -28,7 +28,7 @@ public class AutocompleteNameQueryBuilder extends QueryBuilder {
     @Override
     protected String getQuery() {
         final String query = 
-            "SELECT term.*, source.uid AS source_uid " +
+            "SELECT term.*, source.uid AS source_uid, source.label AS source_label " +
             "FROM node term " +
             "JOIN node source ON (term.source_id = source.node_id) " +
             "WHERE lower(term.label) LIKE ? " + "AND source.uid IN " + this.createNamespacePlaceholders(config.getNamespaces().size()) + " AND term.is_obsolete = false";

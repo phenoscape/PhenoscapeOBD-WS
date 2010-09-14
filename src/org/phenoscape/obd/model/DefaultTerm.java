@@ -10,7 +10,7 @@ public class DefaultTerm implements LinkedTerm {
     private String label;
     private String definition;
     private String comment;
-    private String sourceUID;
+    private Term source;
     private Set<Synonym> synonyms = new HashSet<Synonym>();
     private Set<Term> xrefs = new HashSet<Term>();
     private Set<Relationship> subjectLinks = new HashSet<Relationship>();
@@ -101,12 +101,12 @@ public class DefaultTerm implements LinkedTerm {
         this.objectLinks.add(relationship);
     }
 
-    public String getSourceUID() {
-        return this.sourceUID;
+    public Term getSource() {
+        return this.source;
     }
 
-    public void setSourceUID(String sourceUID) {
-        this.sourceUID = sourceUID;
+    public void setSource(Term source) {
+        this.source = source;
     }
 
 }

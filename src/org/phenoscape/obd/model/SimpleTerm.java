@@ -69,12 +69,12 @@ public class SimpleTerm implements Term {
         throw new UnsupportedOperationException("UID is final");
     }
 
-    public String getSourceUID() {
+    public Term getSource() {
         return null;
     }
 
-    public void setSourceUID(String sourceUID) {
-        throw new UnsupportedOperationException("Source UID is not supported");
+    public void setSource(Term source) {
+        throw new UnsupportedOperationException("Source term is not supported");
     }
 
 }

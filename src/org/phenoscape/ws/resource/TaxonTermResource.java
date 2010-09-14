@@ -85,9 +85,7 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
             xrefs.put(TermResourceUtil.translateMinimal(xref));
         }
         json.put("xrefs", xrefs);
-        final JSONObject source = new JSONObject();
-        source.put("id",taxon.getSourceUID());
-        json.put("source", source);
+        json.put("source", TermResourceUtil.translateMinimal(taxon.getSource()));
         return json;
     }
 
