@@ -13,6 +13,8 @@ import org.phenoscape.ws.resource.GeneAnnotationsSourceResource;
 import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.PathToRootResource;
+import org.phenoscape.ws.resource.PublicationMatrixResource;
+import org.phenoscape.ws.resource.PublicationTermResource;
 import org.phenoscape.ws.resource.PublicationsResource;
 import org.phenoscape.ws.resource.TaxaResource;
 import org.phenoscape.ws.resource.TaxonAnnotationSourceResource;
@@ -54,10 +56,12 @@ public class PhenoscapeWebServiceApplication extends Application {
         final Router router = new Router(this.getContext());
         // URL mappings
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
+        router.attach("/term/publication/{publicationID}/matrix", PublicationMatrixResource.class);
+        router.attach("/term/publication/{publicationID}", PublicationTermResource.class);
         router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/names", BulkTermNameResource.class);
-        router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/term/{termID}/path", PathToRootResource.class);
+        router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);
         router.attach("/annotation/gene", GeneAnnotationsResource.class);
         router.attach("/annotation/gene/source", GeneAnnotationsSourceResource.class);
