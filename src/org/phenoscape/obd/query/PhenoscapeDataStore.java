@@ -39,6 +39,7 @@ import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.model.Vocab.PATO;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
@@ -62,6 +63,8 @@ public class PhenoscapeDataStore {
         POSTCOMP_RELATIONS.put("BSPO:0000099", "posterior to");
         POSTCOMP_RELATIONS.put("adjacent_to", "adjacent to");
         POSTCOMP_RELATIONS.put("OBO_REL:adjacent_to", "adjacent to");
+        POSTCOMP_RELATIONS.put(PATO.INCREASED_IN_MAGNITUDE_RELATIVE_TO, "increased in magnitude relative to");
+        POSTCOMP_RELATIONS.put(PATO.DECREASED_IN_MAGNITUDE_RELATIVE_TO, "decreased in magnitude relative to");
     }
 
     public PhenoscapeDataStore(DataSource dataSource) {
