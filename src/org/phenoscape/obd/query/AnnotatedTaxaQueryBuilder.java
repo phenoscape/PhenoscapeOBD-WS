@@ -54,7 +54,7 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
                 statement.setString(index++, publicationID);
             }
         }
-        if (!this.totalOnly) {
+        if (!this.totalOnly && this.hasLimit()) {
             statement.setInt(index++, this.config.getLimit());
             statement.setInt(index++, this.config.getIndex());
         }
@@ -87,11 +87,23 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
             }
 
         } else {
-            query = "(" + baseQuery + ") " + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = "(" + baseQuery + ") " + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + this.getLimitText();
         }
         return query;
     }
-
+    
+    private boolean hasLimit() {
+        return this.config.getLimit() > -1;
+    }
+    
+    private String getLimitText() {
+        if (this.hasLimit()) {
+            return "LIMIT ? OFFSET ? ";
+        } else {
+            return "";
+        }
+    }
+ 
     private String getSortText() {
         return this.config.sortDescending() ? "DESC " : ""; 
     }

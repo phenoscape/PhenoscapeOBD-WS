@@ -17,9 +17,14 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
+import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
+import org.biojavax.bio.phylo.io.nexus.NexusFile;
+import org.biojavax.bio.phylo.io.nexus.TaxaBlock;
+import org.nexml.model.Document;
+import org.nexml.model.DocumentFactory;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
@@ -34,6 +39,7 @@ import org.phenoscape.obd.model.Term;
 import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -926,6 +932,30 @@ public class PhenoscapeDataStore {
         } else {
             return new SimpleTerm(uid, label);
         }
+    }
+    
+    public NexusFile getNexusFileForPublication(String pubID) throws SQLException, org.biojava.bio.seq.io.ParseException {
+        log().debug("Getting NEXUS file");
+        final NexusFile nexus = new NexusFile();
+        final TaxaBlock taxaBlock = new TaxaBlock();
+        final AnnotationsQueryConfig config = new AnnotationsQueryConfig();
+        config.addPublicationID(pubID);
+        config.setSortColumn(SORT_COLUMN.TAXON);
+        final List<TaxonTerm> taxa = this.getAnnotatedTaxa(config);
+        for (TaxonTerm taxon : taxa) {
+            taxaBlock.addTaxLabel(taxon.getLabel());
+            log().debug("Adding taxon: " + taxon.getLabel());
+        }
+        taxaBlock.setDimensionsNTax(taxa.size());
+        nexus.addObject(taxaBlock);
+        //TODO
+        return nexus;
+    }
+    
+    public Document getNexmlDocumentForPublication(String pubID) throws ParserConfigurationException {
+        final Document nexml = DocumentFactory.createDocument();
+        //TODO
+        return nexml;
     }
 
     private Logger log() {
