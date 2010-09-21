@@ -65,6 +65,7 @@ public class PhenoscapeDataStore {
         POSTCOMP_RELATIONS.put("OBO_REL:adjacent_to", "adjacent to");
         POSTCOMP_RELATIONS.put(PATO.INCREASED_IN_MAGNITUDE_RELATIVE_TO, "increased in magnitude relative to");
         POSTCOMP_RELATIONS.put(PATO.DECREASED_IN_MAGNITUDE_RELATIVE_TO, "decreased in magnitude relative to");
+        POSTCOMP_RELATIONS.put(PATO.SIMILAR_IN_MAGNITUDE_RELATIVE_TO, "similar in magnitude relative to");
     }
 
     public PhenoscapeDataStore(DataSource dataSource) {

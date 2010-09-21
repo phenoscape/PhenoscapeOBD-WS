@@ -38,6 +38,7 @@ public class Vocab {
         public static final String NAMESPACE = "quality";
         public static final String INCREASED_IN_MAGNITUDE_RELATIVE_TO = "increased_in_magnitude_relative_to";
         public static final String DECREASED_IN_MAGNITUDE_RELATIVE_TO = "decreased_in_magnitude_relative_to";
+        public static final String SIMILAR_IN_MAGNITUDE_RELATIVE_TO = "similar_in_magnitude_relative_to";
     }
 
     public static class GO {
