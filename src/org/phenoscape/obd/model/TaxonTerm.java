@@ -12,6 +12,7 @@ public class TaxonTerm extends DefaultTerm {
     private Term rank = null;
     private TaxonTerm taxonomicFamily = null;
     private TaxonTerm taxonomicOrder = null;
+    private int speciesCount = 0;
 
     public TaxonTerm(int nodeID, Integer sourceID) {
         super(nodeID, sourceID);
@@ -68,6 +69,14 @@ public class TaxonTerm extends DefaultTerm {
     
     public void setRank(Term rank) {
         this.rank = rank;
+    }
+ 
+    public int getSpeciesCount() {
+        return this.speciesCount;
+    }
+    
+    public void setSpeciesCount(int count) {
+        this.speciesCount = count;
     }
 
 }

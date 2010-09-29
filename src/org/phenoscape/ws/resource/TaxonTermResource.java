@@ -86,6 +86,7 @@ public class TaxonTermResource extends AbstractPhenoscapeResource {
         }
         json.put("xrefs", xrefs);
         json.put("source", TermResourceUtil.translateMinimal(taxon.getSource()));
+        json.put("species_count", taxon.getSpeciesCount());
         return json;
     }
 
