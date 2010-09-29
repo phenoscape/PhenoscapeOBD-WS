@@ -32,6 +32,11 @@ public class Vocab {
 
         public static final String[] HIGHER_LEVEL_TAXA = {CHARACIFORMES, CLUPEIFORMES, CYPRINIFORMES, GONORYNCHIFORMES, GYMNOTIFORMES, SILURIFORMES, EUTELEOSTEI};
     }
+    
+    public static class TAXRANK {
+        
+        public static final String SPECIES = "TAXRANK:0000006";
+    }
 
     public static class PATO {
 

@@ -206,7 +206,10 @@ public class PhenoscapeDataStore {
                         }
                         taxon.setParent(parent);
                     }
-                    if (includeChildren) { addChildrenToTaxon(taxon); }
+                    if (includeChildren) {
+                        addChildrenToTaxon(taxon);
+                        taxon.setSpeciesCount(getSpeciesCountForTaxon(uid));
+                        }
                     if (includeSynonymsAndXrefs) { 
                         addSynonymsToTerm(taxon);
                         addXrefsToTerm(taxon); }
@@ -216,6 +219,18 @@ public class PhenoscapeDataStore {
                 return null;
             }}).executeQuery();
         return taxonTerm;
+    }
+    
+    public int getSpeciesCountForTaxon(String uid) throws SQLException {
+        final QueryBuilder query = new SpeciesCountQueryBuilder(uid);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return result.getInt("species_count");
+                }
+                return 0;
+            }}).executeQuery(); 
     }
 
     private void addChildrenToTaxon(TaxonTerm taxon) throws SQLException {
