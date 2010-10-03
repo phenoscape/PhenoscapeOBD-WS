@@ -30,6 +30,7 @@ import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.GeneTerm;
 import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Synonym;
@@ -209,10 +210,11 @@ public class PhenoscapeDataStore {
                     if (includeChildren) {
                         addChildrenToTaxon(taxon);
                         taxon.setSpeciesCount(getSpeciesCountForTaxon(uid));
-                        }
+                    }
                     if (includeSynonymsAndXrefs) { 
                         addSynonymsToTerm(taxon);
-                        addXrefsToTerm(taxon); }
+                        addXrefsToTerm(taxon);
+                    }
                     return taxon;
                 }
                 //no taxon with this ID
@@ -220,7 +222,7 @@ public class PhenoscapeDataStore {
             }}).executeQuery();
         return taxonTerm;
     }
-    
+
     public int getSpeciesCountForTaxon(String uid) throws SQLException {
         final QueryBuilder query = new SpeciesCountQueryBuilder(uid);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
@@ -333,6 +335,25 @@ public class PhenoscapeDataStore {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    public PublicationTerm getPublicationTerm(String uid) throws SQLException {
+        final QueryBuilder query = new PublicationTermQueryBuilder(uid);
+        return (new QueryExecutor<PublicationTerm>(this.dataSource, query) {
+            @Override
+            public PublicationTerm processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    final PublicationTerm publication = new PublicationTerm(result.getInt("node_id"), result.getInt("source_id"));
+                    publication.setUID(result.getString("uid"));
+                    publication.setLabel(result.getString("label"));
+                    publication.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
+                    publication.setCitation(result.getString("citation_label"));
+                    publication.setAbstractText(result.getString("abstract_label"));
+                    return publication;
+                }
+                //no publication with this ID
+                return null;
+            }}).executeQuery();
     }
 
     public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
@@ -952,7 +973,7 @@ public class PhenoscapeDataStore {
             return new SimpleTerm(uid, label);
         }
     }
-    
+
     public NexusFile getNexusFileForPublication(String pubID) throws SQLException, org.biojava.bio.seq.io.ParseException {
         log().debug("Getting NEXUS file");
         final NexusFile nexus = new NexusFile();
@@ -970,7 +991,7 @@ public class PhenoscapeDataStore {
         //TODO
         return nexus;
     }
-    
+
     public Document getNexmlDocumentForPublication(String pubID) throws ParserConfigurationException {
         final Document nexml = DocumentFactory.createDocument();
         //TODO

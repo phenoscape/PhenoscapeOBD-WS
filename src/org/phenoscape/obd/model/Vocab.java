@@ -72,5 +72,11 @@ public class Vocab {
         public static final String HAS_PHENOTYPE = "cdao:has_Phenotype";
 
     }
+    
+    /** Dublin Core */
+    public static class DC {
+        public static final String ABSTRACT = "dc:abstract";
+        public static final String CITATION = "dc:bibliographicCitation";
+    }
 
 }
