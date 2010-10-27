@@ -12,5 +12,19 @@ public class Character extends SimpleTerm {
     public String getNumber() {
         return this.number;
     }
+    
+    @Override
+    public int hashCode() {
+        return this.getUID().hashCode();
+    }
+    
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof Character) {
+            final Character otherCharacter = (Character)other;
+            return (this.getUID().equals(otherCharacter.getUID()));
+        }
+        return false;
+    }
 
 }

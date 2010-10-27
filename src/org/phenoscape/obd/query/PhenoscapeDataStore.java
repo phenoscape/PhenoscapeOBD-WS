@@ -17,19 +17,16 @@ import java.util.Map;
 import java.util.Set;
 
 import javax.sql.DataSource;
-import javax.xml.parsers.ParserConfigurationException;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
-import org.biojavax.bio.phylo.io.nexus.NexusFile;
-import org.biojavax.bio.phylo.io.nexus.TaxaBlock;
-import org.nexml.model.Document;
-import org.nexml.model.DocumentFactory;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
 import org.phenoscape.obd.model.GeneTerm;
 import org.phenoscape.obd.model.LinkedTerm;
+import org.phenoscape.obd.model.Matrix;
+import org.phenoscape.obd.model.OTU;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
@@ -41,7 +38,6 @@ import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.model.Vocab.PATO;
-import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -974,28 +970,32 @@ public class PhenoscapeDataStore {
         }
     }
 
-    public NexusFile getNexusFileForPublication(String pubID) throws SQLException, org.biojava.bio.seq.io.ParseException {
-        log().debug("Getting NEXUS file");
-        final NexusFile nexus = new NexusFile();
-        final TaxaBlock taxaBlock = new TaxaBlock();
-        final AnnotationsQueryConfig config = new AnnotationsQueryConfig();
-        config.addPublicationID(pubID);
-        config.setSortColumn(SORT_COLUMN.TAXON);
-        final List<TaxonTerm> taxa = this.getAnnotatedTaxa(config);
-        for (TaxonTerm taxon : taxa) {
-            taxaBlock.addTaxLabel(taxon.getLabel());
-            log().debug("Adding taxon: " + taxon.getLabel());
-        }
-        taxaBlock.setDimensionsNTax(taxa.size());
-        nexus.addObject(taxaBlock);
-        //TODO
-        return nexus;
-    }
-
-    public Document getNexmlDocumentForPublication(String pubID) throws ParserConfigurationException {
-        final Document nexml = DocumentFactory.createDocument();
-        //TODO
-        return nexml;
+    public Matrix getMatrixForPublication(String pubID) throws SQLException {
+        final QueryBuilder query = new MatrixDataQueryBuilder(pubID);
+        return (new QueryExecutor<Matrix>(this.dataSource, query) {
+            @Override
+            public Matrix processResult(ResultSet result) throws SQLException {
+                final Matrix matrix = new Matrix();
+                while (result.next()) {
+                    final OTU otu = new OTU(result.getInt("otu_node_id"));
+                    otu.setUID(result.getString("otu_uid"));
+                    otu.setLabel(result.getString("otu_label"));
+                    otu.setComment(result.getString("otu_comment"));
+                    final TaxonTerm taxon = new TaxonTerm(0, null);
+                    taxon.setUID(result.getString("taxon_uid"));
+                    taxon.setLabel(result.getString("taxon_label"));
+                    if (result.getString("rank_uid") != null) {
+                        taxon.setRank(new SimpleTerm(result.getString("rank_uid"), result.getString("rank_label")));
+                    }
+                    taxon.setExtinct(result.getBoolean("is_extinct"));
+                    otu.setTaxon(taxon);
+                    final Character character = new Character(result.getString("character_uid"), result.getString("character_label"), result.getString("character_number"));
+                    final Term state = new SimpleTerm(result.getString("state_uid"), result.getString("state_label"));
+                    matrix.setState(otu, character, state);
+                }
+                return matrix;
+            }
+        }).executeQuery();
     }
 
     private Logger log() {
