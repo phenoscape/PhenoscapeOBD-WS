@@ -63,6 +63,7 @@ public class Vocab {
     public static class PHENOSCAPE {
         public static final String PUB_NAMESPACE = "phenoscape_pub";
         public static final String PUBLICATION = "PHENOSCAPE:Publication";
+        public static final String COMPLEMENT_OF = "PHENOSCAPE:complement_of";
     }
 
     public static class CDAO {

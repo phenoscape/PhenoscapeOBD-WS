@@ -31,13 +31,14 @@ import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Synonym;
+import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.TaxonAnnotation;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
-import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.model.Vocab.PATO;
+import org.phenoscape.obd.model.Vocab.PHENOSCAPE;
 import org.phenoscape.obd.query.SearchHit.MatchType;
 
 import com.eekboom.utils.Strings;
@@ -63,6 +64,7 @@ public class PhenoscapeDataStore {
         POSTCOMP_RELATIONS.put(PATO.INCREASED_IN_MAGNITUDE_RELATIVE_TO, "increased in magnitude relative to");
         POSTCOMP_RELATIONS.put(PATO.DECREASED_IN_MAGNITUDE_RELATIVE_TO, "decreased in magnitude relative to");
         POSTCOMP_RELATIONS.put(PATO.SIMILAR_IN_MAGNITUDE_RELATIVE_TO, "similar in magnitude relative to");
+        POSTCOMP_RELATIONS.put(PHENOSCAPE.COMPLEMENT_OF, "not");
     }
 
     public PhenoscapeDataStore(DataSource dataSource) {
@@ -777,6 +779,7 @@ public class PhenoscapeDataStore {
             sortedHits.addAll(synonymMatches);
         }
         Collections.sort(sortedHits, new Comparator<SearchHit>() {
+            @Override
             public int compare(SearchHit a, SearchHit b) {
                 final boolean aStartsWithMatch = a.getMatchText().toLowerCase().startsWith(config.getSearchText().toLowerCase());
                 final boolean bStartsWithMatch = b.getMatchText().toLowerCase().startsWith(config.getSearchText().toLowerCase());
