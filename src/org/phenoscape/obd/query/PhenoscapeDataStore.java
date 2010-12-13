@@ -899,60 +899,62 @@ public class PhenoscapeDataStore {
     }
 
     public String semanticLabel(Term term) {
+        //TODO rewrite to use PLPGSQL function
         if (term.getLabel() != null) {
             return term.getLabel();
         } else if (term instanceof LinkedTerm) {
             final LinkedTerm linkedTerm = (LinkedTerm)term;
-            final List<String> differentia = new ArrayList<String>();
+            final List<String> differentiae = new ArrayList<String>();
             if (linkedTerm.getSubjectLinks().isEmpty()) {
                 log().error("No differentia arguments for: " + linkedTerm.getUID());
                 return linkedTerm.getUID();
             }
             Term genus = new SimpleTerm("", null);
-            for (Relationship differentium : linkedTerm.getSubjectLinks()) {
-                if (differentium.getPredicate().getUID().equals(OBO.IS_A)) {
-                    genus = differentium.getOther();
+            for (Relationship differentia : linkedTerm.getSubjectLinks()) {
+                if (differentia.getPredicate().getUID().equals(OBO.IS_A)) {
+                    genus = differentia.getOther();
                 } else {
                     final StringBuffer buffer = new StringBuffer();
-                    buffer.append(semanticLabel(differentium.getPredicate()));
+                    buffer.append(semanticLabel(differentia.getPredicate()));
                     buffer.append("(");
-                    buffer.append(semanticLabel(differentium.getOther()));
+                    buffer.append(semanticLabel(differentia.getOther()));
                     buffer.append(")");
-                    differentia.add(buffer.toString());
+                    differentiae.add(buffer.toString());
                 }
             }
-            return semanticLabel(genus) + "(" + StringUtils.join(differentia, ", ") + ")";
+            return semanticLabel(genus) + "(" + StringUtils.join(differentiae, ", ") + ")";
         } else {
             return term.getUID();
         }
     }
 
     public String simpleLabel(Term term) {
+      //TODO rewrite to use PLPGSQL function
         if (term.getLabel() != null) {
             return term.getLabel();
         } else if (term instanceof LinkedTerm) {
             final LinkedTerm linkedTerm = (LinkedTerm)term;
-            final List<String> differentia = new ArrayList<String>();
+            final List<String> differentiae = new ArrayList<String>();
             if (linkedTerm.getSubjectLinks().isEmpty()) {
                 log().error("No differentia arguments for: " + linkedTerm.getUID());
                 return linkedTerm.getUID();
             }
             Term genus = new SimpleTerm("", null);
-            for (Relationship differentium : linkedTerm.getSubjectLinks()) {
-                if (differentium.getPredicate().getUID().equals(OBO.IS_A)) {
-                    genus = differentium.getOther();
+            for (Relationship differentia : linkedTerm.getSubjectLinks()) {
+                if (differentia.getPredicate().getUID().equals(OBO.IS_A)) {
+                    genus = differentia.getOther();
                 } else {
-                    final String relationID = differentium.getPredicate().getUID();
+                    final String relationID = differentia.getPredicate().getUID();
                     final String relationSubstitute = POSTCOMP_RELATIONS.containsKey(relationID) ? POSTCOMP_RELATIONS.get(relationID) : "of";
                     final StringBuffer buffer = new StringBuffer();
                     buffer.append(" ");
                     buffer.append(relationSubstitute);
                     buffer.append(" ");
-                    buffer.append(simpleLabel(differentium.getOther()));
-                    differentia.add(buffer.toString());
+                    buffer.append(simpleLabel(differentia.getOther()));
+                    differentiae.add(buffer.toString());
                 }
             }
-            return simpleLabel(genus) + StringUtils.join(differentia, ", ");
+            return simpleLabel(genus) + StringUtils.join(differentiae, ", ");
         } else {
             return term.getUID();
         }
