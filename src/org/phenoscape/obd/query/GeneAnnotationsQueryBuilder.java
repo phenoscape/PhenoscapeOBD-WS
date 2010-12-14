@@ -19,10 +19,10 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
     private final boolean totalOnly;
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
-        COLUMNS.put(SORT_COLUMN.GENE, "gene_label");
-        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_label");
-        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_label");
-        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
+        COLUMNS.put(SORT_COLUMN.GENE, "gene_node_id");
+        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_node_id");
+        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_node_id");
+        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_node_id");
     }
 
     public GeneAnnotationsQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
@@ -74,7 +74,7 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
         } else {
-            query = baseQuery + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = String.format("SELECT query.*, smart_node_label.simple_label AS sort_label FROM (%s) AS query JOIN smart_node_label ON (smart_node_label.node_id = %s) ORDER BY sort_label %s LIMIT ? OFFSET ? ", baseQuery, COLUMNS.get(this.config.getSortColumn()), this.getSortText());
         }
         return query;
     }
@@ -148,6 +148,7 @@ public class GeneAnnotationsQueryBuilder extends QueryBuilder {
         return buffer.toString();
     }
 
+    @SuppressWarnings("unused")
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }

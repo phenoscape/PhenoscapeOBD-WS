@@ -20,10 +20,10 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
     private static final String JOIN = " JOIN taxon ON (taxon.node_id = taxon_node_id) JOIN phenotype ON (phenotype.node_id = phenotype_node_id) ";
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
-        COLUMNS.put(SORT_COLUMN.TAXON, "taxon_label");
-        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_label");
-        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_label");
-        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_label");
+        COLUMNS.put(SORT_COLUMN.TAXON, "taxon_node_id");
+        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_node_id");
+        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_node_id");
+        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_node_id");
     }
 
     public DistinctTaxonomicAnnotationsQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
@@ -76,9 +76,9 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = String.format("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.is_extinct AS taxon_is_extinct, taxon.rank_node_id AS taxon_rank_node_id, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, phenotype.entity_node_id, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_node_id, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_node_id, phenotype.related_entity_uid, phenotype.related_entity_label FROM %s", this.annotationTable);
+            baseQuery = String.format("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.is_extinct AS taxon_is_extinct, taxon.rank_node_id AS taxon_rank_node_id, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, phenotype.entity_node_id, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_node_id, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_node_id, phenotype.related_entity_uid, phenotype.related_entity_label, smart_node_label.simple_label AS sort_label FROM %s ", this.annotationTable);
         } else {
-            baseQuery = "SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.is_extinct AS taxon_is_extinct, taxon.rank_node_id AS taxon_rank_node_id, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, phenotype.entity_node_id, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_node_id, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_node_id, phenotype.related_entity_uid, phenotype.related_entity_label FROM (" + StringUtils.join(intersects, " INTERSECT ") + ") AS query ";
+            baseQuery = "SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.is_extinct AS taxon_is_extinct, taxon.rank_node_id AS taxon_rank_node_id, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, phenotype.entity_node_id, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_node_id, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_node_id, phenotype.related_entity_uid, phenotype.related_entity_label, smart_node_label.simple_label AS sort_label FROM (" + StringUtils.join(intersects, " INTERSECT ") + ") AS query ";
         }
         final String query;
         if (this.totalOnly) {
@@ -88,7 +88,7 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
                 query = "SELECT count(*) FROM (" + StringUtils.join(intersects, " INTERSECT ") + ") AS query";
             }
         } else {
-            query = baseQuery + JOIN + "ORDER BY " + COLUMNS.get(this.config.getSortColumn()) + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = baseQuery + this.getJoinText() + "ORDER BY sort_label " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         return query;
     }
@@ -205,6 +205,10 @@ public class DistinctTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         query.append(")");
         query.append(") ");
         return query.toString();
+    }
+    
+    private String getJoinText() {
+        return JOIN + String.format("JOIN smart_node_label ON (smart_node_label.node_id = %s) ", COLUMNS.get(this.config.getSortColumn()));
     }
 
 }
