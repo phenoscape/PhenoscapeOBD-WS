@@ -14,6 +14,7 @@ import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.PathToRootResource;
 import org.phenoscape.ws.resource.PublicationMatrixResource;
+import org.phenoscape.ws.resource.PublicationOTUsResource;
 import org.phenoscape.ws.resource.PublicationTermResource;
 import org.phenoscape.ws.resource.PublicationsResource;
 import org.phenoscape.ws.resource.TaxaResource;
@@ -57,6 +58,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         // URL mappings
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
         router.attach("/term/publication/{publicationID}/matrix", PublicationMatrixResource.class);
+        router.attach("/term/publication/{publicationID}/otus", PublicationOTUsResource.class);
         router.attach("/term/publication/{publicationID}", PublicationTermResource.class);
         router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/names", BulkTermNameResource.class);
