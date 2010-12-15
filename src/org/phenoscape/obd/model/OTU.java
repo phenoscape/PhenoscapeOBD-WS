@@ -1,5 +1,7 @@
 package org.phenoscape.obd.model;
 
+import java.util.List;
+
 public class OTU extends DefaultTerm {
     
     private TaxonTerm taxon;
@@ -28,6 +30,11 @@ public class OTU extends DefaultTerm {
             return (this.getUID().equals(otherOTU.getUID()));
         }
         return false;
+    }
+
+    public List<Specimen> getSpecimens() {
+        // TODO Auto-generated method stub
+        return null;
     }
     
 }

@@ -1002,6 +1002,18 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
+    
+    public List<OTU> getOTUsForPublication(String pubID) throws SQLException {
+        final QueryBuilder query = new PublicationOTUsQueryBuilder(pubID);
+        return (new QueryExecutor<List<OTU>>(this.dataSource, query) {
+            @Override
+            public List<OTU> processResult(ResultSet result)
+                    throws SQLException {
+                // TODO Auto-generated method stub
+                return null;
+            }
+        }).executeQuery();
+    }
 
     private Logger log() {
         return Logger.getLogger(this.getClass());

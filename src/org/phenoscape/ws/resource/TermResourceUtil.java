@@ -8,6 +8,7 @@ import org.json.JSONObject;
 import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.Synonym;
+import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
 
 public class TermResourceUtil {
@@ -55,6 +56,26 @@ public class TermResourceUtil {
         json.put("id", term.getUID());
         json.put("name", term.getLabel());
         return json;
+    }
+    
+    public static JSONObject translateMinimal(TaxonTerm taxon) throws JSONException {
+        final JSONObject json = translateMinimal(taxon);
+        json.put("extinct", taxon.isExtinct());
+        if (taxon.getRank() != null) {
+            final JSONObject rank = translateMinimal(taxon.getRank());
+            json.put("rank", rank);
+        }
+        if (taxon.getTaxonomicFamily() != null) {
+            final JSONObject taxonomicFamily = translateMinimal(taxon.getTaxonomicFamily());
+            taxonomicFamily.put("extinct", taxon.getTaxonomicFamily().isExtinct());
+            json.put("family", taxonomicFamily);
+        }
+        if (taxon.getTaxonomicOrder() != null) {
+            final JSONObject taxonomicOrder = translateMinimal(taxon.getTaxonomicOrder());
+            taxonomicOrder.put("extinct", taxon.getTaxonomicOrder().isExtinct());
+            json.put("order", taxonomicOrder);
+        }
+        return json;    
     }
     
 }
