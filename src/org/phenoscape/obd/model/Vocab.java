@@ -63,6 +63,8 @@ public class Vocab {
     public static class PHENOSCAPE {
         public static final String PUB_NAMESPACE = "phenoscape_pub";
         public static final String PUBLICATION = "PHENOSCAPE:Publication";
+        public static final String HAS_PUBLICATION = "PHENOSCAPE:has_publication";
+        public static final String HAS_TAXON = "PHENOSCAPE:has_taxon";
         public static final String COMPLEMENT_OF = "PHENOSCAPE:complement_of";
     }
 
@@ -70,6 +72,7 @@ public class Vocab {
         public static final String CHARACTER = "cdao:Character";
         public static final String CHARACTER_STATE = "cdao:CharacterStateDomain";
         public static final String OTU = "cdao:TU";
+        public static final String HAS_OTU = "cdao:has_TU"; 
         public static final String HAS_PHENOTYPE = "cdao:has_Phenotype";
 
     }
@@ -78,6 +81,13 @@ public class Vocab {
     public static class DC {
         public static final String ABSTRACT = "dc:abstract";
         public static final String CITATION = "dc:bibliographicCitation";
+    }
+    
+    /** Darwin Core */
+    public static class DWC {
+        public static final String INDIVIDUAL_ID = "dwc:individualID";
+        public static final String COLLECTION_ID = "dwc:collectionID";
+        public static final String CATALOG_ID = "dwc:catalogID";
     }
 
 }

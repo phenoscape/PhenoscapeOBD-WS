@@ -1007,8 +1007,7 @@ public class PhenoscapeDataStore {
         final QueryBuilder query = new PublicationOTUsQueryBuilder(pubID);
         return (new QueryExecutor<List<OTU>>(this.dataSource, query) {
             @Override
-            public List<OTU> processResult(ResultSet result)
-                    throws SQLException {
+            public List<OTU> processResult(ResultSet result) throws SQLException {
                 // TODO Auto-generated method stub
                 return null;
             }
