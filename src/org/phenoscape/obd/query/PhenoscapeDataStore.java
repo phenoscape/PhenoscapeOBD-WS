@@ -30,6 +30,7 @@ import org.phenoscape.obd.model.OTU;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
+import org.phenoscape.obd.model.Specimen;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.TaxonAnnotation;
@@ -929,7 +930,7 @@ public class PhenoscapeDataStore {
     }
 
     public String simpleLabel(Term term) {
-      //TODO rewrite to use PLPGSQL function
+        //TODO rewrite to use PLPGSQL function
         if (term.getLabel() != null) {
             return term.getLabel();
         } else if (term instanceof LinkedTerm) {
@@ -1002,14 +1003,43 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<OTU> getOTUsForPublication(String pubID) throws SQLException {
         final QueryBuilder query = new PublicationOTUsQueryBuilder(pubID);
         return (new QueryExecutor<List<OTU>>(this.dataSource, query) {
             @Override
             public List<OTU> processResult(ResultSet result) throws SQLException {
-                // TODO Auto-generated method stub
-                return null;
+                final List<OTU> otus = new ArrayList<OTU>();
+                while (result.next()) {
+                    final OTU otu = new OTU(result.getInt("node_id"));
+                    otu.setUID(result.getString("uid"));
+                    otu.setLabel(result.getString("label"));
+                    final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
+                    taxon.setUID(result.getString("taxon_uid"));
+                    taxon.setLabel(result.getString("taxon_label"));
+                    if (result.getString("rank_uid") != null) {
+                        taxon.setRank(new SimpleTerm(result.getString("rank_uid"), result.getString("rank_label")));
+                    }
+                    taxon.setExtinct(result.getBoolean("is_extinct"));
+                    otu.setTaxon(taxon);
+                }
+                return otus;
+            }
+        }).executeQuery();
+    }
+
+    public List<Specimen> getSpecimensForOTU(String otuID) throws SQLException {
+        final QueryBuilder query = new OTUSpecimensQueryBuilder(otuID);
+        return (new QueryExecutor<List<Specimen>>(this.dataSource, query) {
+            @Override
+            public List<Specimen> processResult(ResultSet result) throws SQLException {
+                final List<Specimen> specimens = new ArrayList<Specimen>();
+                while (result.next()) {
+                    final Term collection = new SimpleTerm(result.getString("collection_uid"), result.getString("collection_label"));
+                    final Specimen specimen = new Specimen(collection, result.getString("catalog_id"));
+                    specimens.add(specimen);
+                }
+                return specimens;
             }
         }).executeQuery();
     }
