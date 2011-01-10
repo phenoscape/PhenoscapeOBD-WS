@@ -1023,6 +1023,7 @@ public class PhenoscapeDataStore {
                     taxon.setExtinct(result.getBoolean("is_extinct"));
                     otu.setTaxon(taxon);
                     otu.addAllSpecimens(getSpecimensForOTU(otu.getUID()));
+                    otus.add(otu);
                 }
                 return otus;
             }

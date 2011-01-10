@@ -48,6 +48,7 @@ public class PublicationOTUsResource extends AbstractPhenoscapeResource {
         for (OTU otu : otus) {
             final JSONObject jsonOTU = new JSONObject();
             jsonOTU.put("label", otu.getLabel());
+            log().debug("Taxon: " + otu.getTaxon());
             jsonOTU.put("taxon", TermResourceUtil.translateMinimal(otu.getTaxon()));
             final List<JSONObject> jsonSpecimens = new ArrayList<JSONObject>();
             for (Specimen specimen : otu.getSpecimens()) {

@@ -59,7 +59,7 @@ public class TermResourceUtil {
     }
     
     public static JSONObject translateMinimal(TaxonTerm taxon) throws JSONException {
-        final JSONObject json = translateMinimal(taxon);
+        final JSONObject json = translateMinimal((Term)taxon);
         json.put("extinct", taxon.isExtinct());
         if (taxon.getRank() != null) {
             final JSONObject rank = translateMinimal(taxon.getRank());
