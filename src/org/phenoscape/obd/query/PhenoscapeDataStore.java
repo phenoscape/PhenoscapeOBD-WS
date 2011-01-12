@@ -348,6 +348,7 @@ public class PhenoscapeDataStore {
                     publication.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
                     publication.setCitation(result.getString("citation_label"));
                     publication.setAbstractText(result.getString("abstract_label"));
+                    publication.setDoi(result.getString("doi"));
                     return publication;
                 }
                 //no publication with this ID

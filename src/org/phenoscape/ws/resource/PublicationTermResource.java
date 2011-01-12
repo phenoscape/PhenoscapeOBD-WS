@@ -46,7 +46,7 @@ public class PublicationTermResource extends AbstractPhenoscapeResource {
         final JSONObject json = TermResourceUtil.translateMinimal(publication);
         json.put("citation", publication.getCitation());
         json.put("abstract", publication.getAbstractText());
-        //json.put("doi", null);
+        json.put("doi", publication.getDoi());
         json.put("source", TermResourceUtil.translateMinimal(publication.getSource()));
         return json;
     }
