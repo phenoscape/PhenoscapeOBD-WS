@@ -81,6 +81,7 @@ public class Vocab {
     public static class DC {
         public static final String ABSTRACT = "dc:abstract";
         public static final String CITATION = "dc:bibliographicCitation";
+        public static final String IDENTIFIER = "dc:identifier";
     }
     
     /** Darwin Core */
