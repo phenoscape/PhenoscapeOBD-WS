@@ -1015,6 +1015,7 @@ public class PhenoscapeDataStore {
                     final OTU otu = new OTU(result.getInt("node_id"));
                     otu.setUID(result.getString("uid"));
                     otu.setLabel(result.getString("label"));
+                    otu.setComment(result.getString("comment"));
                     final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
                     taxon.setUID(result.getString("taxon_uid"));
                     taxon.setLabel(result.getString("taxon_label"));

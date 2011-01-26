@@ -17,11 +17,10 @@ public class PublicationOTUsQueryBuilder extends QueryBuilder {
     @Override
     protected String getQuery() {
         final StringBuffer query = new StringBuffer();
-        query.append("SELECT otu.*, taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid, taxon.rank_label, taxon.is_extinct FROM node otu ");
+        query.append("SELECT otu.*, taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid, taxon.rank_label, taxon.is_extinct FROM otu ");
         query.append(String.format("JOIN link matrix_link ON (matrix_link.object_id = otu.node_id AND matrix_link.predicate_id = %s AND matrix_link.is_inferred = false) ", this.node(CDAO.HAS_OTU)));
         query.append(String.format("JOIN link pub_link ON (pub_link.node_id = matrix_link.node_id AND pub_link.predicate_id = %s AND pub_link.object_id = %s AND pub_link.is_inferred = false) ", this.node(PHENOSCAPE.HAS_PUBLICATION), NODE));
-        query.append(String.format("JOIN link taxon_link ON (taxon_link.node_id = otu.node_id AND taxon_link.predicate_id = %s AND taxon_link.is_inferred = false) ", this.node(PHENOSCAPE.HAS_TAXON)));
-        query.append("JOIN taxon ON (taxon.node_id = taxon_link.object_id)");
+        query.append("JOIN taxon ON (taxon.node_id = otu.taxon_node_id)");
         return query.toString();
     }
 
