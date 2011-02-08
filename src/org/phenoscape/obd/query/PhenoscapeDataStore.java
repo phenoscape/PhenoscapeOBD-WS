@@ -1,5 +1,6 @@
 package org.phenoscape.obd.query;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -18,7 +19,6 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
@@ -900,77 +900,58 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public String semanticLabel(Term term) {
-        //TODO rewrite to use PLPGSQL function
-        if (term.getLabel() != null) {
-            return term.getLabel();
-        } else if (term instanceof LinkedTerm) {
-            final LinkedTerm linkedTerm = (LinkedTerm)term;
-            final List<String> differentiae = new ArrayList<String>();
-            if (linkedTerm.getSubjectLinks().isEmpty()) {
-                log().error("No differentia arguments for: " + linkedTerm.getUID());
-                return linkedTerm.getUID();
+    public String semanticLabel(final String uid) throws SQLException {
+        final QueryBuilder query = new QueryBuilder() {
+            @Override
+            protected String getQuery() {
+                return "SELECT semantic_label FROM smart_node_label WHERE uid=?";
             }
-            Term genus = new SimpleTerm("", null);
-            for (Relationship differentia : linkedTerm.getSubjectLinks()) {
-                if (differentia.getPredicate().getUID().equals(OBO.IS_A)) {
-                    genus = differentia.getOther();
-                } else {
-                    final StringBuffer buffer = new StringBuffer();
-                    buffer.append(semanticLabel(differentia.getPredicate()));
-                    buffer.append("(");
-                    buffer.append(semanticLabel(differentia.getOther()));
-                    buffer.append(")");
-                    differentiae.add(buffer.toString());
+            @Override
+            protected void fillStatement(PreparedStatement statement) throws SQLException {
+                statement.setString(1, uid);
+            }            
+        };
+        return (new QueryExecutor<String>(this.dataSource, query) {
+            @Override
+            public String processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return result.getString("semantic_label");
                 }
+                return uid;
             }
-            return semanticLabel(genus) + "(" + StringUtils.join(differentiae, ", ") + ")";
-        } else {
-            return term.getUID();
-        }
+        }).executeQuery();
     }
-
-    public String simpleLabel(Term term) {
-        //TODO rewrite to use PLPGSQL function
-        if (term.getLabel() != null) {
-            return term.getLabel();
-        } else if (term instanceof LinkedTerm) {
-            final LinkedTerm linkedTerm = (LinkedTerm)term;
-            final List<String> differentiae = new ArrayList<String>();
-            if (linkedTerm.getSubjectLinks().isEmpty()) {
-                log().error("No differentia arguments for: " + linkedTerm.getUID());
-                return linkedTerm.getUID();
+    
+    public String simpleLabel(final String uid) throws SQLException {
+        final QueryBuilder query = new QueryBuilder() {
+            @Override
+            protected String getQuery() {
+                return "SELECT simple_label FROM smart_node_label WHERE uid=?";
             }
-            Term genus = new SimpleTerm("", null);
-            for (Relationship differentia : linkedTerm.getSubjectLinks()) {
-                if (differentia.getPredicate().getUID().equals(OBO.IS_A)) {
-                    genus = differentia.getOther();
-                } else {
-                    final String relationID = differentia.getPredicate().getUID();
-                    final String relationSubstitute = POSTCOMP_RELATIONS.containsKey(relationID) ? POSTCOMP_RELATIONS.get(relationID) : "of";
-                    final StringBuffer buffer = new StringBuffer();
-                    buffer.append(" ");
-                    buffer.append(relationSubstitute);
-                    buffer.append(" ");
-                    buffer.append(simpleLabel(differentia.getOther()));
-                    differentiae.add(buffer.toString());
+            @Override
+            protected void fillStatement(PreparedStatement statement) throws SQLException {
+                statement.setString(1, uid);
+            }            
+        };
+        return (new QueryExecutor<String>(this.dataSource, query) {
+            @Override
+            public String processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return result.getString("simple_label");
                 }
+                return uid;
             }
-            return simpleLabel(genus) + StringUtils.join(differentiae, ", ");
-        } else {
-            return term.getUID();
-        }
+        }).executeQuery();
     }
 
     private Term createBasicTerm(String uid, String label, POSTCOMP_OPTION option) throws SQLException {
         if ((label == null) && (!option.equals(POSTCOMP_OPTION.NONE))) {
-            final LinkedTerm postComp = this.renderPostcomposition(uid);
             if (option.equals(POSTCOMP_OPTION.SEMANTIC_LABEL)) {
-                return new SimpleTerm(postComp.getUID(), this.semanticLabel(postComp));
+                return new SimpleTerm(uid, this.semanticLabel(uid));
             } else if (option.equals(POSTCOMP_OPTION.SIMPLE_LABEL)) {
-                return new SimpleTerm(postComp.getUID(), this.simpleLabel(postComp));
+                return new SimpleTerm(uid, this.simpleLabel(uid));
             } else {
-                return postComp;
+                return this.renderPostcomposition(uid);
             }
         } else {
             return new SimpleTerm(uid, label);

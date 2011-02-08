@@ -26,14 +26,13 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
      * The maximum number of annotations to pull out of the database in one query.
      * TODO: need to investigate ideal value for this to maximize performance with acceptable memory usage
      */
-    private static final int QUERY_LIMIT = 50000;
+    private static final int QUERY_LIMIT = 1000;
     private JSONObject query = new JSONObject();
     private int limit;
     private int index;
     private boolean sortDescending;
     private SORT_COLUMN sortColumn;
-    //TODO change this to NONE once web interface begins sending this option
-    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.SIMPLE_LABEL;
+    private POSTCOMP_OPTION postcompOption = POSTCOMP_OPTION.SEMANTIC_LABEL;
     private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
     static {
         POSTCOMP_OPTIONS.put("structure", POSTCOMP_OPTION.STRUCTURE);
