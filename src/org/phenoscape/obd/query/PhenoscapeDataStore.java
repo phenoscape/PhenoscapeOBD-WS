@@ -27,6 +27,7 @@ import org.phenoscape.obd.model.GeneTerm;
 import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Matrix;
 import org.phenoscape.obd.model.OTU;
+import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
@@ -369,16 +370,36 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<String> getDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
+    public List<Phenotype> getDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PhenotypeQueryBuilder(config, false);
-        return (new QueryExecutor<List<String>>(this.dataSource, query) {
+        return (new QueryExecutor<List<Phenotype>>(this.dataSource, query) {
             @Override
-            public List<String> processResult(ResultSet result) throws SQLException {
-                final List<String> phenotypeIDs = new ArrayList<String>();
+            public List<Phenotype> processResult(ResultSet result) throws SQLException {
+                final List<Phenotype> phenotypes = new ArrayList<Phenotype>();
                 while (result.next()) {
-                    phenotypeIDs.add(result.getString("uid"));
+                    final Phenotype phenotype = new Phenotype();
+                    phenotype.setEntity(createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), config.getPostcompositionOption()));
+                    phenotype.setQuality(createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), config.getPostcompositionOption()));
+                    final String relatedEntityUID = result.getString("related_entity_uid");
+                    if (relatedEntityUID != null) {
+                        phenotype.setRelatedEntity(createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), config.getPostcompositionOption()));
+                    }
+                    phenotypes.add(phenotype);
                 }
-                return phenotypeIDs;
+                return phenotypes;
+            }
+        }).executeQuery();
+    }
+    
+    public int getCountOfDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new PhenotypeQueryBuilder(config, true);
+        return (new QueryExecutor<Integer>(this.dataSource, query) {
+            @Override
+            public Integer processResult(ResultSet result) throws SQLException {
+                while (result.next()) {
+                    return Integer.valueOf(result.getInt(1));
+                }
+                return Integer.valueOf(0);
             }
         }).executeQuery();
     }

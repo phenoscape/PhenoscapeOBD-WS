@@ -7,10 +7,11 @@ import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
-public class DistinctPhenotypesResource extends AnnotationQueryingResource<String> {
+public class DistinctPhenotypesResource extends AnnotationQueryingResource<Phenotype> {
     
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
@@ -20,26 +21,33 @@ public class DistinctPhenotypesResource extends AnnotationQueryingResource<Strin
     }
 
     @Override
-    protected JSONObject translateToJSON(String item) throws JSONException {
-        // TODO Auto-generated method stub
-        return null;
+    protected JSONObject translateToJSON(Phenotype phenotype) throws JSONException {
+        final JSONObject json = new JSONObject();
+        final JSONObject entity = this.createBasicJSONTerm(phenotype.getEntity());
+        json.put("entity", entity);
+        final JSONObject quality = this.createBasicJSONTerm(phenotype.getQuality());
+        json.put("quality", quality);
+        if (phenotype.getRelatedEntity() != null) {
+            final JSONObject relatedEntity = this.createBasicJSONTerm(phenotype.getRelatedEntity());
+            json.put("related_entity", relatedEntity);
+        }
+        return json;
     }
 
     @Override
-    protected String translateToText(String item) {
+    protected String translateToText(Phenotype item) {
         // TODO Auto-generated method stub
-        return item;
+        return item.getEntity().getUID();
     }
 
     @Override
-    protected List<String> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
+    protected List<Phenotype> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getDistinctPhenotypes(config);
     }
 
     @Override
     protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        // TODO Auto-generated method stub
-        return 0;
+        return this.getDataStore().getCountOfDistinctPhenotypes(config);
     }
 
     @Override

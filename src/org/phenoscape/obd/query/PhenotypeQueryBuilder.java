@@ -3,16 +3,26 @@ package org.phenoscape.obd.query;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang.StringUtils;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class PhenotypeQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
+    private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
+    static {
+        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_node_id");
+        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_node_id");
+        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_node_id");
+    }
+
 
     public PhenotypeQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
@@ -61,6 +71,9 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         if (!this.config.getPublicationIDs().isEmpty()) {
             intersects.add(this.getPublicationsQuery(this.config.getPublicationIDs()));
         }
+        if (!this.config.getGeneIDs().isEmpty()) {
+            intersects.add(this.getGenesQuery(this.config.getGeneIDs()));
+        }
         final String baseQuery;
         if (intersects.isEmpty()) {
             baseQuery = "SELECT * FROM phenotype ";
@@ -71,7 +84,7 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
         } else {
-            query = baseQuery + "ORDER BY " + "uid" + " " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = "SELECT * FROM " + "(" + baseQuery + ") AS query " + this.getJoinText() + "ORDER BY simple_label " + this.getSortText() + "LIMIT ? OFFSET ? " ;
         }
         return query;
     }
@@ -182,5 +195,21 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         return query.toString();
     }
     
+    private String getGenesQuery(List<String> genes) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        query.append(" SELECT * FROM phenotype ");
+        query.append(" WHERE phenotype.node_id IN ");
+        query.append("(SELECT distinct_gene_annotation.phenotype_node_id FROM distinct_gene_annotation WHERE ");
+        query.append("distinct_gene_annotation.gene_uid IN ");
+        query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
+        query.append(")");
+        query.append(")");
+        return query.toString();
+    }
+    
+    private String getJoinText() {
+        return String.format("JOIN smart_node_label ON (smart_node_label.node_id = %s) ", COLUMNS.get(this.config.getSortColumn()));
+    }
 
 }
