@@ -368,6 +368,20 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
+    
+    public List<String> getDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
+        final QueryBuilder query = new PhenotypeQueryBuilder(config, false);
+        return (new QueryExecutor<List<String>>(this.dataSource, query) {
+            @Override
+            public List<String> processResult(ResultSet result) throws SQLException {
+                final List<String> phenotypeIDs = new ArrayList<String>();
+                while (result.next()) {
+                    phenotypeIDs.add(result.getString("uid"));
+                }
+                return phenotypeIDs;
+            }
+        }).executeQuery();
+    }
 
     public List<TaxonAnnotation> getDistinctTaxonAnnotations(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new DistinctTaxonomicAnnotationsQueryBuilder(config, false);

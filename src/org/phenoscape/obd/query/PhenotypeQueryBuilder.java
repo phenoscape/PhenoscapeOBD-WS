@@ -9,12 +9,12 @@ import org.apache.commons.lang.StringUtils;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.Vocab.OBO;
 
-public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
+public class PhenotypeQueryBuilder extends QueryBuilder {
 
     private final AnnotationsQueryConfig config;
     private final boolean totalOnly;
 
-    public DistinctTaxonPhenotypesQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
+    public PhenotypeQueryBuilder(AnnotationsQueryConfig config, boolean totalOnly) {
         this.config = config;
         this.totalOnly = totalOnly;
     }
@@ -181,5 +181,6 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         query.append(") ");
         return query.toString();
     }
+    
 
 }

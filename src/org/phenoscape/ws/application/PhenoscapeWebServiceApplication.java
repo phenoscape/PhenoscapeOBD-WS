@@ -8,6 +8,7 @@ import org.apache.log4j.Logger;
 import org.phenoscape.obd.sparql.SPARQLResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.BulkTermNameResource;
+import org.phenoscape.ws.resource.DistinctPhenotypesResource;
 import org.phenoscape.ws.resource.GeneAnnotationsResource;
 import org.phenoscape.ws.resource.GeneAnnotationsSourceResource;
 import org.phenoscape.ws.resource.GenesResource;
@@ -71,6 +72,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/annotation/taxon/source", TaxonAnnotationSourceResource.class);
         router.attach("/taxon/annotated", TaxaResource.class);
         router.attach("/gene/annotated", GenesResource.class);
+        router.attach("/phenotype", DistinctPhenotypesResource.class);
         router.attach("/publication/annotated", PublicationsResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);
         router.attach("/report/count/characters/published", PublishedCharacterCountsResource.class);
