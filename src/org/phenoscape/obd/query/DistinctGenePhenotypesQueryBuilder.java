@@ -74,6 +74,7 @@ public class DistinctGenePhenotypesQueryBuilder extends QueryBuilder {
     }
 
     private String getGenesQuery(List<String> genes) {
+      //FIXME doesn't properly handle ANY/ALL ?
         final StringBuffer query = new StringBuffer();
         query.append("(SELECT DISTINCT distinct_gene_annotation.phenotype_node_id, distinct_gene_annotation.phenotype_uid, distinct_gene_annotation.phenotype_label FROM distinct_gene_annotation WHERE ");
         query.append("distinct_gene_annotation.gene_uid IN ");

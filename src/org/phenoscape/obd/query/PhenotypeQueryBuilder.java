@@ -53,6 +53,11 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
                 statement.setString(index++, publicationID);
             }
         }
+        if (!this.config.getGeneIDs().isEmpty()) {
+            for (String geneID : this.config.getGeneIDs()) {
+                statement.setString(index++, geneID);
+            }
+        }
         if (!this.totalOnly) {
             statement.setInt(index++, this.config.getLimit());
             statement.setInt(index++, this.config.getIndex());
@@ -95,16 +100,25 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
 
     private String getTaxaQuery(List<String> taxonIDs) {
         final StringBuffer query = new StringBuffer();
+        query.append("(");
+        final List<String> subQueries = new ArrayList<String>();
+        for (String taxonID : taxonIDs) {
+            subQueries.add(this.getTaxonQuery(taxonID));
+        }
+        query.append(StringUtils.join(subQueries, (this.config.matchAllTaxa() ? " INTERSECT " : " UNION ")));
+        query.append(")");
+        return query.toString();
+    }
+
+    private String getTaxonQuery(String taxonID) {
+        final StringBuffer query = new StringBuffer();
         query.append("SELECT * FROM phenotype ");
         query.append("WHERE phenotype.node_id IN ");
         query.append("(");
         query.append("SELECT phenotype_node_id FROM asserted_taxon_annotation ");
         query.append("WHERE asserted_taxon_annotation.taxon_node_id IN ");
         query.append("(");
-        query.append(String.format("SELECT taxon.node_id FROM taxon JOIN link taxon_is_a ON (taxon_is_a.node_id = taxon.node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.object_id IN  ", this.node(OBO.IS_A)));
-        query.append("(");
-        query.append(String.format("SELECT taxon.node_id FROM taxon WHERE uid IN %s ", this.createPlaceholdersList(this.config.getTaxonIDs().size())));
-        query.append(")");
+        query.append(String.format("SELECT taxon.node_id FROM taxon JOIN link taxon_is_a ON (taxon_is_a.node_id = taxon.node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.object_id =  %s", this.node(OBO.IS_A), NODE));
         query.append(")");
         query.append(")");
         query.append(")");
@@ -176,7 +190,7 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         for (String publicationID : publicationIDs) {
             subQueries.add(this.getPublicationQuery(publicationID));
         }
-        query.append(StringUtils.join(subQueries, " UNION "));
+        query.append(StringUtils.join(subQueries, (this.config.matchAllPublications() ? " INTERSECT " : " UNION ")));
         query.append(")");
         return query.toString();
     }
@@ -194,20 +208,31 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         query.append(") ");
         return query.toString();
     }
-    
+
     private String getGenesQuery(List<String> genes) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        final List<String> subQueries = new ArrayList<String>();
+        for (String geneID : genes) {
+            subQueries.add(this.getGeneQuery(geneID));
+        }
+        query.append(StringUtils.join(subQueries, (this.config.matchAllGenes() ? " INTERSECT " : " UNION ")));
+        query.append(")");
+        return query.toString();
+    }
+
+    private String getGeneQuery(String geneID) {
         final StringBuffer query = new StringBuffer();
         query.append("(");
         query.append(" SELECT * FROM phenotype ");
         query.append(" WHERE phenotype.node_id IN ");
         query.append("(SELECT distinct_gene_annotation.phenotype_node_id FROM distinct_gene_annotation WHERE ");
-        query.append("distinct_gene_annotation.gene_uid IN ");
-        query.append(this.createPlaceholdersList(this.config.getGeneIDs().size()));
+        query.append("distinct_gene_annotation.gene_uid = ? ");
         query.append(")");
         query.append(")");
         return query.toString();
     }
-    
+
     private String getJoinText() {
         return String.format("JOIN smart_node_label ON (smart_node_label.node_id = %s) ", COLUMNS.get(this.config.getSortColumn()));
     }

@@ -12,7 +12,7 @@ import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class DistinctPhenotypesResource extends AnnotationQueryingResource<Phenotype> {
-    
+
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
         COLUMNS.put("entity", SORT_COLUMN.ENTITY);
@@ -36,8 +36,20 @@ public class DistinctPhenotypesResource extends AnnotationQueryingResource<Pheno
 
     @Override
     protected String translateToText(Phenotype item) {
-        // TODO Auto-generated method stub
-        return item.getEntity().getUID();
+        final StringBuffer buffer = new StringBuffer();
+        final String tab = "\t";
+        buffer.append(item.getEntity().getUID());
+        buffer.append(tab);
+        buffer.append(item.getEntity().getLabel());
+        buffer.append(tab);
+        buffer.append(item.getQuality().getUID());
+        buffer.append(tab);
+        buffer.append(item.getQuality().getLabel());
+        buffer.append(tab);
+        buffer.append(item.getRelatedEntity() != null ? item.getRelatedEntity().getUID() : "");
+        buffer.append(tab);
+        buffer.append(item.getRelatedEntity() != null ? item.getRelatedEntity().getLabel() : "");
+        return buffer.toString();
     }
 
     @Override

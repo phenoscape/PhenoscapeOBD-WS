@@ -97,6 +97,9 @@ public class AbstractPhenoscapeResource extends ServerResource {
                 config.addGeneID(gene.getString("id"));
             } 
         }
+        if (query.has("match_all_genes")) {
+            config.setMatchAllGenes(query.getBoolean("match_all_genes"));
+        }
         if (query.has("phenotype")) {
             for (JSONObject phenotype : this.toIterable(query.getJSONArray("phenotype"))) {
                 final PhenotypeSpec spec = new PhenotypeSpec();

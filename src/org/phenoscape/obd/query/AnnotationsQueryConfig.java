@@ -22,6 +22,7 @@ public class AnnotationsQueryConfig {
     private boolean matchAllPhenotypes = false;
     private boolean matchAllPublications = false;
     private boolean matchAllTaxa = false;
+    private boolean matchAllGenes = false;
     private POSTCOMP_OPTION postcompositionOption = POSTCOMP_OPTION.NONE;
 
     public boolean matchAllPhenotypes() {
@@ -142,6 +143,14 @@ public class AnnotationsQueryConfig {
 
     public void setPostcompositionOption(POSTCOMP_OPTION option) {
         this.postcompositionOption = option;
+    }
+
+    public boolean matchAllGenes() {
+        return this.matchAllGenes;
+    }
+
+    public void setMatchAllGenes(boolean matchAll) {
+        this.matchAllGenes = matchAll;
     }
 
 }
