@@ -2,6 +2,8 @@ package org.phenoscape.ws.resource;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.json.JSONException;
@@ -16,19 +18,20 @@ import org.restlet.resource.Get;
 import org.restlet.resource.ResourceException;
 
 public class PublicationOTUsResource extends AbstractPhenoscapeResource {
-    
+
     private String publicationID = null;
-    
+
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
         this.publicationID = Reference.decode((String)(this.getRequestAttributes().get("publicationID")));
     }
-    
+
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
             final List<OTU> otus = this.getDataStore().getOTUsForPublication(this.publicationID);
+            Collections.sort(otus, otuComparator);
             final JSONObject json = this.translate(otus);
             return new JsonRepresentation(json);
         } catch (SQLException e) {
@@ -64,5 +67,14 @@ public class PublicationOTUsResource extends AbstractPhenoscapeResource {
         json.put("otus", jsonOTUs);
         return json;
     }
+
+    private static final Comparator<OTU> otuComparator = new Comparator<OTU>() {
+
+        @Override
+        public int compare(OTU o1, OTU o2) {
+            return o1.getLabel().compareTo(o2.getLabel());
+        }
+
+    };
 
 }
