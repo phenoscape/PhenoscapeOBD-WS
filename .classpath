@@ -21,7 +21,11 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.osgi.core.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.ext.json.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.ext.servlet.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/org.restlet.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="http://www.restlet.org/documentation/2.0/jse/api/"/>
+		</attributes>
+	</classpathentry>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/log4j-1.2.13.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-lang-2.5.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/openrdf-model.jar"/>

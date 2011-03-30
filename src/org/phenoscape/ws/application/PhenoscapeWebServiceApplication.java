@@ -14,6 +14,7 @@ import org.phenoscape.ws.resource.GeneAnnotationsSourceResource;
 import org.phenoscape.ws.resource.GenesResource;
 import org.phenoscape.ws.resource.KBTimestampResource;
 import org.phenoscape.ws.resource.PathToRootResource;
+import org.phenoscape.ws.resource.PhenotypesFacetResource;
 import org.phenoscape.ws.resource.PublicationMatrixResource;
 import org.phenoscape.ws.resource.PublicationOTUsResource;
 import org.phenoscape.ws.resource.PublicationTermResource;
@@ -72,6 +73,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/annotation/taxon/source", TaxonAnnotationSourceResource.class);
         router.attach("/taxon/annotated", TaxaResource.class);
         router.attach("/gene/annotated", GenesResource.class);
+        router.attach("/phenotype/facet/{facet}", PhenotypesFacetResource.class);
         router.attach("/phenotype", DistinctPhenotypesResource.class);
         router.attach("/publication/annotated", PublicationsResource.class);
         router.attach("/report/count/publications", PublicationCountsResource.class);

@@ -392,6 +392,7 @@ public class PhenoscapeDataStore {
     }
     
     public int getCountOfDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
+        //TODO this should make use of the fast Solr counts implemented in the other count method
         final QueryBuilder query = new PhenotypeQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
             @Override
@@ -402,6 +403,10 @@ public class PhenoscapeDataStore {
                 return Integer.valueOf(0);
             }
         }).executeQuery();
+    }
+    
+    public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) {
+        return 42; //TODO
     }
 
     public List<TaxonAnnotation> getDistinctTaxonAnnotations(final AnnotationsQueryConfig config) throws SQLException {
