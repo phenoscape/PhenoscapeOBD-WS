@@ -63,7 +63,7 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT * FROM phenotype ";
+            baseQuery = "SELECT * FROM phenotype "; //FIXME this should be limited to "taxon phenotypes"
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }

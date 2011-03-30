@@ -120,7 +120,7 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         return query.toString();
     }
 
-    private String getTaxonQuery(String taxonID) {
+    private String getTaxonQuery(String taxonID) { //FIXME this should be limited to taxa with phenotypes
         final StringBuffer query = new StringBuffer();
         query.append("(");
         query.append("SELECT taxon.* FROM taxon ");
