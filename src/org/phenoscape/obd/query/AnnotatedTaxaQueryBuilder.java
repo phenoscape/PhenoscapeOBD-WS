@@ -120,13 +120,14 @@ public class AnnotatedTaxaQueryBuilder extends QueryBuilder {
         return query.toString();
     }
 
-    private String getTaxonQuery(String taxonID) { //FIXME this should be limited to taxa with phenotypes
+    private String getTaxonQuery(String taxonID) {
         final StringBuffer query = new StringBuffer();
         query.append("(");
         query.append("SELECT taxon.* FROM taxon ");
         query.append("WHERE taxon.node_id IN ");
         query.append("(");
-        query.append(String.format("SELECT taxon_is_a.node_id FROM link taxon_is_a WHERE (taxon_is_a.predicate_id = %s AND taxon_is_a.object_id = %s) ", this.node(OBO.IS_A), NODE));
+        query.append(String.format("SELECT taxon_node_id FROM %s ", this.annotationTable));
+        query.append(String.format("JOIN link taxon_is_a ON (taxon_is_a.node_id = taxon_node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.object_id = %s) ", this.node(OBO.IS_A), NODE));
         query.append(")");
         query.append(") ");
         return query.toString();
