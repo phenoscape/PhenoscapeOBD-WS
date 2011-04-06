@@ -63,7 +63,7 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
-            baseQuery = "SELECT * FROM phenotype "; //FIXME this should be limited to "taxon phenotypes"
+            baseQuery = "SELECT * FROM phenotype WHERE phenotype.node_id IN (SELECT phenotype_node_id FROM asserted_taxon_annotation) ";
         } else {
             baseQuery = "(" + StringUtils.join(intersects, " INTERSECT ") + ") ";
         }
@@ -106,7 +106,7 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         final List<String> unions = new ArrayList<String>();
         for (PhenotypeSpec phenotype : phenotypes) {
             unions.add(this.getPhenotypeQuery(phenotype));
-        }
+        }        
         query.append(StringUtils.join(unions, " UNION "));
         query.append(")");        
         return query.toString();
@@ -128,6 +128,7 @@ public class DistinctTaxonPhenotypesQueryBuilder extends QueryBuilder {
         if (phenotype.getRelatedEntityID() != null) {
             query.append(String.format("JOIN link related_entity_towards ON (related_entity_towards.node_id = phenotype.node_id AND related_entity_towards.predicate_id = %s) ", this.node(OBO.TOWARDS)));  
         }
+        query.append("JOIN asserted_taxon_annotation ON (asserted_taxon_annotation.phenotype_node_id = phenotype.node_id) ");
         query.append("WHERE ");
         query.append(this.translate(phenotype));
         query.append(") ");
