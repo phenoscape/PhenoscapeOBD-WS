@@ -6,6 +6,7 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -33,7 +34,7 @@ public class AbstractPhenoscapeResource extends ServerResource {
      */
     protected PhenoscapeDataStore getDataStore() {
         if (this.dataStore == null) {
-            this.dataStore = new PhenoscapeDataStore(this.getDataSource());
+            this.dataStore = new PhenoscapeDataStore(this.getDataSource(), this.getSolrServer());
         }
         return this.dataStore;
     }
@@ -208,6 +209,10 @@ public class AbstractPhenoscapeResource extends ServerResource {
      */
     protected DataSource getDataSource() {
         return (DataSource)(this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.DATA_SOURCE_KEY));
+    }
+    
+    protected SolrServer getSolrServer() {
+        return (SolrServer)(this.getContext().getAttributes().get(PhenoscapeWebServiceApplication.SOLR_SERVER_KEY));
     }
 
     protected Logger log() {

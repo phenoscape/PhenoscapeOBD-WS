@@ -1,10 +1,14 @@
 package org.phenoscape.ws.application;
 
+import java.net.MalformedURLException;
+
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.phenoscape.obd.sparql.SPARQLResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.BulkTermNameResource;
@@ -49,6 +53,7 @@ public class PhenoscapeWebServiceApplication extends Application {
 
     private static final String JNDI_KEY = "java:/comp/env/jdbc/OBD";
     public static final String DATA_SOURCE_KEY = "org.phenoscape.jndi.obd.datasource";
+    public static final String SOLR_SERVER_KEY = "org.phenoscape.jndi.obd.solrserver";
 
     /**
      * Create a router holding mappings from URL patterns to the appropriate REST service to be invoked.
@@ -56,6 +61,7 @@ public class PhenoscapeWebServiceApplication extends Application {
     @Override
     public Restlet createInboundRoot() {
         this.initializeDataSource();
+        this.initializeSolrServer();
         final Router router = new Router(this.getContext());
         // URL mappings
         router.attach("/term/taxon/{termID}", TaxonTermResource.class);
@@ -103,6 +109,16 @@ public class PhenoscapeWebServiceApplication extends Application {
             this.getContext().getAttributes().put(DATA_SOURCE_KEY, dataSource);
         } catch (NamingException e) {
             log().fatal("Unable to configure database connection via JNDI", e);
+        }
+    }
+    
+    private void initializeSolrServer() {
+        //TODO get URL from jndi
+        try {
+            final SolrServer solr = new CommonsHttpSolrServer("http://localhost:8983/solr");
+            this.getContext().getAttributes().put(SOLR_SERVER_KEY, solr);
+        } catch (MalformedURLException e) {
+            log().fatal("Unable to configure Solr server", e);
         }
     }
 

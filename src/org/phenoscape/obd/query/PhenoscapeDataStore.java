@@ -20,6 +20,8 @@ import java.util.Set;
 import javax.sql.DataSource;
 
 import org.apache.log4j.Logger;
+import org.apache.solr.client.solrj.SolrServer;
+import org.apache.solr.client.solrj.SolrServerException;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
@@ -48,6 +50,7 @@ import com.eekboom.utils.Strings;
 public class PhenoscapeDataStore {
 
     private final DataSource dataSource;
+    private final SolrServer solr;
     public enum POSTCOMP_OPTION { STRUCTURE, SEMANTIC_LABEL, SIMPLE_LABEL, NONE };
     /**
      * Mapping for how to represent relations used in post-comp differentia when generating a human-readable label.
@@ -69,8 +72,9 @@ public class PhenoscapeDataStore {
         POSTCOMP_RELATIONS.put(PHENOSCAPE.COMPLEMENT_OF, "not");
     }
 
-    public PhenoscapeDataStore(DataSource dataSource) {
+    public PhenoscapeDataStore(DataSource dataSource, SolrServer solrServer) {
         this.dataSource = dataSource;
+        this.solr = solrServer;
     }
 
     /**
@@ -405,8 +409,9 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) {
-        return 42; //TODO
+    public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) throws SolrServerException {
+        final DistinctPhenotypesCountSolrQuery query = new DistinctPhenotypesCountSolrQuery(this.solr, entityID, qualityID, relatedEntityID, taxonID, geneID);
+        return query.getCount();
     }
 
     public List<TaxonAnnotation> getDistinctTaxonAnnotations(final AnnotationsQueryConfig config) throws SQLException {
@@ -1067,6 +1072,26 @@ public class PhenoscapeDataStore {
                 return specimens;
             }
         }).executeQuery();
+    }
+    
+    public List<String> getChildrenUIDs(String term, String relation) throws SQLException {
+        final QueryBuilder query = new ChildrenUIDsQueryBuilder(term, relation);
+        return (new QueryExecutor<List<String>>(this.dataSource, query) {
+            @Override
+            public List<String> processResult(ResultSet result) throws SQLException {
+                final List<String> children = new ArrayList<String>();
+                while (result.next()) {
+                    children.add(result.getString("child_uid"));
+                }
+                return children;
+            }
+        }).executeQuery();
+    }
+    
+    public List<?> computeEntityFacet() {
+        final List<?> terms = new ArrayList<Object>();
+        //TODO
+        return terms;
     }
 
     private Logger log() {

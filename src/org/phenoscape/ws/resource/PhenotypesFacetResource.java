@@ -1,14 +1,19 @@
 package org.phenoscape.ws.resource;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.query.EntityFaceter;
+import org.phenoscape.obd.query.QualityFaceter;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.ext.json.JsonRepresentation;
@@ -18,6 +23,7 @@ import org.restlet.resource.ResourceException;
 
 public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
 
+    private final static int OPTIMAL_SIZE = 7;
     private static enum FACET { ENTITY, QUALITY, RELATED_ENTITY, TAXON, GENE }
     private static final Map<String, FACET> uriToFacet = new HashMap<String, FACET>();
     static {
@@ -74,17 +80,35 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
                 current.put("count", this.getPhenotypeCount(termID));
                 pathItems.add(current);
             }
-            //TODO get facet children
+            final Map<String, Integer> childrenCounts = this.facetPath.isEmpty() ? this.getFacetedPhenotypeCount(null) : this.getFacetedPhenotypeCount(this.facetPath.get(this.facetPath.size() - 1));
+            final List<JSONObject> children = new ArrayList<JSONObject>();
+            for (Entry<String, Integer> entry : childrenCounts.entrySet()) {
+                final JSONObject child = new JSONObject();
+                child.put("id", entry.getKey());
+                child.put("count", entry.getValue());
+                children.add(child);
+            }
+            pathItems.get(pathItems.size() - 1).put("children", children);
+            json.put("facet", pathItems);
             return new JsonRepresentation(json);
         }
         catch (JSONException e) {
-            log().error("Failed to create JSON object for results");
+            log().error("Failed to create JSON object for results", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            return null;
+        } catch (SolrServerException e) {
+            log().error("Error querying Solr server", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            return null;
+        } catch (SQLException e) {
+            log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            e.printStackTrace();
             return null;
         } 
     }
 
-    private int getPhenotypeCount(String focalTermID) {
+    private int getPhenotypeCount(String focalTermID) throws SolrServerException {
         final int count;
         switch(this.facet) {
         case ENTITY: count = this.getDataStore().getCountOfDistinctPhenotypes(focalTermID, this.qualityID, this.relatedEntityID, this.taxonID, this.geneID); break;
@@ -95,6 +119,30 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
         default: count = -1; //should never happen
         }
         return count;
+    }
+    
+    private Map<String, Integer> getFacetedPhenotypeCount(String focalTermID) throws SQLException, SolrServerException {
+        final Map<String, Integer> counts;
+        switch(this.facet) {
+        case ENTITY: counts = (new EntityFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+            @Override
+            protected int getDataCount(String focalTermUID) throws SolrServerException {
+                return this.getDataStore().getCountOfDistinctPhenotypes(focalTermUID, qualityID, relatedEntityID, taxonID, geneID);
+            }
+        }).facetTerm(focalTermID); break;
+        case QUALITY: counts = (new QualityFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+            @Override
+            protected int getDataCount(String focalTermUID) throws SolrServerException {
+                return this.getDataStore().getCountOfDistinctPhenotypes(entityID, focalTermUID, relatedEntityID, taxonID, geneID);
+            }
+        }).facetTerm(focalTermID); break; 
+            
+//        case RELATED_ENTITY: counts = this.getDataStore().getCountOfDistinctPhenotypes(this.entityID, this.qualityID, focalTermID, this.taxonID, this.geneID); break;
+//        case TAXON: counts = this.getDataStore().getCountOfDistinctPhenotypes(this.entityID, this.qualityID, this.relatedEntityID, focalTermID, this.geneID); break;
+//        case GENE: counts = this.getDataStore().getCountOfDistinctPhenotypes(this.entityID, this.qualityID, this.relatedEntityID, this.taxonID, focalTermID); break;
+        default: counts = null; //should never happen
+        }
+        return counts;
     }
 
     private List<String> parsePathParameter(String pathParameter) {
