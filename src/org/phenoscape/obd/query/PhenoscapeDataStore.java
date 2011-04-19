@@ -1088,6 +1088,20 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
+    public List<String> getGeneFacetChildrenUIDs(String term) throws SQLException {
+        final QueryBuilder query = new GeneFacetChildrenUIDsQueryBuilder(term);
+        return (new QueryExecutor<List<String>>(this.dataSource, query) {
+            @Override
+            public List<String> processResult(ResultSet result) throws SQLException {
+                final List<String> children = new ArrayList<String>();
+                while (result.next()) {
+                    children.add(result.getString("child_uid"));
+                }
+                return children;
+            }
+        }).executeQuery();
+    }
+    
     public List<?> computeEntityFacet() {
         final List<?> terms = new ArrayList<Object>();
         //TODO

@@ -53,7 +53,8 @@ public class PhenoscapeWebServiceApplication extends Application {
 
     private static final String JNDI_KEY = "java:/comp/env/jdbc/OBD";
     public static final String DATA_SOURCE_KEY = "org.phenoscape.jndi.obd.datasource";
-    public static final String SOLR_SERVER_KEY = "org.phenoscape.jndi.obd.solrserver";
+    private static final String SOLR_SERVER_PROPERTY = "org.phenoscape.obd.solr-uri";
+    public static final String SOLR_SERVER_KEY = "org.phenoscape.obd.solrserver";
 
     /**
      * Create a router holding mappings from URL patterns to the appropriate REST service to be invoked.
@@ -113,9 +114,9 @@ public class PhenoscapeWebServiceApplication extends Application {
     }
     
     private void initializeSolrServer() {
-        //TODO get URL from jndi
         try {
-            final SolrServer solr = new CommonsHttpSolrServer("http://localhost:8983/solr");
+            final String solrURI = System.getProperty(SOLR_SERVER_PROPERTY);
+            final SolrServer solr = new CommonsHttpSolrServer(solrURI);
             this.getContext().getAttributes().put(SOLR_SERVER_KEY, solr);
         } catch (MalformedURLException e) {
             log().fatal("Unable to configure Solr server", e);

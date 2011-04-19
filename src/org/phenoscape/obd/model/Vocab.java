@@ -11,6 +11,9 @@ public class Vocab {
         public static final String INSTANCE_OF = "OBO_REL:instance_of";
         public static final String TOWARDS = "OBO_REL:towards";
         public static final String HAS_DBXREF = "oboInOwl:hasDbXref";
+        public static final String LOCATED_IN = "OBO_REL:located_in";
+        public static final String HAS_FUNCTION = "OBO_REL:has_function";
+        public static final String PARTICIPATES_IN = "OBO_REL:participates_in";
     }
 
     public static class TAO {
