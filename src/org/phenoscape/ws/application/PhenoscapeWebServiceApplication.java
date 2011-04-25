@@ -116,6 +116,7 @@ public class PhenoscapeWebServiceApplication extends Application {
     private void initializeSolrServer() {
         try {
             final String solrURI = System.getProperty(SOLR_SERVER_PROPERTY);
+            //final String solrURI = "http://localhost:8983/solr/";
             final SolrServer solr = new CommonsHttpSolrServer(solrURI);
             this.getContext().getAttributes().put(SOLR_SERVER_KEY, solr);
         } catch (MalformedURLException e) {

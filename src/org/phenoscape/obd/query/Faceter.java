@@ -48,9 +48,10 @@ public abstract class Faceter {
             return partitions;
         }
         while (partitions.size() < this.getOptimalSize()) {
+            log().debug("Partitions size: " + partitions.size());
             final Partition largest = Collections.max(partitions);
             final List<Partition> subpartitions = this.getPartitions(largest.getTerm());
-            if (subpartitions.size() == 1) { break; }
+            if (subpartitions.size() < 2) { break; }
             log().debug("Expanding largest: " + largest.getTerm() + ", " + largest.getCount());
             partitions.remove(largest);
             partitions.addAll(subpartitions);
