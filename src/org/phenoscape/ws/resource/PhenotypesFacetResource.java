@@ -26,7 +26,7 @@ import org.restlet.resource.ResourceException;
 
 public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
 
-    private final static int OPTIMAL_SIZE = 7;
+    private final static int OPTIMAL_SIZE = 5;
     private static enum FACET { ENTITY, QUALITY, RELATED_ENTITY, TAXON, GENE }
     private static final Map<String, FACET> uriToFacet = new HashMap<String, FACET>();
     static {
