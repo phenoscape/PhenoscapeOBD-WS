@@ -19,7 +19,7 @@ public class GeneFacetChildrenUIDsQueryBuilder extends QueryBuilder {
         query.append("SELECT subject.uid AS child_uid ");
         query.append("FROM link ");
         query.append("JOIN node subject ON (subject.node_id = link.node_id) ");
-        query.append(String.format("WHERE link.predicate_id IN (SELECT node_id FROM node WHERE uid IN (%s, %s, %s, %s)) AND link.object_id = %s AND link.is_inferred = false", OBO.IS_A, OBO.HAS_FUNCTION, OBO.LOCATED_IN, OBO.PARTICIPATES_IN, NODE));
+        query.append(String.format("WHERE link.predicate_id IN (SELECT node_id FROM node WHERE uid IN ('%s', '%s', '%s', '%s')) AND link.object_id = %s AND link.is_inferred = false", OBO.IS_A, OBO.HAS_FUNCTION, OBO.LOCATED_IN, OBO.PARTICIPATES_IN, NODE));
         return query.toString();
     }
 
