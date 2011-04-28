@@ -58,6 +58,11 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
                 statement.setString(index++, geneID);
             }
         }
+        if (!this.config.getGeneClassIDs().isEmpty()) {
+            for (String geneClassID : this.config.getGeneClassIDs()) {
+                statement.setString(index++, geneClassID);
+            }
+        }
         if (!this.totalOnly) {
             statement.setInt(index++, this.config.getLimit());
             statement.setInt(index++, this.config.getIndex());
@@ -78,6 +83,9 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         }
         if (!this.config.getGeneIDs().isEmpty()) {
             intersects.add(this.getGenesQuery(this.config.getGeneIDs()));
+        }
+        if (!this.config.getGeneClassIDs().isEmpty()) {
+            intersects.add(this.getGeneClassesQuery(this.config.getGeneClassIDs()));
         }
         final String baseQuery;
         if (intersects.isEmpty()) {
@@ -228,6 +236,30 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         query.append(" WHERE phenotype.node_id IN ");
         query.append("(SELECT distinct_gene_annotation.phenotype_node_id FROM distinct_gene_annotation WHERE ");
         query.append("distinct_gene_annotation.gene_uid = ? ");
+        query.append(")");
+        query.append(")");
+        return query.toString();
+    }
+    
+    private String getGeneClassesQuery(List<String> geneClasses) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        final List<String> subQueries = new ArrayList<String>();
+        for (String geneID : geneClasses) {
+            subQueries.add(this.getGeneClassQuery(geneID));
+        }
+        query.append(StringUtils.join(subQueries, (this.config.matchAllGeneClasses() ? " INTERSECT " : " UNION ")));
+        query.append(")");
+        return query.toString();
+    }
+    
+    private String getGeneClassQuery(String geneClassID) {
+        final StringBuffer query = new StringBuffer();
+        query.append("(");
+        query.append(" SELECT * FROM phenotype ");
+        query.append(" WHERE phenotype.node_id IN ");
+        query.append("(SELECT distinct_gene_annotation.phenotype_node_id FROM distinct_gene_annotation ");
+        query.append(String.format(" JOIN link gene_class_link ON (gene_class_link.predicate_id IN (SELECT node_id FROM node WHERE uid IN ('%s', '%s', '%s')) AND gene_class_link.node_id = distinct_gene_annotation.gene_node_id AND gene_class_link.object_id = %s) ", OBO.HAS_FUNCTION, OBO.LOCATED_IN, OBO.PARTICIPATES_IN, NODE));
         query.append(")");
         query.append(")");
         return query.toString();

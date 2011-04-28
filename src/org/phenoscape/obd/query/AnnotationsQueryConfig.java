@@ -16,6 +16,7 @@ public class AnnotationsQueryConfig {
     private boolean sortDescending = false;
     private final List<String> taxonIDs = new ArrayList<String>();
     private final List<String> geneIDs = new ArrayList<String>();
+    private final List<String> geneClassIDs = new ArrayList<String>();
     private final List<PhenotypeSpec> phenotypes = new ArrayList<PhenotypeSpec>();
     private final List<String> publicationIDs = new ArrayList<String>();
     private boolean includeInferredAnnotations = false;
@@ -23,6 +24,7 @@ public class AnnotationsQueryConfig {
     private boolean matchAllPublications = false;
     private boolean matchAllTaxa = false;
     private boolean matchAllGenes = false;
+    private boolean matchAllGeneClasses = false;
     private POSTCOMP_OPTION postcompositionOption = POSTCOMP_OPTION.NONE;
 
     public boolean matchAllPhenotypes() {
@@ -104,6 +106,18 @@ public class AnnotationsQueryConfig {
     public void addAllGeneIDs(List<String> geneIDs) {
         this.geneIDs.addAll(geneIDs);
     }
+    
+    public List<String> getGeneClassIDs() {
+        return Collections.unmodifiableList(this.geneClassIDs);
+    }
+    
+    public void addGeneClassID(String geneClassID) {
+        this.geneClassIDs.add(geneClassID);
+    }
+    
+    public void addAllGeneClassIDs(List<String> geneClassIDs) {
+        this.geneClassIDs.addAll(geneClassIDs);
+    }
 
     public List<String> getPublicationIDs() {
         return Collections.unmodifiableList(this.publicationIDs);
@@ -151,6 +165,14 @@ public class AnnotationsQueryConfig {
 
     public void setMatchAllGenes(boolean matchAll) {
         this.matchAllGenes = matchAll;
+    }
+    
+    public boolean matchAllGeneClasses() {
+        return this.matchAllGeneClasses;
+    }
+    
+    public void setMatchAllGeneClasses(boolean matchAll) {
+        this.matchAllGeneClasses = matchAll;
     }
 
 }
