@@ -7,10 +7,18 @@ public class SimpleTerm implements Term {
 
     private final String id;
     private final String label;
+    private final Term source;
 
     public SimpleTerm(String uid, String label) {
         this.id = uid;
         this.label = label;
+        this.source = null;
+    }
+    
+    public SimpleTerm(String uid, String label, Term source) {
+        this.id = uid;
+        this.label = label;
+        this.source = source;
     }
 
     @Override
@@ -69,12 +77,14 @@ public class SimpleTerm implements Term {
         throw new UnsupportedOperationException("UID is final");
     }
 
+    @Override
     public Term getSource() {
-        return null;
+        return this.source;
     }
 
+    @Override
     public void setSource(Term source) {
-        throw new UnsupportedOperationException("Source term is not supported");
+        throw new UnsupportedOperationException("Changing source term is not supported");
     }
 
 }

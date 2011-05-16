@@ -373,7 +373,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<Phenotype> getDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PhenotypeQueryBuilder(config, false);
         return (new QueryExecutor<List<Phenotype>>(this.dataSource, query) {
@@ -382,11 +382,11 @@ public class PhenoscapeDataStore {
                 final List<Phenotype> phenotypes = new ArrayList<Phenotype>();
                 while (result.next()) {
                     final Phenotype phenotype = new Phenotype();
-                    phenotype.setEntity(createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), config.getPostcompositionOption()));
-                    phenotype.setQuality(createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), config.getPostcompositionOption()));
+                    phenotype.setEntity(createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), config.getPostcompositionOption(), null));
+                    phenotype.setQuality(createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), config.getPostcompositionOption(), null));
                     final String relatedEntityUID = result.getString("related_entity_uid");
                     if (relatedEntityUID != null) {
-                        phenotype.setRelatedEntity(createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), config.getPostcompositionOption()));
+                        phenotype.setRelatedEntity(createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), config.getPostcompositionOption(), null));
                     }
                     phenotypes.add(phenotype);
                 }
@@ -394,7 +394,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
         //TODO this should make use of the fast Solr counts implemented in the other count method
         final QueryBuilder query = new PhenotypeQueryBuilder(config, true);
@@ -408,7 +408,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) throws SolrServerException {
         final DistinctPhenotypesCountSolrQuery query = new DistinctPhenotypesCountSolrQuery(this.solr, entityID, qualityID, relatedEntityID, taxonID, geneID);
         return query.getCount();
@@ -439,11 +439,11 @@ public class PhenoscapeDataStore {
         }
         taxon.setExtinct(result.getBoolean("taxon_is_extinct"));
         annotation.setTaxon(taxon);
-        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option));
-        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option));
+        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option, null));
+        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option, null));
         final String relatedEntityUID = result.getString("related_entity_uid");
         if (relatedEntityUID != null) {
-            annotation.setRelatedEntity(this.createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), option));
+            annotation.setRelatedEntity(this.createBasicTerm(relatedEntityUID, result.getString("related_entity_label"), option, null));
         }
         return annotation;
     }
@@ -578,11 +578,11 @@ public class PhenoscapeDataStore {
         gene.setUID(result.getString("gene_uid"));
         gene.setLabel(result.getString("gene_label"));
         annotation.setGene(gene);
-        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option));
-        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option));
+        annotation.setEntity(this.createBasicTerm(result.getString("entity_uid"), result.getString("entity_label"), option, null));
+        annotation.setQuality(this.createBasicTerm(result.getString("quality_uid"), result.getString("quality_label"), option, null));
         final String relatedEntityUID = result.getString("related_entity_uid");
         if (relatedEntityUID != null) {
-            annotation.setRelatedEntity(this.createBasicTerm(result.getString("related_entity_uid"), result.getString("related_entity_label"), option));    
+            annotation.setRelatedEntity(this.createBasicTerm(result.getString("related_entity_uid"), result.getString("related_entity_label"), option, null));    
         }
         return annotation;
     }
@@ -914,9 +914,12 @@ public class PhenoscapeDataStore {
                             if (result.getString("rank_uid") != null) {
                                 taxon.setRank(new SimpleTerm(result.getString("rank_uid"), result.getString("rank_label")));
                             }
+                            taxon.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
                             return taxon;
                         } else {
-                            return createBasicTerm(result.getString("uid"), result.getString("label"), option);
+                            final Term source = new SimpleTerm(result.getString("source_uid"), result.getString("source_label"));
+                            final Term term = createBasicTerm(result.getString("uid"), result.getString("label"), option, source);
+                            return term;
                         }
                     }
                     return null;
@@ -966,7 +969,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public String simpleLabel(final String uid) throws SQLException {
         final QueryBuilder query = new QueryBuilder() {
             @Override
@@ -989,17 +992,19 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    private Term createBasicTerm(String uid, String label, POSTCOMP_OPTION option) throws SQLException {
+    private Term createBasicTerm(String uid, String label, POSTCOMP_OPTION option, Term source) throws SQLException {
         if ((label == null) && (!option.equals(POSTCOMP_OPTION.NONE))) {
             if (option.equals(POSTCOMP_OPTION.SEMANTIC_LABEL)) {
-                return new SimpleTerm(uid, this.semanticLabel(uid));
+                return new SimpleTerm(uid, this.semanticLabel(uid), source);
             } else if (option.equals(POSTCOMP_OPTION.SIMPLE_LABEL)) {
-                return new SimpleTerm(uid, this.simpleLabel(uid));
+                return new SimpleTerm(uid, this.simpleLabel(uid), source);
             } else {
-                return this.renderPostcomposition(uid);
+                final LinkedTerm term = this.renderPostcomposition(uid);
+                term.setSource(source);
+                return term;
             }
         } else {
-            return new SimpleTerm(uid, label);
+            return new SimpleTerm(uid, label, source);
         }
     }
 
@@ -1073,7 +1078,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<String> getChildrenUIDs(String term, String relation) throws SQLException {
         final QueryBuilder query = new ChildrenUIDsQueryBuilder(term, relation);
         return (new QueryExecutor<List<String>>(this.dataSource, query) {
@@ -1087,7 +1092,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<String> getGeneFacetChildrenUIDs(String term) throws SQLException {
         final QueryBuilder query = new GeneFacetChildrenUIDsQueryBuilder(term);
         return (new QueryExecutor<List<String>>(this.dataSource, query) {
@@ -1101,7 +1106,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public List<?> computeEntityFacet() {
         final List<?> terms = new ArrayList<Object>();
         //TODO

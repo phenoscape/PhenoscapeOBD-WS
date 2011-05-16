@@ -92,6 +92,7 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
             jsonTerm.put("parents", this.translateRelationships(((LinkedTerm)term).getSubjectLinks()));
         } else {
             jsonTerm.put("name", term.getLabel());
+            jsonTerm.put("source", this.createBasicJSONTerm(term.getSource()));
             if (term instanceof TaxonTerm) {
                 final TaxonTerm taxon = (TaxonTerm)term;
                 jsonTerm.put("extinct", taxon.isExtinct());
