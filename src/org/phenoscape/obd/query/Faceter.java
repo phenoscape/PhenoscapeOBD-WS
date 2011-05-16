@@ -13,11 +13,13 @@ import org.apache.solr.client.solrj.SolrServerException;
 public abstract class Faceter {
 
     private final PhenoscapeDataStore dataStore;
-    private final int optimalSize; 
+    private final int minimumSize;
+    private final int maximumSize;
 
-    public Faceter(PhenoscapeDataStore dataStore, int optimalSize) {
+    public Faceter(PhenoscapeDataStore dataStore, int minimum, int maximum) {
         this.dataStore = dataStore;
-        this.optimalSize = optimalSize;
+        this.minimumSize = minimum;
+        this.maximumSize = maximum;
     }
 
     protected abstract List<String> getChildren(String focalTermUID) throws SQLException;
@@ -28,8 +30,12 @@ public abstract class Faceter {
         return this.dataStore;
     }
 
-    public int getOptimalSize() {
-        return this.optimalSize;
+    public int getMinimumSize() {
+        return this.minimumSize;
+    }
+    
+    public int getMaximumSize() {
+        return this.maximumSize;
     }
 
     public Map<String, Integer> facetTerm(String uid) throws SQLException, SolrServerException {
@@ -47,11 +53,11 @@ public abstract class Faceter {
         if (partitions.isEmpty()) {
             return partitions;
         }
-        while (partitions.size() < this.getOptimalSize()) {
+        while (partitions.size() < this.getMinimumSize()) {
             log().debug("Partitions size: " + partitions.size());
             final Partition largest = Collections.max(partitions);
             final List<Partition> subpartitions = this.getPartitions(largest.getTerm());
-            if (subpartitions.size() < 1) { break; } //2
+            if ((subpartitions.size() < 1) || ((subpartitions.size() + partitions.size() - 1) > this.getMaximumSize())) { break; }
             log().debug("Expanding largest: " + largest.getTerm() + ", " + largest.getCount());
             partitions.remove(largest);
             partitions.addAll(subpartitions);

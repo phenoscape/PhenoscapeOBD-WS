@@ -13,8 +13,8 @@ public abstract class QualityFaceter extends Faceter {
         rootEntities.add("PATO:0000001"); // quality
     }
 
-    public QualityFaceter(PhenoscapeDataStore dataStore, int optimalSize) {
-        super(dataStore, optimalSize);
+    public QualityFaceter(PhenoscapeDataStore dataStore, int minimum, int maximum) {
+        super(dataStore, minimum, maximum);
     }
 
     @Override

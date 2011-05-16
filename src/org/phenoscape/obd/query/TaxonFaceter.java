@@ -13,8 +13,8 @@ public abstract class TaxonFaceter extends Faceter {
         rootEntities.add("TTO:0"); // Chordata
     }
 
-    public TaxonFaceter(PhenoscapeDataStore dataStore, int optimalSize) {
-        super(dataStore, optimalSize);
+    public TaxonFaceter(PhenoscapeDataStore dataStore, int minimum, int maximum) {
+        super(dataStore, minimum, maximum);
     }
 
     @Override

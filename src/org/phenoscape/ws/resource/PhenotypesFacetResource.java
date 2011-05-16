@@ -26,7 +26,8 @@ import org.restlet.resource.ResourceException;
 
 public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
 
-    private final static int OPTIMAL_SIZE = 5;
+    private final static int MINIMUM_SIZE = 5;
+    private final static int MAXIMUM_SIZE = 20;
     private static enum FACET { ENTITY, QUALITY, RELATED_ENTITY, TAXON, GENE }
     private static final Map<String, FACET> uriToFacet = new HashMap<String, FACET>();
     static {
@@ -127,31 +128,31 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
     private Map<String, Integer> getFacetedPhenotypeCount(String focalTermID) throws SQLException, SolrServerException {
         final Map<String, Integer> counts;
         switch(this.facet) {
-        case ENTITY: counts = (new EntityFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+        case ENTITY: counts = (new EntityFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(focalTermUID, qualityID, relatedEntityID, taxonID, geneID);
             }
         }).facetTerm(focalTermID); break;
-        case QUALITY: counts = (new QualityFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+        case QUALITY: counts = (new QualityFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(entityID, focalTermUID, relatedEntityID, taxonID, geneID);
             }
         }).facetTerm(focalTermID); break; 
-        case RELATED_ENTITY: counts = (new RelatedEntityFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+        case RELATED_ENTITY: counts = (new RelatedEntityFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(entityID, qualityID, focalTermUID, taxonID, geneID);
             }
         }).facetTerm(focalTermID); break;
-        case TAXON: counts = (new TaxonFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+        case TAXON: counts = (new TaxonFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(entityID, qualityID, relatedEntityID, focalTermUID, geneID);
             }
         }).facetTerm(focalTermID); break;
-        case GENE: counts = (new GeneFaceter(this.getDataStore(), OPTIMAL_SIZE) {
+        case GENE: counts = (new GeneFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(entityID, qualityID, relatedEntityID, taxonID, focalTermUID);

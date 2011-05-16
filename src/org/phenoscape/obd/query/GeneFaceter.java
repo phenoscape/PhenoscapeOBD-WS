@@ -14,8 +14,8 @@ public abstract class GeneFaceter extends Faceter {
         rootEntities.add("GO:0003674"); // molecular function
     }
 
-    public GeneFaceter(PhenoscapeDataStore dataStore, int optimalSize) {
-        super(dataStore, optimalSize);
+    public GeneFaceter(PhenoscapeDataStore dataStore, int minimum, int maximum) {
+        super(dataStore, minimum, maximum);
     }
 
     @Override

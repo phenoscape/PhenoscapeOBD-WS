@@ -17,8 +17,8 @@ public abstract class EntityFaceter extends Faceter {
         //TODO need to add spatial
     }
 
-    public EntityFaceter(PhenoscapeDataStore dataStore, int optimalSize) {
-        super(dataStore, optimalSize);
+    public EntityFaceter(PhenoscapeDataStore dataStore, int minSize, int maxSize) {
+        super(dataStore, minSize, maxSize);
     }
 
     @Override
