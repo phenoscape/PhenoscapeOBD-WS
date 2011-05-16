@@ -32,7 +32,7 @@ public class DistinctPhenotypesCountSolrQuery {
         final SolrQuery query = new SolrQuery();
         final List<String> facets = new ArrayList<String>();
         if (this.taxonID != null) {
-            facets.add(String.format("taxon:\"%s\"", this.taxonID));
+            facets.add(String.format("taxon_asserted:\"%s\"", this.taxonID));
         }
         if (this.entityID != null) {
             facets.add(String.format("entity_strict_inheres_in:\"%s\"", this.entityID));
