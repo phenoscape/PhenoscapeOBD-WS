@@ -21,17 +21,17 @@ public abstract class Faceter {
     }
 
     protected abstract List<String> getChildren(String focalTermUID) throws SQLException;
-    
+
     protected abstract int getDataCount(String focalTermUID) throws SolrServerException;
-    
+
     protected PhenoscapeDataStore getDataStore() {
         return this.dataStore;
     }
-    
+
     public int getOptimalSize() {
         return this.optimalSize;
     }
-    
+
     public Map<String, Integer> facetTerm(String uid) throws SQLException, SolrServerException {
         final Map<String, Integer> counts = new HashMap<String, Integer>();
         for (Partition partition : this.optimizePartitions(uid)) {
@@ -39,7 +39,7 @@ public abstract class Faceter {
         }
         return counts;
     }
-    
+
     private List<Partition> optimizePartitions(String term) throws SQLException, SolrServerException {
         final List<Partition> partitions = new ArrayList<Partition>();
         partitions.addAll(this.getPartitions(term));
@@ -51,14 +51,18 @@ public abstract class Faceter {
             log().debug("Partitions size: " + partitions.size());
             final Partition largest = Collections.max(partitions);
             final List<Partition> subpartitions = this.getPartitions(largest.getTerm());
-            if (subpartitions.size() < 2) { break; }
+            if (subpartitions.size() < 1) { break; } //2
             log().debug("Expanding largest: " + largest.getTerm() + ", " + largest.getCount());
             partitions.remove(largest);
             partitions.addAll(subpartitions);
         }
-        return partitions;
+        final List<Partition> maxDepthedPartitions = new ArrayList<Partition>();
+        for (Partition partition : partitions) {
+            maxDepthedPartitions.add(this.maxDepth(partition));
+        }
+        return maxDepthedPartitions;
     }
-    
+
     private List<Partition> getPartitions(String term) throws SQLException, SolrServerException {
         final List<Partition> partitions = new ArrayList<Partition>();
         for (String child : this.getChildren(term)) {
@@ -67,23 +71,19 @@ public abstract class Faceter {
                 partitions.add(new Partition(child, subCount));    
             }
         }
-        if (partitions.size() == 1) {
-            return Collections.singletonList(this.maxDepth(partitions.get(0)));
-        } else {
-            return partitions;
-        }
+        return partitions;
     }
-    
+
     private Partition maxDepth(Partition upperPartition) throws SQLException, SolrServerException {
         log().debug("Checking max depth for: " + upperPartition.term);
         final List<Partition> partitions = this.getPartitions(upperPartition.getTerm());
-        if ((partitions.size() == 1) && (!partitions.get(0).getTerm().equals(upperPartition.getTerm()))) {
+        if ((partitions.size() == 1) && (partitions.get(0).getCount() == upperPartition.getCount()) && (!partitions.get(0).getTerm().equals(upperPartition.getTerm()))) {
             return this.maxDepth(partitions.get(0));
         } else {
             return upperPartition;
         }
     }
-    
+
     private static class Partition implements Comparable<Partition> {
 
         private final String term;
@@ -108,7 +108,7 @@ public abstract class Faceter {
         }
 
     }
-    
+
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }
