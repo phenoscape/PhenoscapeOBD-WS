@@ -30,6 +30,7 @@ import org.phenoscape.obd.model.LinkedTerm;
 import org.phenoscape.obd.model.Matrix;
 import org.phenoscape.obd.model.OTU;
 import org.phenoscape.obd.model.Phenotype;
+import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
@@ -1106,11 +1107,56 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
+    
+    
+    public Map<String, Integer> getGreatestProfileMatchesForChildren(String taxonID, List<PhenotypeSpec> profile) throws SQLException {
+        Map<String, Integer> matches = new HashMap<String, Integer>();
+        if (taxonID != null) {
+            final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
+            for (String child : children) {
+                final int match = this.getGreatestProfileMatchWithinTaxon(child, profile);
+                if (match > 0) {
+                    matches.put(child, match);
+                }
+            }
+        } else {
+            //TODO find root node to use
+        }
+        
+        return matches;
+    }
 
-    public List<?> computeEntityFacet() {
-        final List<?> terms = new ArrayList<Object>();
-        //TODO
-        return terms;
+    public int getGreatestProfileMatchWithinTaxon(String taxonID, List<PhenotypeSpec> profile) throws SQLException {
+        Map<String, Integer> matches = new HashMap<String, Integer>();
+        for (PhenotypeSpec phenotype : profile) {
+            final Set<String> matchingSpecies = this.getSpeciesIDsWithPhenotype(taxonID, phenotype);
+            for (String species : matchingSpecies) {
+                if (matches.containsKey(species)) {
+                    matches.put(species, (matches.get(species) + 1));
+                } else {
+                    matches.put(species, 1);
+                }
+            }
+        }
+        if (matches.isEmpty()) {
+            return 0;
+        } else {
+            return Collections.max(matches.values());    
+        }
+    }
+    
+    public Set<String> getSpeciesIDsWithPhenotype(String taxonID, PhenotypeSpec phenotype) throws SQLException {
+        final QueryBuilder query = new SpeciesWithPhenotypeQueryBuilder(taxonID, phenotype);
+        return (new QueryExecutor<Set<String>>(this.dataSource, query) {
+            @Override
+            public Set<String> processResult(ResultSet result) throws SQLException {
+                final Set<String> matches = new HashSet<String>();
+                while (result.next()) {
+                    matches.add(result.getString("taxon_uid"));
+                }
+                return matches;
+            }
+        }).executeQuery();
     }
 
     private Logger log() {
