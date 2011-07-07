@@ -1107,23 +1107,27 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
-    
-    public Map<String, Integer> getGreatestProfileMatchesForChildren(String taxonID, List<PhenotypeSpec> profile) throws SQLException {
+
+
+    public Map<String, Integer> getGreatestProfileMatchesForChildren(String taxonID, List<PhenotypeSpec> profile, boolean recurse) throws SQLException {
         Map<String, Integer> matches = new HashMap<String, Integer>();
-        if (taxonID != null) {
-            final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
-            for (String child : children) {
-                final int match = this.getGreatestProfileMatchWithinTaxon(child, profile);
-                if (match > 0) {
-                    matches.put(child, match);
-                }
+        final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
+        for (String child : children) {
+            final int match = this.getGreatestProfileMatchWithinTaxon(child, profile);
+            if (match > 0) {
+                matches.put(child, match);
             }
-        } else {
-            //TODO find root node to use
         }
-        
-        return matches;
+        if (recurse && (matches.size() == 1)) {
+            return this.getGreatestProfileMatchesForChildren(matches.keySet().iterator().next(), profile, true);
+        } else if (recurse && (matches.size() > 1)) {
+            final int match = this.getGreatestProfileMatchWithinTaxon(taxonID, profile);
+            matches.clear();
+            matches.put(taxonID, match);
+            return matches;
+        } else {
+            return matches;
+        }
     }
 
     public int getGreatestProfileMatchWithinTaxon(String taxonID, List<PhenotypeSpec> profile) throws SQLException {
@@ -1144,7 +1148,7 @@ public class PhenoscapeDataStore {
             return Collections.max(matches.values());    
         }
     }
-    
+
     public Set<String> getSpeciesIDsWithPhenotype(String taxonID, PhenotypeSpec phenotype) throws SQLException {
         final QueryBuilder query = new SpeciesWithPhenotypeQueryBuilder(taxonID, phenotype);
         return (new QueryExecutor<Set<String>>(this.dataSource, query) {

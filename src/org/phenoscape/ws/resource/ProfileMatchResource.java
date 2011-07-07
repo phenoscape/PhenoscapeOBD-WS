@@ -8,6 +8,7 @@ import java.util.Map.Entry;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.QueryException;
 import org.restlet.data.Status;
@@ -39,7 +40,12 @@ public class ProfileMatchResource extends AbstractPhenoscapeResource {
     @Get("json")
     public Representation getJSONRepresentation() {
         try {
-            final Map<String, Integer> matches = this.getDataStore().getGreatestProfileMatchesForChildren(taxonID, this.phenotypes.getPhenotypes());
+            final Map<String, Integer> matches;
+            if (this.taxonID == null) {
+                matches = this.getDataStore().getGreatestProfileMatchesForChildren(TTO.ROOT, this.phenotypes.getPhenotypes(), true);
+            } else {
+                matches = this.getDataStore().getGreatestProfileMatchesForChildren(taxonID, this.phenotypes.getPhenotypes(), false);
+            }
             final JSONObject json = new JSONObject();
             final List<JSONObject> jsonMatches = new ArrayList<JSONObject>();
             for (Entry<String, Integer> match : matches.entrySet()) {
