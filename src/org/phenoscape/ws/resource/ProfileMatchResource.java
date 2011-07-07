@@ -25,7 +25,7 @@ public class ProfileMatchResource extends AbstractPhenoscapeResource {
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
-        this.taxonID = this.getFirstQueryValue("taxonID");
+        this.taxonID = this.getFirstQueryValue("taxon");
         try {
             this.phenotypes = this.initializeQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
         } catch (QueryException e) {
