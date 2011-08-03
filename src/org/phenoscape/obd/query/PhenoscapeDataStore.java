@@ -1095,8 +1095,8 @@ public class PhenoscapeDataStore {
     }
 
     public List<String> getGeneFacetChildrenUIDs(String term) throws SQLException {
-        final QueryBuilder query = new GeneFacetChildrenUIDsQueryBuilder(term);
-        return (new QueryExecutor<List<String>>(this.dataSource, query) {
+        final QueryBuilder goQuery = new GeneFacetChildrenUIDsQueryBuilder(term, false);
+        final List<String> goTerms = (new QueryExecutor<List<String>>(this.dataSource, goQuery) {
             @Override
             public List<String> processResult(ResultSet result) throws SQLException {
                 final List<String> children = new ArrayList<String>();
@@ -1106,6 +1106,19 @@ public class PhenoscapeDataStore {
                 return children;
             }
         }).executeQuery();
+        final QueryBuilder geneQuery = new GeneFacetChildrenUIDsQueryBuilder(term, true);
+        final Set<String> genes = (new QueryExecutor<Set<String>>(this.dataSource, geneQuery) {
+            @Override
+            public Set<String> processResult(ResultSet result) throws SQLException {
+                final Set<String> children = new HashSet<String>();
+                while (result.next()) {
+                    children.add(result.getString("child_uid"));
+                }
+                return children;
+            }
+        }).executeQuery();
+        goTerms.addAll(genes);
+        return goTerms;
     }
 
 
