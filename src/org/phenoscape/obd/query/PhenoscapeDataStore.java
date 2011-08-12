@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
 import javax.sql.DataSource;
@@ -31,6 +32,7 @@ import org.phenoscape.obd.model.Matrix;
 import org.phenoscape.obd.model.OTU;
 import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.model.PhenotypeSpec;
+import org.phenoscape.obd.model.PhenotypeVariationSet;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
@@ -1176,6 +1178,40 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean includeUnannotatedTaxa) throws SQLException {
+        final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
+        final Set<String> unannotatedChildTaxa = new HashSet<String>();
+        final Map<Set<Phenotype>, Set<String>> results = new HashMap<Set<Phenotype>, Set<String>>();
+        for (String child : children) {
+            final AnnotationsQueryConfig config = new AnnotationsQueryConfig();
+            config.addTaxonID(child);
+            config.addPhenotype(phenotype);
+            final Set<Phenotype> phenotypes = new HashSet<Phenotype>();
+            phenotypes.addAll(this.getDistinctPhenotypes(config));
+            if (excludeGivenQuality) {
+                final Set<Phenotype> toBeRemoved = new HashSet<Phenotype>();
+                for (Phenotype annotatedPhenotype : phenotypes) {
+                    if (annotatedPhenotype.getQuality().getUID().equals(phenotype.getQualityID())) {
+                        toBeRemoved.add(annotatedPhenotype);
+                    }
+                }
+                phenotypes.removeAll(toBeRemoved);
+            }
+            if (phenotypes.isEmpty()) {
+                unannotatedChildTaxa.add(child);
+            }
+            if (!(results.containsKey(phenotypes))) {
+                results.put(phenotypes, new HashSet<String>());
+            }
+            results.get(phenotypes).add(child);
+        }
+        final Set<PhenotypeVariationSet> variationSets = new HashSet<PhenotypeVariationSet>();
+        for (Entry<Set<Phenotype>, Set<String>> entry : results.entrySet()) {
+            variationSets.add(new PhenotypeVariationSet(entry.getValue(), entry.getKey()));
+        }
+        return variationSets;
+    }
+    
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }
