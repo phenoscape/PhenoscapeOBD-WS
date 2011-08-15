@@ -21,12 +21,16 @@ import org.restlet.resource.ResourceException;
 public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
 
     private String taxonID;
+    private boolean excludeGivenQuality;
+    private boolean excludeUnannotatedTaxa;
     private AnnotationsQueryConfig phenotype;
 
     @Override
     protected void doInit() throws ResourceException {
         super.doInit();
         this.taxonID = this.getFirstQueryValue("taxon");
+        this.excludeGivenQuality = this.getBooleanQueryValue("exclude_attribute", true);
+        this.excludeUnannotatedTaxa = this.getBooleanQueryValue("exclude_unannotated", true);
         try {
             this.phenotype = this.initializeQueryConfig(this.getJSONQueryValue("query", new JSONObject()));
             if (this.phenotype.getPhenotypes().size() != 1) {
@@ -47,9 +51,9 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
         try {
             final Set<PhenotypeVariationSet> phenotypeSets;
             if (this.taxonID == null) {
-                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(TTO.ROOT, this.phenotype.getPhenotypes().get(0), true, true, false);
+                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(TTO.ROOT, this.phenotype.getPhenotypes().get(0), true, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
             } else {
-                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, true, false);
+                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
             }
             final JSONObject json = new JSONObject();
             final List<JSONObject> jsonSets = new ArrayList<JSONObject>();

@@ -1178,7 +1178,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean includeUnannotatedTaxa) throws SQLException {
+    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException {
         final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
         final Set<String> unannotatedChildTaxa = new HashSet<String>();
         final Map<Set<Phenotype>, Set<String>> results = new HashMap<Set<Phenotype>, Set<String>>();
@@ -1199,15 +1199,19 @@ public class PhenoscapeDataStore {
             }
             if (phenotypes.isEmpty()) {
                 unannotatedChildTaxa.add(child);
+            } else {
+                if (!(results.containsKey(phenotypes))) {
+                    results.put(phenotypes, new HashSet<String>());
+                }
+                results.get(phenotypes).add(child);
             }
-            if (!(results.containsKey(phenotypes))) {
-                results.put(phenotypes, new HashSet<String>());
-            }
-            results.get(phenotypes).add(child);
         }
         final Set<PhenotypeVariationSet> variationSets = new HashSet<PhenotypeVariationSet>();
         for (Entry<Set<Phenotype>, Set<String>> entry : results.entrySet()) {
             variationSets.add(new PhenotypeVariationSet(entry.getValue(), entry.getKey()));
+        }
+        if (!excludeUnannotatedTaxa) {
+            variationSets.add(new PhenotypeVariationSet(unannotatedChildTaxa, Collections.EMPTY_SET));
         }
         return variationSets;
     }
