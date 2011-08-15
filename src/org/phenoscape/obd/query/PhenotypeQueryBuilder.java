@@ -64,7 +64,9 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
             }
         }
         if (!this.totalOnly) {
-            statement.setInt(index++, this.config.getLimit());
+            if (this.config.getLimit() != -1) {
+                statement.setInt(index++, this.config.getLimit());   
+            }
             statement.setInt(index++, this.config.getIndex());
         }
     }
@@ -97,7 +99,7 @@ public class PhenotypeQueryBuilder extends QueryBuilder {
         if (this.totalOnly) {
             query = "SELECT count(*) FROM (" + baseQuery + ") AS query";
         } else {
-            query = "SELECT * FROM " + "(" + baseQuery + ") AS query " + this.getJoinText() + "ORDER BY simple_label " + this.getSortText() + "LIMIT ? OFFSET ? " ;
+            query = "SELECT * FROM " + "(" + baseQuery + ") AS query " + this.getJoinText() + "ORDER BY simple_label " + this.getSortText() + ((this.config.getLimit() == -1) ? "" : "LIMIT ? ") + "OFFSET ? " ;
         }
         return query;
     }

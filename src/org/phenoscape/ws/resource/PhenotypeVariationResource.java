@@ -59,11 +59,11 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
             json.put("phenotype_sets", jsonSets);
             return new JsonRepresentation(json);
         } catch (SQLException e) {
-            log().error("Database error querying for profile matches", e);
+            log().error("Database error querying for phenotype variation", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (JSONException e) {
-            log().error("Failed to create JSON object for profile matches", e);
+            log().error("Failed to create JSON object for phenotype variation", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
