@@ -920,7 +920,7 @@ public class PhenoscapeDataStore {
                             taxon.setSource(new SimpleTerm(result.getString("source_uid"), result.getString("source_label")));
                             return taxon;
                         } else {
-                            final Term source = new SimpleTerm(result.getString("source_uid"), result.getString("source_label"));
+                            final Term source = (result.getString("source_uid") != null) ? (new SimpleTerm(result.getString("source_uid"), result.getString("source_label"))) : null;
                             final Term term = createBasicTerm(result.getString("uid"), result.getString("label"), option, source);
                             return term;
                         }
@@ -1215,7 +1215,7 @@ public class PhenoscapeDataStore {
         }
         return variationSets;
     }
-    
+
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }

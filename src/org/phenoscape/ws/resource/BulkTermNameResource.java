@@ -23,7 +23,7 @@ import org.restlet.resource.Post;
 
 //TODO should change output to a map instead of a list
 public class BulkTermNameResource extends AbstractPhenoscapeResource {
-    
+
     public static String RENDER_POSTCOMPOSITIONS = "render_postcompositions";
     POSTCOMP_OPTION postCompOption = POSTCOMP_OPTION.SIMPLE_LABEL;
     private static final Map<String,POSTCOMP_OPTION> POSTCOMP_OPTIONS = new HashMap<String,POSTCOMP_OPTION>();
@@ -84,7 +84,7 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
         json.put("terms", jsonTerms);
         return json;
     }
-    
+
     private JSONObject translate(Term term) throws JSONException {
         final JSONObject jsonTerm = new JSONObject();
         jsonTerm.put("id", term.getUID());
@@ -92,7 +92,9 @@ public class BulkTermNameResource extends AbstractPhenoscapeResource {
             jsonTerm.put("parents", this.translateRelationships(((LinkedTerm)term).getSubjectLinks()));
         } else {
             jsonTerm.put("name", term.getLabel());
-            jsonTerm.put("source", this.createBasicJSONTerm(term.getSource()));
+            if (term.getSource() != null) {
+                jsonTerm.put("source", this.createBasicJSONTerm(term.getSource()));    
+            }
             if (term instanceof TaxonTerm) {
                 final TaxonTerm taxon = (TaxonTerm)term;
                 jsonTerm.put("extinct", taxon.isExtinct());
