@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.impl.CommonsHttpSolrServer;
 import org.phenoscape.obd.sparql.SPARQLResource;
+import org.phenoscape.ws.resource.AttributeQualitiesResource;
 import org.phenoscape.ws.resource.AutocompleteResource;
 import org.phenoscape.ws.resource.BulkTermNameResource;
 import org.phenoscape.ws.resource.DistinctPhenotypesResource;
@@ -73,6 +74,7 @@ public class PhenoscapeWebServiceApplication extends Application {
         router.attach("/term/publication/{publicationID}", PublicationTermResource.class);
         router.attach("/term/search", AutocompleteResource.class);
         router.attach("/term/names", BulkTermNameResource.class);
+        router.attach("/term/attributes", AttributeQualitiesResource.class);
         router.attach("/term/{termID}/path", PathToRootResource.class);
         router.attach("/term/{termID}", TermInfoResource.class);
         router.attach("/timestamp", KBTimestampResource.class).setMatchingMode(Template.MODE_STARTS_WITH);

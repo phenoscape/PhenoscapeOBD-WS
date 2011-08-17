@@ -1216,6 +1216,22 @@ public class PhenoscapeDataStore {
         return variationSets;
     }
 
+    public List<Term> getQualityAttributes() throws SQLException {
+        //FIXME use vocab constants within this query
+        final QueryBuilder query = new SimpleQuery("SELECT attribute.node_id, attribute.uid, attribute.label FROM node attribute JOIN link attribute_to_slim ON (attribute_to_slim.node_id = attribute.node_id AND attribute_to_slim.predicate_id = (SELECT node_id from node where uid = 'oboInOwl:inSubset') AND attribute_to_slim.object_id = (SELECT node_id from node where uid = 'character_slim') AND is_inferred = false) WHERE attribute.source_id = (SELECT node_id FROM node WHERE uid = 'quality') ");
+        return (new QueryExecutor<List<Term>>(this.dataSource, query) {
+            @Override
+            public List<Term> processResult(ResultSet result) throws SQLException {
+                final List<Term> attributes = new ArrayList<Term>();
+                while (result.next()) {
+                    final Term term = new SimpleTerm(result.getString("uid"), result.getString("label"));
+                    attributes.add(term);
+                }
+                return attributes;
+            }
+        }).executeQuery();
+    }
+
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }
