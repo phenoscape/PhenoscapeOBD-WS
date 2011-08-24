@@ -44,6 +44,7 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
     private String relatedEntityID;
     private String taxonID;
     private String geneID;
+    private boolean traverseEntitiesByPart;
 
     @Override
     protected void doInit() throws ResourceException {
@@ -58,6 +59,7 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
             throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Should not provide query parameter for requested facet");
         }
         this.entityID = this.getFirstQueryValue("entity");
+        this.traverseEntitiesByPart = this.getBooleanQueryValue("part_of", false);
         this.qualityID = this.getFirstQueryValue("quality");
         this.relatedEntityID = this.getFirstQueryValue("related_entity");
         this.taxonID = this.getFirstQueryValue("taxon");
@@ -72,6 +74,7 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
 
     @Get("json")
     public Representation getJSONRepresentation() throws JSONException {
+        log().info("Traversing entities by part: " + this.traverseEntitiesByPart);
         try {
             final JSONObject json = new JSONObject();
             final List<JSONObject> pathItems = new ArrayList<JSONObject>();
@@ -128,7 +131,7 @@ public class PhenotypesFacetResource extends AbstractPhenoscapeResource {
     private Map<String, Integer> getFacetedPhenotypeCount(String focalTermID) throws SQLException, SolrServerException {
         final Map<String, Integer> counts;
         switch(this.facet) {
-        case ENTITY: counts = (new EntityFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE) {
+        case ENTITY: counts = (new EntityFaceter(this.getDataStore(), MINIMUM_SIZE, MAXIMUM_SIZE, this.traverseEntitiesByPart) {
             @Override
             protected int getDataCount(String focalTermUID) throws SolrServerException {
                 return this.getDataStore().getCountOfDistinctPhenotypes(focalTermUID, qualityID, relatedEntityID, taxonID, geneID);

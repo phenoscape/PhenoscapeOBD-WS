@@ -14,6 +14,7 @@ public class Vocab {
         public static final String LOCATED_IN = "OBO_REL:located_in";
         public static final String HAS_FUNCTION = "OBO_REL:has_function";
         public static final String PARTICIPATES_IN = "OBO_REL:participates_in";
+        public static final String PART_OF = "OBO_REL:part_of";
     }
 
     public static class TAO {
