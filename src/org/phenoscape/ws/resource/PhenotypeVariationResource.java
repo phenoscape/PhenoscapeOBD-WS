@@ -9,6 +9,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.model.PhenotypeVariationSet;
+import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.QueryException;
@@ -48,26 +49,53 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
 
     @Get("json")
     public Representation getJSONRepresentation() {
+        if ("suggest".equals(this.taxonID)) {
+            return this.getSuggestedTaxa();
+        } else {
+            try {
+                final Set<PhenotypeVariationSet> phenotypeSets;
+                if (this.taxonID == null) {
+                    phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(TTO.ROOT, this.phenotype.getPhenotypes().get(0), true, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+                } else {
+                    phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+                }
+                final JSONObject json = new JSONObject();
+                final List<JSONObject> jsonSets = new ArrayList<JSONObject>();
+                for (PhenotypeVariationSet variationSet : phenotypeSets) {
+                    jsonSets.add(this.translate(variationSet));
+                }
+                json.put("phenotype_sets", jsonSets);
+                return new JsonRepresentation(json);
+            } catch (SQLException e) {
+                log().error("Database error querying for phenotype variation", e);
+                this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+                return null;
+            } catch (JSONException e) {
+                log().error("Failed to create JSON object for phenotype variation", e);
+                this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+                return null;
+            }
+        }
+    }
+
+    private Representation getSuggestedTaxa() {
         try {
-            final Set<PhenotypeVariationSet> phenotypeSets;
-            if (this.taxonID == null) {
-                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(TTO.ROOT, this.phenotype.getPhenotypes().get(0), true, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
-            } else {
-                phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
-            }
+            //FIXME this is hardcoded to return the children of Otophysi
+            // this is just a stub result
+            final TaxonTerm parent = this.getDataStore().getTaxonTerm("TTO:352", true, false);
             final JSONObject json = new JSONObject();
-            final List<JSONObject> jsonSets = new ArrayList<JSONObject>();
-            for (PhenotypeVariationSet variationSet : phenotypeSets) {
-                jsonSets.add(this.translate(variationSet));
+            final List<JSONObject> taxa = new ArrayList<JSONObject>();
+            for (TaxonTerm taxon : parent.getChildren()) {
+                taxa.add(TermResourceUtil.translateMinimal(taxon));
             }
-            json.put("phenotype_sets", jsonSets);
+            json.put("taxa", taxa);
             return new JsonRepresentation(json);
         } catch (SQLException e) {
-            log().error("Database error querying for phenotype variation", e);
+            log().error("Database error querying for suggested taxa", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         } catch (JSONException e) {
-            log().error("Failed to create JSON object for phenotype variation", e);
+            log().error("Failed to create JSON object for suggested taxa", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
         }
