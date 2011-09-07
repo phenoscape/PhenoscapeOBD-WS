@@ -53,18 +53,17 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
             return this.getSuggestedTaxa();
         } else {
             try {
-                final Set<PhenotypeVariationSet> phenotypeSets;
                 if (this.taxonID == null) {
-                    phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(TTO.ROOT, this.phenotype.getPhenotypes().get(0), true, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
-                } else {
-                    phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+                    this.taxonID = TTO.ROOT;
                 }
+                final Set<PhenotypeVariationSet> phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
                 final JSONObject json = new JSONObject();
                 final List<JSONObject> jsonSets = new ArrayList<JSONObject>();
                 for (PhenotypeVariationSet variationSet : phenotypeSets) {
                     jsonSets.add(this.translate(variationSet));
                 }
                 json.put("phenotype_sets", jsonSets);
+                json.put("parent_taxon", this.taxonID);
                 return new JsonRepresentation(json);
             } catch (SQLException e) {
                 log().error("Database error querying for phenotype variation", e);
