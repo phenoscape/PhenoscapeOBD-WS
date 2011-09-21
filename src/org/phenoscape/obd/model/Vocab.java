@@ -1,6 +1,19 @@
 package org.phenoscape.obd.model;
 
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class Vocab {
+
+    public static final Map<String, List<String>> NAMESPACE_GROUPS = new HashMap<String, List<String>>();
+    static {
+        final List<String> entityNamespaces = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE);
+        NAMESPACE_GROUPS.put(TAO.NAMESPACE, entityNamespaces);
+        NAMESPACE_GROUPS.put(VAO.NAMESPACE, entityNamespaces);
+        NAMESPACE_GROUPS.put(CARO.NAMESPACE, entityNamespaces);
+    }
 
     public static class OBO {
 
@@ -16,6 +29,17 @@ public class Vocab {
         public static final String PARTICIPATES_IN = "OBO_REL:participates_in";
         public static final String PART_OF = "OBO_REL:part_of";
     }
+    
+    public static class VAO {
+
+        public static final String NAMESPACE = "vertebrate_anatomy";
+    }
+
+    public static class CARO {
+
+        public static final String NAMESPACE = "caro";
+    }
+
 
     public static class TAO {
 
@@ -37,9 +61,9 @@ public class Vocab {
 
         public static final String[] HIGHER_LEVEL_TAXA = {CHARACIFORMES, CLUPEIFORMES, CYPRINIFORMES, GONORYNCHIFORMES, GYMNOTIFORMES, SILURIFORMES, EUTELEOSTEI};
     }
-    
+
     public static class TAXRANK {
-        
+
         public static final String SPECIES = "TAXRANK:0000006";
     }
 
@@ -81,14 +105,14 @@ public class Vocab {
         public static final String HAS_PHENOTYPE = "cdao:has_Phenotype";
 
     }
-    
+
     /** Dublin Core */
     public static class DC {
         public static final String ABSTRACT = "dc:abstract";
         public static final String CITATION = "dc:bibliographicCitation";
         public static final String IDENTIFIER = "dc:identifier";
     }
-    
+
     /** Darwin Core */
     public static class DWC {
         public static final String INDIVIDUAL_ID = "dwc:individualID";

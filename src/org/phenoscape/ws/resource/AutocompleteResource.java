@@ -12,11 +12,13 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.Vocab.CARO;
 import org.phenoscape.obd.model.Vocab.GO;
 import org.phenoscape.obd.model.Vocab.PATO;
 import org.phenoscape.obd.model.Vocab.PHENOSCAPE;
 import org.phenoscape.obd.model.Vocab.TAO;
 import org.phenoscape.obd.model.Vocab.TTO;
+import org.phenoscape.obd.model.Vocab.VAO;
 import org.phenoscape.obd.model.Vocab.ZFIN;
 import org.phenoscape.obd.query.AutocompleteResult;
 import org.phenoscape.obd.query.SearchConfig;
@@ -39,6 +41,8 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
     private static final Map<String, String[]> prefixes = new HashMap<String, String[]>();
     static {
         prefixes.put("tao", new String[] {TAO.NAMESPACE});
+        prefixes.put("vao", new String[] {VAO.NAMESPACE});
+        prefixes.put("caro", new String[] {CARO.NAMESPACE});
         prefixes.put("go", new String[] {GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
         prefixes.put("pato", new String[] {PATO.NAMESPACE});
         prefixes.put("tto", new String[] {TTO.NAMESPACE});
@@ -48,7 +52,7 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
     
     private static final Map<String, String[]> termTypes = new HashMap<String, String[]>();
     static {
-        termTypes.put("entity", new String[] {TAO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
+        termTypes.put("entity", new String[] {TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
         termTypes.put("quality", new String[] {PATO.NAMESPACE});
         termTypes.put("taxon", new String[] {TTO.NAMESPACE});
         termTypes.put("gene", new String[] {ZFIN.GENE_NAMESPACE});

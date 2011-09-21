@@ -42,6 +42,7 @@ import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.TaxonAnnotation;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Term;
+import org.phenoscape.obd.model.Vocab;
 import org.phenoscape.obd.model.Vocab.CDAO;
 import org.phenoscape.obd.model.Vocab.OBO;
 import org.phenoscape.obd.model.Vocab.PATO;
@@ -145,7 +146,13 @@ public class PhenoscapeDataStore {
     }
 
     private void addLinksToTerm(DefaultTerm term) throws SQLException {
-        final QueryBuilder parentsQuery = new TermLinkSubjectQueryBuilder(term);
+        final Collection<String> namespaces;
+        if (Vocab.NAMESPACE_GROUPS.containsKey(term.getSource().getUID())) {
+            namespaces = Vocab.NAMESPACE_GROUPS.get(term.getSource().getUID());
+        } else {
+            namespaces = Collections.singleton(term.getSource().getUID());
+        }
+        final QueryBuilder parentsQuery = new TermLinkSubjectQueryBuilder(term, namespaces);
         final Set<Relationship> parents = (new QueryExecutor<Set<Relationship>>(this.dataSource, parentsQuery) {
             @Override
             public Set<Relationship> processResult(ResultSet result) throws SQLException {
@@ -159,7 +166,7 @@ public class PhenoscapeDataStore {
         for (Relationship parent : parents) {
             term.addSubjectLink(parent);
         }
-        final QueryBuilder childrenQuery = new TermLinkObjectQueryBuilder(term);
+        final QueryBuilder childrenQuery = new TermLinkObjectQueryBuilder(term, namespaces);
         final Set<Relationship> children = (new QueryExecutor<Set<Relationship>>(this.dataSource, childrenQuery) {
             @Override
             public Set<Relationship> processResult(ResultSet result) throws SQLException {

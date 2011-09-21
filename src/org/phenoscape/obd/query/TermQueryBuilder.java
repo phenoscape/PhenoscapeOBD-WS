@@ -25,7 +25,7 @@ public class TermQueryBuilder extends QueryBuilder {
         "LEFT OUTER JOIN description ON (description.node_id = term.node_id) " +
         "LEFT OUTER JOIN node comment_rel ON (comment_rel.uid = '" + OBO.COMMENT + "') " +
         "LEFT OUTER JOIN tagval ON (tagval.tag_id = comment_rel.node_id AND tagval.node_id = term.node_id) " +
-        "LEFT OUTER JOIN node source ON (source.node_id = term.source_id)" +
+        "LEFT OUTER JOIN node source ON (source.node_id = term.source_id) " +
         "WHERE term.uid = ?";
     }
 
