@@ -8,11 +8,12 @@ import java.util.Map;
 public class Vocab {
 
     public static final Map<String, List<String>> NAMESPACE_GROUPS = new HashMap<String, List<String>>();
-    static {
-        final List<String> entityNamespaces = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE);
-        NAMESPACE_GROUPS.put(TAO.NAMESPACE, entityNamespaces);
-        NAMESPACE_GROUPS.put(VAO.NAMESPACE, entityNamespaces);
-        NAMESPACE_GROUPS.put(CARO.NAMESPACE, entityNamespaces);
+    public static final List<String> ANATOMICAL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE);
+    public static final List<String> ALL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE);
+    static {        
+        NAMESPACE_GROUPS.put(TAO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
+        NAMESPACE_GROUPS.put(VAO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
+        NAMESPACE_GROUPS.put(CARO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
     }
 
     public static class OBO {
