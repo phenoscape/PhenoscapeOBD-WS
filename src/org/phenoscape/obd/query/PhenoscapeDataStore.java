@@ -145,6 +145,9 @@ public class PhenoscapeDataStore {
         return term;
     }
 
+    /**
+     * This method returns only "existential restriction super-class links", not intersection (equivalent-class) links
+     */
     private void addLinksToTerm(DefaultTerm term) throws SQLException {
         final Collection<String> namespaces;
         if (Vocab.NAMESPACE_GROUPS.containsKey(term.getSource().getUID())) {

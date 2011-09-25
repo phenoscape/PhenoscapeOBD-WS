@@ -32,7 +32,7 @@ public class TermLinkSubjectQueryBuilder extends QueryBuilder {
         query.append("FROM link ");
         query.append("JOIN node relation ON (relation.node_id = link.predicate_id) ");
         query.append("JOIN node target ON (target.node_id = link.object_id) ");
-        query.append(String.format("WHERE link.node_id = ? AND link.source_id IN (SELECT node_id FROM node WHERE uid IN %s)", this.createPlaceholdersList(this.sourceNamespaces.size())));
+        query.append(String.format("WHERE link.combinator = '' AND link.node_id = ? AND link.source_id IN (SELECT node_id FROM node WHERE uid IN %s)", this.createPlaceholdersList(this.sourceNamespaces.size())));
         return query.toString();
     }
 
