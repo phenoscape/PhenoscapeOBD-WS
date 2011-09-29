@@ -23,6 +23,9 @@ import javax.sql.DataSource;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
 import org.phenoscape.obd.model.Character;
 import org.phenoscape.obd.model.DefaultTerm;
 import org.phenoscape.obd.model.GeneAnnotation;
@@ -534,6 +537,39 @@ public class PhenoscapeDataStore {
                 return taxa;
             }
         }).executeQuery();
+    }
+    
+    public List<TaxonTerm> getAnnotatedTaxaSolr(final AnnotationsQueryConfig config) throws SolrServerException {
+        final AnnotatedTaxaSolrQuery query = new AnnotatedTaxaSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<TaxonTerm> taxa = new ArrayList<TaxonTerm>();
+        for (SolrDocument item : results) {
+            final TaxonTerm taxon = new TaxonTerm(0, null);
+            taxon.setUID((String)(item.getFieldValue("id")));
+            taxon.setLabel((String)(item.getFieldValue("label")));
+            taxon.setExtinct((Boolean)(item.getFieldValue("is_extinct")));
+            if (item.containsKey("rank")) {
+                final Term rank = new SimpleTerm((String)(item.getFieldValue("rank")), null);
+                taxon.setRank(rank);
+            }
+            if (item.containsKey("family")) {
+                final TaxonTerm family = new TaxonTerm(0, null);
+                family.setUID((String)(item.getFieldValue("family")));
+                family.setLabel((String)(item.getFieldValue("family_label")));
+                family.setExtinct((Boolean)(item.getFieldValue("family_is_extinct")));
+                taxon.setTaxonomicFamily(family);
+            }   
+            if (item.containsKey("order")) {
+                final TaxonTerm order = new TaxonTerm(0, null);
+                order.setUID((String)(item.getFieldValue("order")));
+                order.setLabel((String)(item.getFieldValue("order_label")));
+                order.setExtinct((Boolean)(item.getFieldValue("order_is_extinct")));
+                taxon.setTaxonomicOrder(order);
+            } 
+            taxa.add(taxon);
+        }
+        return taxa;
     }
 
     public int getCountOfAnnotatedTaxa(AnnotationsQueryConfig config) throws SQLException {

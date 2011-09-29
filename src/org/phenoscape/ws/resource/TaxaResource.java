@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonTerm;
@@ -26,8 +27,9 @@ public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
     }
 
     @Override
-    protected List<TaxonTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getAnnotatedTaxa(config);
+    protected List<TaxonTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        //return this.getDataStore().getAnnotatedTaxa(config);
+        return this.getDataStore().getAnnotatedTaxaSolr(config);
     }
 
     @Override

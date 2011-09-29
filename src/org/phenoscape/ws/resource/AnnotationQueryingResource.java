@@ -6,12 +6,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
-import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 import org.phenoscape.obd.query.PhenoscapeDataStore.POSTCOMP_OPTION;
+import org.phenoscape.obd.query.QueryException;
 import org.phenoscape.ws.representation.StreamableJSONRepresentation;
 import org.phenoscape.ws.representation.StreamableTextRepresentation;
 import org.restlet.data.MediaType;
@@ -94,6 +95,10 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
             this.log().error("Error querying database", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;
+        } catch (SolrServerException e) {
+            this.log().error("Error querying Solr index", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            return null;
         }
     }
 
@@ -112,6 +117,10 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
             return null;
         } catch (QueryException e) {
             this.log().error("Error querying database", e);
+            this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+            return null;  
+        } catch (SolrServerException e) {
+            this.log().error("Error querying Solr index", e);
             this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
             return null;  
         }
@@ -164,8 +173,9 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
      * @throws JSONException
      * @throws SQLException
      * @throws QueryException
+     * @throws SolrServerException 
      */
-    protected final Iterator<T> queryForItems() throws JSONException, SQLException, QueryException {
+    protected final Iterator<T> queryForItems() throws JSONException, SQLException, QueryException, SolrServerException {
         final AnnotationsQueryConfig config = this.createInitialQueryConfig();
         final List<T> initialResults = this.queryForItemsSubset(config);
         return new Iterator<T>() {
@@ -185,6 +195,8 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
                         this.currentItems = nextResults.iterator();
                         return this.currentItems.hasNext();
                     } catch (SQLException e) {
+                        throw new QueryException(e);
+                    } catch (SolrServerException e) {
                         throw new QueryException(e);
                     }
                 } else {
@@ -209,7 +221,7 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
         };
     }
     
-    protected abstract List<T> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException;
+    protected abstract List<T> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException;
 
     protected abstract int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException;
 
