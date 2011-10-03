@@ -58,7 +58,7 @@ public class DistinctPhenotypesResource extends AnnotationQueryingResource<Pheno
     }
 
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfDistinctPhenotypes(config);
     }
 

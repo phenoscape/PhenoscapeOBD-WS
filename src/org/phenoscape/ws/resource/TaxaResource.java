@@ -22,8 +22,10 @@ public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
     }
     
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfAnnotatedTaxa(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getAnnotatedTaxaSolr(config).getTotal();
+        //return this.getDataStore().getCountOfAnnotatedTaxa(config);
     }
 
     @Override

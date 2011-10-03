@@ -49,6 +49,7 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
         if (!this.config.getPublicationIDs().isEmpty()) {
             this.addPublicationFilter(query);
         }
+        query.setFields("direct_taxon", "direct_taxon_label", "is_extinct", "rank", "direct_entity", "direct_entity_label", "direct_quality", "direct_quality_label", "direct_related_entity", "direct_related_entity_label");
         log().debug(query.toString());
         return this.solr.query(query);
     }

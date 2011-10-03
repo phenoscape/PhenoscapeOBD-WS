@@ -42,6 +42,7 @@ public class AnnotatedTaxaSolrQuery {
         if (!this.config.getPhenotypes().isEmpty()) {
             this.addPhenotypeFilter(query);
         }
+        query.setFields("id", "label", "is_extinct", "rank", "family", "family_label", "family_is_extinct", "order", "order_label", "order_is_extinct");
         log().debug(query.toString());
         return this.solr.query(query);
     }

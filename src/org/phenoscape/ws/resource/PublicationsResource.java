@@ -19,7 +19,7 @@ public class PublicationsResource extends AnnotationQueryingResource<Term> {
     }
 
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfAnnotatedPublications(config);
     }
 

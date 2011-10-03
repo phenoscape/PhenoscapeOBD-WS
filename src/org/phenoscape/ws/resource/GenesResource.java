@@ -30,7 +30,7 @@ public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
     }
 
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfAnnotatedGenes(config);
     }
 

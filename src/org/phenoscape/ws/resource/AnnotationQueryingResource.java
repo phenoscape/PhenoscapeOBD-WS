@@ -79,7 +79,7 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
     public Representation getJSONRepresentation() {
         try {
             final Iterator<JSONObject> items = this.translateToJSON(this.queryForItems());
-            final int total = this.queryForItemsCount(this.createInitialQueryConfig());
+            final long total = this.queryForItemsCount(this.createInitialQueryConfig());
             final JSONObject otherValues = new JSONObject();
             otherValues.put("total", total);
             return new StreamableJSONRepresentation(items, this.getItemsKey(), otherValues);
@@ -223,7 +223,7 @@ public abstract class AnnotationQueryingResource<T> extends AbstractPhenoscapeRe
     
     protected abstract List<T> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException;
 
-    protected abstract int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException;
+    protected abstract long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException;
 
     private AnnotationsQueryConfig createInitialQueryConfig() throws JSONException, QueryException {
         final AnnotationsQueryConfig config = this.initializeQueryConfig(this.query);

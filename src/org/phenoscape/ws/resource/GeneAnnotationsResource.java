@@ -75,7 +75,7 @@ public class GeneAnnotationsResource extends AnnotationQueryingResource<GeneAnno
     }
 
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
         return this.getDataStore().getCountOfGeneAnnotations(config);
     }
 

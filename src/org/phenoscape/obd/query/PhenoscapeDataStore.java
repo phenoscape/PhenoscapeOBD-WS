@@ -445,6 +445,32 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public SubList<TaxonAnnotation> getDistinctTaxonAnnotationsSolr(final AnnotationsQueryConfig config) throws SolrServerException, SQLException {
+        final DistinctTaxonomicAnnotationsSolrQuery query = new DistinctTaxonomicAnnotationsSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<TaxonAnnotation> annotations = new ArrayList<TaxonAnnotation>();
+        for (SolrDocument item : results) {
+            final TaxonAnnotation annotation = new TaxonAnnotation();
+            final TaxonTerm taxon = new TaxonTerm(0, null);
+            taxon.setUID((String)(item.getFieldValue("direct_taxon")));
+            taxon.setLabel((String)(item.getFieldValue("direct_taxon_label")));
+            taxon.setExtinct((Boolean)(item.getFieldValue("is_extinct")));
+            if (item.containsKey("rank")) {
+                final Term rank = new SimpleTerm((String)(item.getFieldValue("rank")), null);
+                taxon.setRank(rank);
+            }
+            annotation.setTaxon(taxon);
+            annotation.setEntity(this.createBasicTerm((String)(item.getFieldValue("direct_entity")), (String)(item.getFieldValue("direct_entity_label")), config.getPostcompositionOption(), null));
+            annotation.setQuality(this.createBasicTerm((String)(item.getFieldValue("direct_quality")), (String)(item.getFieldValue("direct_quality_label")), config.getPostcompositionOption(), null));
+            if (item.containsKey("direct_related_entity")) {
+                annotation.setRelatedEntity(this.createBasicTerm((String)(item.getFieldValue("direct_related_entity")), (String)(item.getFieldValue("direct_related_entity_label")), config.getPostcompositionOption(), null));
+            }            
+            annotations.add(annotation);
+        }
+        return new SubList<TaxonAnnotation>(annotations, results.getNumFound());
+    }
+
     private TaxonAnnotation createTaxonAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
         final TaxonAnnotation annotation = new TaxonAnnotation();
         final TaxonTerm taxon = new TaxonTerm(result.getInt("taxon_node_id"), null);
@@ -539,7 +565,7 @@ public class PhenoscapeDataStore {
             }
         }).executeQuery();
     }
-    
+
     public SubList<TaxonTerm> getAnnotatedTaxaSolr(final AnnotationsQueryConfig config) throws SolrServerException {
         final AnnotatedTaxaSolrQuery query = new AnnotatedTaxaSolrQuery(this.solr, config);
         final QueryResponse result = query.executeQuery();

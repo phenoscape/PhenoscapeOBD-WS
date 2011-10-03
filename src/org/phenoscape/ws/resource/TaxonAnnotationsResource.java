@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.TaxonAnnotation;
@@ -22,13 +23,15 @@ public class TaxonAnnotationsResource extends AnnotationQueryingResource<TaxonAn
     }
 
     @Override
-    protected int queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfDistinctTaxonomicAnnotations(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getDistinctTaxonAnnotationsSolr(config).getTotal();
+        //return this.getDataStore().getCountOfDistinctTaxonomicAnnotations(config);
     }
 
     @Override
-    protected List<TaxonAnnotation> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getDistinctTaxonAnnotations(config);
+    protected List<TaxonAnnotation> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        return this.getDataStore().getDistinctTaxonAnnotationsSolr(config).getList();
     }
 
     @Override
