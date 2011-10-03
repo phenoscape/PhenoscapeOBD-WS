@@ -66,11 +66,12 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
     private void addTaxonFilter(SolrQuery query) {
         final StringBuffer buffer = new StringBuffer();
         buffer.append("{!join from=id to=direct_taxon}");
-        buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getTaxonIDs(), quoter), " OR "));
+        buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getTaxonIDs(), taxonTransformer), " OR "));
         query.addFilterQuery(buffer.toString());
     }
 
     private void addPublicationFilter(SolrQuery query) {
+        //FIXME like taxa
         final StringBuffer buffer = new StringBuffer();
         buffer.append("{!join from=annotation to=id}");
         buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getPublicationIDs(), quoter), " OR "));
@@ -110,6 +111,15 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
                 components.add(String.format("related_entity:\"%s\"", phenotype.getRelatedEntityID()));
             }
             return StringUtils.join(components, " AND ");
+        }
+
+    };
+    
+    private static Transformer taxonTransformer = new Transformer() {
+
+        @Override
+        public Object transform(Object taxonID) {
+            return String.format("subtaxon_of:\"%s\"", taxonID);
         }
 
     };
