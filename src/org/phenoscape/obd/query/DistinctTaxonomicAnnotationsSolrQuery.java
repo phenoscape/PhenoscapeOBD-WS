@@ -58,7 +58,7 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
         final StringBuffer query = new StringBuffer();
         query.append("type:\"taxon_phenotype_annotation\"");
         if (!this.config.includeInferredAnnotations()) {
-            query.append("asserted:\"false\"");
+            query.append("asserted:\"true\"");
         }
         return query.toString();
     }
