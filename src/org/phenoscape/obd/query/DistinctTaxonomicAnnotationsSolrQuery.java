@@ -71,10 +71,9 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
     }
 
     private void addPublicationFilter(SolrQuery query) {
-        //FIXME like taxa
         final StringBuffer buffer = new StringBuffer();
         buffer.append("{!join from=annotation to=id}");
-        buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getPublicationIDs(), quoter), " OR "));
+        buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getPublicationIDs(), pubTransformer), " OR "));
         query.addFilterQuery(buffer.toString());
     }
 
@@ -120,6 +119,15 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
         @Override
         public Object transform(Object taxonID) {
             return String.format("subtaxon_of:\"%s\"", taxonID);
+        }
+
+    };
+    
+    private static Transformer pubTransformer = new Transformer() {
+
+        @Override
+        public Object transform(Object taxonID) {
+            return String.format("id:\"%s\"", taxonID);
         }
 
     };
