@@ -760,6 +760,18 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public SubList<Term> getAnnotatedPublicationsSolr(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        final PublicationsSolrQuery query = new PublicationsSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<Term> publications = new ArrayList<Term>();
+        for (SolrDocument item : results) {
+            final Term publication = new SimpleTerm((String)(item.getFieldValue("id")), (String)(item.getFieldValue("label")));
+            publications.add(publication);
+        }
+        return new SubList<Term>(publications, results.getNumFound());
+    }
+
     public int getCountOfAnnotatedPublications(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new PublicationsQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {

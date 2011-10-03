@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Term;
@@ -19,13 +20,14 @@ public class PublicationsResource extends AnnotationQueryingResource<Term> {
     }
 
     @Override
-    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfAnnotatedPublications(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getAnnotatedPublicationsSolr(config).getTotal();
     }
 
     @Override
-    protected List<Term> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getAnnotatedPublications(config);
+    protected List<Term> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        return this.getDataStore().getAnnotatedPublicationsSolr(config).getList();
     }
 
     @Override
