@@ -40,6 +40,7 @@ import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
 import org.phenoscape.obd.model.Specimen;
+import org.phenoscape.obd.model.SubList;
 import org.phenoscape.obd.model.Synonym;
 import org.phenoscape.obd.model.Synonym.SCOPE;
 import org.phenoscape.obd.model.TaxonAnnotation;
@@ -539,7 +540,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
     
-    public List<TaxonTerm> getAnnotatedTaxaSolr(final AnnotationsQueryConfig config) throws SolrServerException {
+    public SubList<TaxonTerm> getAnnotatedTaxaSolr(final AnnotationsQueryConfig config) throws SolrServerException {
         final AnnotatedTaxaSolrQuery query = new AnnotatedTaxaSolrQuery(this.solr, config);
         final QueryResponse result = query.executeQuery();
         final SolrDocumentList results = result.getResults();
@@ -569,7 +570,7 @@ public class PhenoscapeDataStore {
             } 
             taxa.add(taxon);
         }
-        return taxa;
+        return new SubList<TaxonTerm>(taxa, results.getNumFound());
     }
 
     public int getCountOfAnnotatedTaxa(AnnotationsQueryConfig config) throws SQLException {

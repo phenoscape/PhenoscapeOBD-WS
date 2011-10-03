@@ -29,7 +29,7 @@ public class TaxaResource extends AnnotationQueryingResource<TaxonTerm> {
     @Override
     protected List<TaxonTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
         //return this.getDataStore().getAnnotatedTaxa(config);
-        return this.getDataStore().getAnnotatedTaxaSolr(config);
+        return this.getDataStore().getAnnotatedTaxaSolr(config).getList();
     }
 
     @Override
