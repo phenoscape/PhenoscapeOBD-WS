@@ -23,10 +23,10 @@ public class DistinctTaxonomicAnnotationsSolrQuery {
     private final AnnotationsQueryConfig config;
     private static final Map<SORT_COLUMN, String> COLUMNS = new HashMap<SORT_COLUMN, String>();
     static {
-        COLUMNS.put(SORT_COLUMN.TAXON, "taxon_node_id");
-        COLUMNS.put(SORT_COLUMN.ENTITY, "entity_node_id");
-        COLUMNS.put(SORT_COLUMN.QUALITY, "quality_node_id");
-        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "related_entity_node_id");
+        COLUMNS.put(SORT_COLUMN.TAXON, "direct_taxon_label");
+        COLUMNS.put(SORT_COLUMN.ENTITY, "direct_entity_label");
+        COLUMNS.put(SORT_COLUMN.QUALITY, "direct_quality_label");
+        COLUMNS.put(SORT_COLUMN.RELATED_ENTITY, "direct_related_entity_label");
     }
 
     public DistinctTaxonomicAnnotationsSolrQuery(SolrServer solr, AnnotationsQueryConfig config) {
