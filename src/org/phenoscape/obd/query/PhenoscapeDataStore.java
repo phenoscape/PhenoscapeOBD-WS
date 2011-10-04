@@ -648,6 +648,27 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public SubList<GeneAnnotation> getGeneAnnotationsSolr(final AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        final DistinctGeneAnnotationsSolrQuery query = new DistinctGeneAnnotationsSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<GeneAnnotation> annotations = new ArrayList<GeneAnnotation>();
+        for (SolrDocument item : results) {
+            final GeneAnnotation annotation = new GeneAnnotation();
+            final GeneTerm gene = new GeneTerm(0, null);
+            gene.setUID((String)(item.getFieldValue("direct_gene")));
+            gene.setLabel((String)(item.getFieldValue("direct_gene_label")));
+            annotation.setGene(gene);
+            annotation.setEntity(this.createBasicTerm((String)(item.getFieldValue("direct_entity")), (String)(item.getFieldValue("direct_entity_label")), config.getPostcompositionOption(), null));
+            annotation.setQuality(this.createBasicTerm((String)(item.getFieldValue("direct_quality")), (String)(item.getFieldValue("direct_quality_label")), config.getPostcompositionOption(), null));
+            if (item.containsKey("related_entity")) {
+                annotation.setRelatedEntity(this.createBasicTerm((String)(item.getFieldValue("direct_related_entity")), (String)(item.getFieldValue("direct_related_entity_label")), config.getPostcompositionOption(), null));
+            }
+            annotations.add(annotation);
+        }
+        return new SubList<GeneAnnotation>(annotations, results.getNumFound());
+    }
+
     private GeneAnnotation createGeneAnnotation(ResultSet result, POSTCOMP_OPTION option) throws SQLException {
         final GeneAnnotation annotation = new GeneAnnotation();
         final GeneTerm gene = new GeneTerm(result.getInt("gene_node_id"), null);

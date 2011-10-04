@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.GeneAnnotation;
@@ -75,13 +76,14 @@ public class GeneAnnotationsResource extends AnnotationQueryingResource<GeneAnno
     }
 
     @Override
-    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfGeneAnnotations(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getGeneAnnotationsSolr(config).getTotal();
     }
 
     @Override
-    protected List<GeneAnnotation> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getGeneAnnotations(config);
+    protected List<GeneAnnotation> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        return this.getDataStore().getGeneAnnotationsSolr(config).getList();
     }
 
 }
