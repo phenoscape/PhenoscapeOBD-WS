@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.GeneTerm;
@@ -12,7 +13,7 @@ import org.phenoscape.obd.query.AnnotationsQueryConfig;
 import org.phenoscape.obd.query.AnnotationsQueryConfig.SORT_COLUMN;
 
 public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
-    
+
     private static final Map<String,SORT_COLUMN> COLUMNS = new HashMap<String,SORT_COLUMN>();
     static {
         COLUMNS.put("gene", SORT_COLUMN.GENE);
@@ -30,13 +31,14 @@ public class GenesResource extends AnnotationQueryingResource<GeneTerm> {
     }
 
     @Override
-    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfAnnotatedGenes(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getAnnotatedGenesSolr(config).getTotal();
     }
 
     @Override
-    protected List<GeneTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getAnnotatedGenes(config);
+    protected List<GeneTerm> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        return this.getDataStore().getAnnotatedGenesSolr(config).getList();
     }
 
     @Override

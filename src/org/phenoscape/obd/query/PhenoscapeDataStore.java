@@ -728,6 +728,21 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public SubList<GeneTerm> getAnnotatedGenesSolr(AnnotationsQueryConfig config) throws SolrServerException {
+        final DistinctGeneAnnotationsSolrQuery query = new DistinctGeneAnnotationsSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<GeneTerm> genes = new ArrayList<GeneTerm>();
+        for (SolrDocument item : results) {
+            final GeneTerm gene = new GeneTerm(0, null);
+            gene.setUID((String)(item.getFieldValue("id")));
+            gene.setLabel((String)(item.getFieldValue("label")));
+            gene.setFullName((String)(item.getFieldValue("full_name")));
+            genes.add(gene);
+        }
+        return new SubList<GeneTerm>(genes, results.getNumFound());
+    }
+
     public int getCountOfAnnotatedGenes(AnnotationsQueryConfig config) throws SQLException {
         final QueryBuilder query = new AnnotatedGenesQueryBuilder(config, true);
         return (new QueryExecutor<Integer>(this.dataSource, query) {
