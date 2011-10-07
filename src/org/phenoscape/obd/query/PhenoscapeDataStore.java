@@ -729,7 +729,7 @@ public class PhenoscapeDataStore {
     }
 
     public SubList<GeneTerm> getAnnotatedGenesSolr(AnnotationsQueryConfig config) throws SolrServerException {
-        final DistinctGeneAnnotationsSolrQuery query = new DistinctGeneAnnotationsSolrQuery(this.solr, config);
+        final AnnotatedGenesSolrQuery query = new AnnotatedGenesSolrQuery(this.solr, config);
         final QueryResponse result = query.executeQuery();
         final SolrDocumentList results = result.getResults();
         final List<GeneTerm> genes = new ArrayList<GeneTerm>();
