@@ -1142,6 +1142,10 @@ public class PhenoscapeDataStore {
             } else {
                 //structure
                 final LinkedTerm term = this.renderPostcomposition(uid);
+                if (term.getSubjectLinks().isEmpty()) {
+                    // this term may not actually be a post-composition so give it a label if one was provided
+                    term.setLabel(label);
+                }
                 term.setSource(source);
                 return term;
             }
