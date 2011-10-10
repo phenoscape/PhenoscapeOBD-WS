@@ -1134,12 +1134,13 @@ public class PhenoscapeDataStore {
     }
 
     private Term createBasicTerm(String uid, String label, POSTCOMP_OPTION option, Term source) throws SQLException {
-        if ((label == null) && (!option.equals(POSTCOMP_OPTION.NONE))) {
+        if (!option.equals(POSTCOMP_OPTION.NONE)) {
             if (option.equals(POSTCOMP_OPTION.SEMANTIC_LABEL)) {
                 return new SimpleTerm(uid, this.semanticLabel(uid), source);
             } else if (option.equals(POSTCOMP_OPTION.SIMPLE_LABEL)) {
                 return new SimpleTerm(uid, this.simpleLabel(uid), source);
             } else {
+                //structure
                 final LinkedTerm term = this.renderPostcomposition(uid);
                 term.setSource(source);
                 return term;
