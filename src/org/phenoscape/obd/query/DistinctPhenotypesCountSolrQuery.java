@@ -11,7 +11,7 @@ import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.response.QueryResponse;
 
 public class DistinctPhenotypesCountSolrQuery {
-    
+
     private final SolrServer solr;
     private final String entityID;
     private final String qualityID;
@@ -27,10 +27,11 @@ public class DistinctPhenotypesCountSolrQuery {
         this.taxonID = taxonID;
         this.geneID = geneID;
     }
-    
+
     public int getCount() throws SolrServerException {
         final SolrQuery query = new SolrQuery();
         final List<String> facets = new ArrayList<String>();
+        facets.add("type:\"phenotype\"");
         if (this.taxonID != null) {
             facets.add(String.format("taxon_asserted:\"%s\"", this.taxonID));
         }
@@ -46,11 +47,7 @@ public class DistinctPhenotypesCountSolrQuery {
         if (this.geneID != null) {
             facets.add(String.format("gene:\"%s\"", this.geneID));
         }
-        if (!facets.isEmpty()) {
-            query.setQuery(StringUtils.join(facets, " AND "));
-        } else {
-            query.setQuery("*:*"); //TODO won't need this once "type" field is filled
-        }
+        query.setQuery(StringUtils.join(facets, " AND "));
         query.setRows(0);
         final QueryResponse response = this.solr.query(query);
         return new Long(response.getResults().getNumFound()).intValue();
@@ -60,5 +57,5 @@ public class DistinctPhenotypesCountSolrQuery {
     private Logger log() {
         return Logger.getLogger(this.getClass());
     }
-    
+
 }

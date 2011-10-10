@@ -412,6 +412,23 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
+    public SubList<Phenotype> getDistinctPhenotypesSolr(final AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        final DistinctPhenotypesSolrQuery query = new DistinctPhenotypesSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        final List<Phenotype> phenotypes = new ArrayList<Phenotype>();
+        for (SolrDocument item : results) {
+            final Phenotype phenotype = new Phenotype();
+            phenotype.setEntity(createBasicTerm((String)(item.getFieldValue("direct_entity")), (String)(item.getFieldValue("direct_entity_label")), config.getPostcompositionOption(), null));
+            phenotype.setQuality(createBasicTerm((String)(item.getFieldValue("direct_quality")), (String)(item.getFieldValue("direct_quality_label")), config.getPostcompositionOption(), null));
+            if (item.containsKey("direct_related_entity")) {
+                phenotype.setRelatedEntity(createBasicTerm((String)(item.getFieldValue("direct_related_entity")), (String)(item.getFieldValue("direct_related_entity_label")), config.getPostcompositionOption(), null));
+            }
+            phenotypes.add(phenotype);
+        }
+        return new SubList<Phenotype>(phenotypes, results.getNumFound());
+    }
+
     public int getCountOfDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
         //TODO this should make use of the fast Solr counts implemented in the other count method
         final QueryBuilder query = new PhenotypeQueryBuilder(config, true);
@@ -1299,7 +1316,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException {
+    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException, SolrServerException {
         final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
         final Set<String> unannotatedChildTaxa = new HashSet<String>();
         final Map<Set<Phenotype>, Set<String>> results = new HashMap<Set<Phenotype>, Set<String>>();
@@ -1308,7 +1325,7 @@ public class PhenoscapeDataStore {
             config.addTaxonID(child);
             config.addPhenotype(phenotype);
             final Set<Phenotype> phenotypes = new HashSet<Phenotype>();
-            phenotypes.addAll(this.getDistinctPhenotypes(config));
+            phenotypes.addAll(this.getDistinctPhenotypesSolr(config).getList());
             if (excludeGivenQuality) {
                 final Set<Phenotype> toBeRemoved = new HashSet<Phenotype>();
                 for (Phenotype annotatedPhenotype : phenotypes) {

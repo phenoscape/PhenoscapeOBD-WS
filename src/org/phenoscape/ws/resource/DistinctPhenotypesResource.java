@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Phenotype;
@@ -53,13 +54,14 @@ public class DistinctPhenotypesResource extends AnnotationQueryingResource<Pheno
     }
 
     @Override
-    protected List<Phenotype> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getDistinctPhenotypes(config);
+    protected List<Phenotype> queryForItemsSubset(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        return this.getDataStore().getDistinctPhenotypesSolr(config).getList();
     }
 
     @Override
-    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException {
-        return this.getDataStore().getCountOfDistinctPhenotypes(config);
+    protected long queryForItemsCount(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        config.setLimit(0);
+        return this.getDataStore().getDistinctPhenotypesSolr(config).getTotal();
     }
 
     @Override

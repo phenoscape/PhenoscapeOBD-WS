@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Phenotype;
@@ -71,6 +72,10 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
                 return null;
             } catch (JSONException e) {
                 log().error("Failed to create JSON object for phenotype variation", e);
+                this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
+                return null;
+            } catch (SolrServerException e) {
+                log().error("Solr error querying for phenotype variation", e);
                 this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
                 return null;
             }
