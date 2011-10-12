@@ -36,7 +36,11 @@ public class DistinctPhenotypesSolrQuery {
     public QueryResponse executeQuery() throws SolrServerException {
         final SolrQuery query = new SolrQuery();
         query.setQuery(this.getMainQuery());
-        query.setRows(this.config.getLimit());
+        if (this.config.getLimit() == -1) {
+            query.setRows(Integer.MAX_VALUE);
+        } else {
+            query.setRows(this.config.getLimit());
+        }
         query.setStart(this.config.getIndex());
         query.setSortField(COLUMNS.get(this.config.getSortColumn()), (this.config.sortDescending() ? ORDER.desc : ORDER.asc));
         query.setFields("direct_entity", "direct_entity_label", "direct_quality", "direct_quality_label", "direct_related_entity", "direct_related_entity_label");
