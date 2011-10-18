@@ -1324,6 +1324,7 @@ public class PhenoscapeDataStore {
     public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException, SolrServerException {
         final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
         final Set<String> unannotatedChildTaxa = new HashSet<String>();
+        final Set<String> returnedChildren = new HashSet<String>();
         final Map<Set<Phenotype>, Set<String>> results = new HashMap<Set<Phenotype>, Set<String>>();
         for (String child : children) {
             final AnnotationsQueryConfig config = new AnnotationsQueryConfig();
@@ -1347,6 +1348,7 @@ public class PhenoscapeDataStore {
                     results.put(phenotypes, new HashSet<String>());
                 }
                 results.get(phenotypes).add(child);
+                returnedChildren.add(child);
             }
         }
         final Set<PhenotypeVariationSet> variationSets = new HashSet<PhenotypeVariationSet>();
@@ -1355,6 +1357,10 @@ public class PhenoscapeDataStore {
         }
         if (!excludeUnannotatedTaxa) {
             variationSets.add(new PhenotypeVariationSet(unannotatedChildTaxa, Collections.EMPTY_SET));
+            returnedChildren.addAll(unannotatedChildTaxa);
+        }
+        if (recurse && (returnedChildren.size() == 1)) {
+            return this.getPhenotypeSetsForChildren(returnedChildren.iterator().next(), phenotype, recurse, excludeGivenQuality, excludeUnannotatedTaxa);
         }
         return variationSets;
     }
