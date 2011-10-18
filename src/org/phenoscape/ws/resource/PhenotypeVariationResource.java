@@ -54,10 +54,12 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
             return this.getSuggestedTaxa();
         } else {
             try {
+                boolean recurse = false;
                 if (this.taxonID == null) {
                     this.taxonID = TTO.ROOT;
+                    recurse = true;
                 }
-                final Set<PhenotypeVariationSet> phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), false, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+                final Set<PhenotypeVariationSet> phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), recurse, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
                 final JSONObject json = new JSONObject();
                 final List<JSONObject> jsonSets = new ArrayList<JSONObject>();
                 for (PhenotypeVariationSet variationSet : phenotypeSets) {
