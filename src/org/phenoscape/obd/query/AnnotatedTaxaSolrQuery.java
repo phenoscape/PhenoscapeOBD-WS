@@ -77,7 +77,9 @@ public class AnnotatedTaxaSolrQuery {
         } else {
             final StringBuffer buffer = new StringBuffer();
             buffer.append(String.format("{!join from=id to=%s}", field));
+            buffer.append("(");
             buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getPhenotypes(), phenotypeTransformer), " OR "));
+            buffer.append(")");
             query.addFilterQuery(buffer.toString());
         }       
     }
