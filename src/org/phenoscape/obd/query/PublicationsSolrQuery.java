@@ -68,7 +68,9 @@ public class PublicationsSolrQuery {
         } else {
             final StringBuffer buffer = new StringBuffer();
             buffer.append("{!join from=id to=phenotype}");
+            buffer.append("(");
             buffer.append(StringUtils.join(CollectionUtils.collect(this.config.getPhenotypes(), phenotypeTransformer), " OR "));
+            buffer.append(")");
             query.addFilterQuery(buffer.toString());
         }       
     }
@@ -89,7 +91,7 @@ public class PublicationsSolrQuery {
             if (phenotype.getRelatedEntityID() != null) {
                 components.add(String.format("related_entity:\"%s\"", phenotype.getRelatedEntityID()));
             }
-            return StringUtils.join(components, " AND ");
+            return "(" + StringUtils.join(components, " AND ") + ")";
         }
 
     };

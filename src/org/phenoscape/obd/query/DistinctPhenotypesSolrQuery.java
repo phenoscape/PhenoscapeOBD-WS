@@ -94,7 +94,7 @@ public class DistinctPhenotypesSolrQuery {
             if (phenotype.getRelatedEntityID() != null) {
                 components.add(String.format("related_entity:\"%s\"", phenotype.getRelatedEntityID()));
             }
-            return StringUtils.join(components, " AND ");
+            return "(" + StringUtils.join(components, " AND ") + ")";
         }
 
     };
