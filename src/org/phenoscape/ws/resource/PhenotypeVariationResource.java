@@ -3,13 +3,13 @@ package org.phenoscape.ws.resource;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.model.PhenotypeVariationSet;
+import org.phenoscape.obd.model.PhenotypeVariationSetsResult;
 import org.phenoscape.obd.model.TaxonTerm;
 import org.phenoscape.obd.model.Vocab.TTO;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
@@ -59,14 +59,15 @@ public class PhenotypeVariationResource extends AbstractPhenoscapeResource {
                     this.taxonID = TTO.ROOT;
                     recurse = true;
                 }
-                final Set<PhenotypeVariationSet> phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), recurse, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+                final PhenotypeVariationSetsResult phenotypeSets = this.getDataStore().getPhenotypeSetsForChildren(taxonID, this.phenotype.getPhenotypes().get(0), recurse, this.excludeGivenQuality, this.excludeUnannotatedTaxa);
+
                 final JSONObject json = new JSONObject();
                 final List<JSONObject> jsonSets = new ArrayList<JSONObject>();
-                for (PhenotypeVariationSet variationSet : phenotypeSets) {
+                for (PhenotypeVariationSet variationSet : phenotypeSets.getVariationSets()) {
                     jsonSets.add(this.translate(variationSet));
                 }
                 json.put("phenotype_sets", jsonSets);
-                json.put("parent_taxon", this.taxonID);
+                json.put("parent_taxon", phenotypeSets.getParentTaxonID());
                 return new JsonRepresentation(json);
             } catch (SQLException e) {
                 log().error("Database error querying for phenotype variation", e);

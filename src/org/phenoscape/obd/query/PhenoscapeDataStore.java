@@ -36,6 +36,7 @@ import org.phenoscape.obd.model.OTU;
 import org.phenoscape.obd.model.Phenotype;
 import org.phenoscape.obd.model.PhenotypeSpec;
 import org.phenoscape.obd.model.PhenotypeVariationSet;
+import org.phenoscape.obd.model.PhenotypeVariationSetsResult;
 import org.phenoscape.obd.model.PublicationTerm;
 import org.phenoscape.obd.model.Relationship;
 import org.phenoscape.obd.model.SimpleTerm;
@@ -1321,7 +1322,7 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public Set<PhenotypeVariationSet> getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException, SolrServerException {
+    public PhenotypeVariationSetsResult getPhenotypeSetsForChildren(String taxonID, PhenotypeSpec phenotype, boolean recurse, boolean excludeGivenQuality, boolean excludeUnannotatedTaxa) throws SQLException, SolrServerException {
         final List<String> children = this.getChildrenUIDs(taxonID, OBO.IS_A);
         final Set<String> unannotatedChildTaxa = new HashSet<String>();
         final Set<String> returnedChildren = new HashSet<String>();
@@ -1362,7 +1363,8 @@ public class PhenoscapeDataStore {
         if (recurse && (returnedChildren.size() == 1)) {
             return this.getPhenotypeSetsForChildren(returnedChildren.iterator().next(), phenotype, recurse, excludeGivenQuality, excludeUnannotatedTaxa);
         }
-        return variationSets;
+        final PhenotypeVariationSetsResult result = new PhenotypeVariationSetsResult(taxonID, variationSets);
+        return result;
     }
 
     public List<Term> getQualityAttributes() throws SQLException {
