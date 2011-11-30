@@ -12,6 +12,7 @@ import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.phenoscape.obd.model.Vocab.BSPO;
 import org.phenoscape.obd.model.Vocab.CARO;
 import org.phenoscape.obd.model.Vocab.GO;
 import org.phenoscape.obd.model.Vocab.PATO;
@@ -48,11 +49,12 @@ public class AutocompleteResource extends AbstractPhenoscapeResource {
         prefixes.put("tto", new String[] {TTO.NAMESPACE});
         prefixes.put("zfin", new String[] {ZFIN.GENE_NAMESPACE});
         prefixes.put("pspub", new String[] {PHENOSCAPE.PUB_NAMESPACE});
+        prefixes.put("bspo", new String[] {BSPO.NAMESPACE});
     }
     
     private static final Map<String, String[]> termTypes = new HashMap<String, String[]>();
     static {
-        termTypes.put("entity", new String[] {TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE});
+        termTypes.put("entity", new String[] {TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE, BSPO.NAMESPACE});
         termTypes.put("quality", new String[] {PATO.NAMESPACE});
         termTypes.put("taxon", new String[] {TTO.NAMESPACE});
         termTypes.put("gene", new String[] {ZFIN.GENE_NAMESPACE});

@@ -17,7 +17,6 @@ public class Vocab {
     }
 
     public static class OBO {
-
         public static final String IS_A = "OBO_REL:is_a";
         public static final String COMMENT = "oboInOwl:comment";
         public static final String INHERES_IN = "OBO_REL:inheres_in";
@@ -30,25 +29,24 @@ public class Vocab {
         public static final String PARTICIPATES_IN = "OBO_REL:participates_in";
         public static final String PART_OF = "OBO_REL:part_of";
     }
-    
-    public static class VAO {
 
+    public static class BSPO {
+        public static final String NAMESPACE = "spatial";
+    }
+
+    public static class VAO {
         public static final String NAMESPACE = "vertebrate_anatomy";
     }
 
     public static class CARO {
-
         public static final String NAMESPACE = "caro";
     }
 
-
     public static class TAO {
-
         public static final String NAMESPACE = "teleost_anatomy";
     }
 
     public static class TTO {
-
         public static final String NAMESPACE = "teleost-taxonomy";
         public static final String CYPRINIFORMES = "TTO:1360";
         public static final String SILURIFORMES = "TTO:1380";
@@ -64,12 +62,10 @@ public class Vocab {
     }
 
     public static class TAXRANK {
-
         public static final String SPECIES = "TAXRANK:0000006";
     }
 
     public static class PATO {
-
         public static final String NAMESPACE = "quality";
         public static final String INCREASED_IN_MAGNITUDE_RELATIVE_TO = "increased_in_magnitude_relative_to";
         public static final String DECREASED_IN_MAGNITUDE_RELATIVE_TO = "decreased_in_magnitude_relative_to";
@@ -77,7 +73,6 @@ public class Vocab {
     }
 
     public static class GO {
-
         public static final String NAMESPACE = "gene_ontology";
         public static final String BP_NAMESPACE = "biological_process";
         public static final String MF_NAMESPACE = "molecular_function";
