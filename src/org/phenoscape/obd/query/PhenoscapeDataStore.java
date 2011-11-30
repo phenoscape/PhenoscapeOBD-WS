@@ -20,6 +20,7 @@ import java.util.Set;
 
 import javax.sql.DataSource;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.log4j.Logger;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
@@ -1142,12 +1143,13 @@ public class PhenoscapeDataStore {
                 return new SimpleTerm(uid, this.simpleLabel(uid), source);
             } else {
                 //structure
-                final LinkedTerm term = this.renderPostcomposition(uid);
-                if (term.getSubjectLinks().isEmpty()) {
-                    // this term may not actually be a post-composition so give it a label if one was provided
-                    term.setLabel(label);
+                final Term term;
+                if (StringUtils.isBlank(label)) {
+                    term = this.renderPostcomposition(uid);
+                    term.setSource(source);
+                } else {
+                    term = new SimpleTerm(uid, label, source);
                 }
-                term.setSource(source);
                 return term;
             }
         } else {
