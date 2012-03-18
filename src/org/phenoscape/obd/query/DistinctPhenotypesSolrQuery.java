@@ -63,10 +63,12 @@ public class DistinctPhenotypesSolrQuery {
             query.append(StringUtils.join(CollectionUtils.collect(this.config.getTaxonIDs(), quoter), (this.config.matchAllTaxa() ? " AND " : " OR ")));
             query.append(")");
         }
-        if (!this.config.getGeneIDs().isEmpty()) {
+        if (!this.config.getGeneIDs().isEmpty() || !this.config.getGeneClassIDs().isEmpty()) {
             query.append(" AND gene:");
             query.append("(");
             query.append(StringUtils.join(CollectionUtils.collect(this.config.getGeneIDs(), quoter), (this.config.matchAllGenes() ? " AND " : " OR ")));
+            query.append(StringUtils.join(CollectionUtils.collect(this.config.getGeneClassIDs(), quoter), (this.config.matchAllGenes() ? " AND " : " OR ")));
+            
             query.append(")");
         }
         if (!this.config.getPublicationIDs().isEmpty()) {
