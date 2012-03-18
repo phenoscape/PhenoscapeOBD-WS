@@ -595,7 +595,7 @@ public class PhenoscapeDataStore {
             taxon.setLabel((String)(item.getFieldValue("label")));
             taxon.setExtinct((Boolean)(item.getFieldValue("is_extinct")));
             if (item.containsKey("rank")) {
-                final Term rank = new SimpleTerm((String)(item.getFieldValue("rank")), null);
+                final Term rank = new SimpleTerm((String)(item.getFieldValue("rank")), (String)(item.getFieldValue("rank_label")));
                 taxon.setRank(rank);
             }
             if (item.containsKey("family")) {
