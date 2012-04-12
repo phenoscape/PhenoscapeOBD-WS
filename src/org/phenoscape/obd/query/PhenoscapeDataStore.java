@@ -378,18 +378,12 @@ public class PhenoscapeDataStore {
                 return null;
             }}).executeQuery();
     }
-
-    public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
-        final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
-        return (new QueryExecutor<Integer>(this.dataSource, query) {
-            @Override
-            public Integer processResult(ResultSet result) throws SQLException {
-                while (result.next()) {
-                    return Integer.valueOf(result.getInt(1));
-                }
-                return Integer.valueOf(0);
-            }
-        }).executeQuery();
+    
+    public long getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+        final DistinctTaxonomicAnnotationsSolrQuery query = new DistinctTaxonomicAnnotationsSolrQuery(this.solr, config);
+        final QueryResponse result = query.executeQuery();
+        final SolrDocumentList results = result.getResults();
+        return results.getNumFound();
     }
 
     public List<Phenotype> getDistinctPhenotypes(final AnnotationsQueryConfig config) throws SQLException {
