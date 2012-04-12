@@ -438,8 +438,8 @@ public class PhenoscapeDataStore {
         }).executeQuery();
     }
 
-    public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) throws SolrServerException {
-        final DistinctPhenotypesCountSolrQuery query = new DistinctPhenotypesCountSolrQuery(this.solr, entityID, qualityID, relatedEntityID, taxonID, geneID);
+    public int getCountOfDistinctPhenotypes(String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID, boolean includeParts) throws SolrServerException {
+        final DistinctPhenotypesCountSolrQuery query = new DistinctPhenotypesCountSolrQuery(this.solr, entityID, qualityID, relatedEntityID, taxonID, geneID, includeParts);
         return query.getCount();
     }
 

@@ -18,14 +18,16 @@ public class DistinctPhenotypesCountSolrQuery {
     private final String relatedEntityID;
     private final String taxonID;
     private final String geneID;
+    private final boolean includeParts;
 
-    public DistinctPhenotypesCountSolrQuery(SolrServer solr, String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID) {
+    public DistinctPhenotypesCountSolrQuery(SolrServer solr, String entityID, String qualityID, String relatedEntityID, String taxonID, String geneID, boolean includeParts) {
         this.solr = solr;
         this.entityID = entityID;
         this.qualityID = qualityID;
         this.relatedEntityID = relatedEntityID;
         this.taxonID = taxonID;
         this.geneID = geneID;
+        this.includeParts = includeParts;
     }
 
     public int getCount() throws SolrServerException {
@@ -36,7 +38,11 @@ public class DistinctPhenotypesCountSolrQuery {
             facets.add(String.format("taxon_asserted:\"%s\"", this.taxonID));
         }
         if (this.entityID != null) {
-            facets.add(String.format("entity_strict_inheres_in:\"%s\"", this.entityID));
+        	if (includeParts) {
+        		facets.add(String.format("entity:\"%s\"", this.entityID));
+        	} else {
+        		facets.add(String.format("entity_strict_inheres_in:\"%s\"", this.entityID));	
+        	}
         }
         if (this.qualityID != null) {
             facets.add(String.format("quality:\"%s\"", this.qualityID));
