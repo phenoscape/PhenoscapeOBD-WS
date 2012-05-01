@@ -379,7 +379,7 @@ public class PhenoscapeDataStore {
 			}}).executeQuery();
 	}
 
-	public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException, SolrServerException {
+	public int getCountOfCuratedTaxonomicAnnotations(AnnotationsQueryConfig config) throws SQLException {
 		final QueryBuilder query = new CuratedTaxonomicAnnotationsQueryBuilder(config, true);
 		return (new QueryExecutor<Integer>(this.dataSource, query) {
 			@Override

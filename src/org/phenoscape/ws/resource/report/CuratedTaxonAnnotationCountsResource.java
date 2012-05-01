@@ -2,7 +2,6 @@ package org.phenoscape.ws.resource.report;
 
 import java.sql.SQLException;
 
-import org.apache.solr.client.solrj.SolrServerException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.phenoscape.obd.query.AnnotationsQueryConfig;
@@ -41,10 +40,6 @@ public class CuratedTaxonAnnotationCountsResource extends AbstractPhenoscapeReso
 			result.append(System.getProperty("line.separator"));
 			return new StringRepresentation(result.toString(), MediaType.TEXT_TSV, Language.DEFAULT, CharacterSet.UTF_8);
 		} catch (SQLException e) {
-			log().error("Error querying taxon annotation counts", e);
-			this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
-			return null;
-		} catch (SolrServerException e) {
 			log().error("Error querying taxon annotation counts", e);
 			this.setStatus(Status.SERVER_ERROR_INTERNAL, e);
 			return null;
