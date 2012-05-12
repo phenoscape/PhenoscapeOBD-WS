@@ -9,6 +9,38 @@
 		<param-value>org.phenoscape.ws.application.PhenoscapeWebServiceApplication</param-value>
 	</context-param>
 
+	<filter>
+		<filter-name>monitoring</filter-name>
+		<filter-class>net.bull.javamelody.MonitoringFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>monitoring</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	<listener>
+		<listener-class>net.bull.javamelody.SessionListener</listener-class>
+	</listener>
+
+	<login-config>
+		<auth-method>BASIC</auth-method>
+		<realm-name>Monitoring</realm-name>
+	</login-config>
+	<security-role>
+		<role-name>monitoring</role-name>
+	</security-role>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Monitoring</web-resource-name>
+			<url-pattern>/monitoring</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>monitoring</role-name>
+		</auth-constraint>
+		<!-- if SSL enabled (SSL and certificate must then be configured in the 
+			server) <user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+			</user-data-constraint> -->
+	</security-constraint>
+
 	<!-- Restlet adapter -->
 	<servlet>
 		<servlet-name>ServerServlet</servlet-name>
