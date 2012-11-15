@@ -659,7 +659,7 @@ public class PhenoscapeDataStore {
 			annotation.setGene(gene);
 			annotation.setEntity(this.createBasicTerm((String)(item.getFieldValue("direct_entity")), (String)(item.getFieldValue("direct_entity_label")), config.getPostcompositionOption(), null));
 			annotation.setQuality(this.createBasicTerm((String)(item.getFieldValue("direct_quality")), (String)(item.getFieldValue("direct_quality_label")), config.getPostcompositionOption(), null));
-			if (item.containsKey("related_entity")) {
+			if (item.containsKey("direct_related_entity")) {
 				annotation.setRelatedEntity(this.createBasicTerm((String)(item.getFieldValue("direct_related_entity")), (String)(item.getFieldValue("direct_related_entity_label")), config.getPostcompositionOption(), null));
 			}
 			annotations.add(annotation);
