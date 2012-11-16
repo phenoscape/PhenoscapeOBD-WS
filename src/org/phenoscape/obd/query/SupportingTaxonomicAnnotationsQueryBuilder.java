@@ -54,7 +54,7 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         query.append(" JOIN character ON (character.node_id = annotation_source.character_node_id) ");
         query.append(" JOIN state ON (state.node_id = annotation_source.state_node_id) ");
         query.append(String.format(" JOIN link dataset_to_pub ON (dataset_to_pub.object_id = publication.node_id AND dataset_to_pub.predicate_id = %s) ", this.node(PHENOSCAPE.HAS_PUBLICATION)));
-        query.append(String.format(" LEFT JOIN tagval curators ON (tagval.node_id = dataset_to_pub.node_id AND tagval.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
+        query.append(String.format(" LEFT JOIN tagval curators ON (curators.node_id = dataset_to_pub.node_id AND curators.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
         final String isANode = String.format(NODE_S, OBO.IS_A);
         if (this.config.includeInferredAnnotations()) {
             query.append(String.format(" JOIN link taxon_is_a ON (taxon_is_a.object_id = taxon_annotation.taxon_node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.node_id = %s) ", isANode, NODE));    
@@ -96,7 +96,7 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         query.append(" JOIN character ON (character.node_id = annotation_source.character_node_id) ");
         query.append(" JOIN state ON (state.node_id = annotation_source.state_node_id) ");
         query.append(String.format(" JOIN link dataset_to_pub ON (dataset_to_pub.object_id = publication.node_id AND dataset_to_pub.predicate_id = %s) ", this.node(PHENOSCAPE.HAS_PUBLICATION)));
-        query.append(String.format(" LEFT JOIN tagval curators ON (tagval.node_id = dataset_to_pub.node_id AND tagval.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
+        query.append(String.format(" LEFT JOIN tagval curators ON (curators.node_id = dataset_to_pub.node_id AND curators.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
         query.append(" WHERE ");
         final List<String> wheres = new ArrayList<String>();
         wheres.add(String.format(" taxon_annotation.taxon_node_id = %s ", NODE));
