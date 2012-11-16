@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 import org.phenoscape.obd.model.Vocab.OBO;
+import org.phenoscape.obd.model.Vocab.PHENOSCAPE;
 
 public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
 
@@ -44,7 +45,7 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
     @Override
     protected String getQuery() {
         final StringBuffer query = new StringBuffer();
-        query.append("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, taxon.is_extinct AS taxon_is_extinct, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_uid, phenotype.related_entity_label, publication.uid AS publication_uid, publication.label AS publication_label, otu.uid AS otu_uid, otu.label AS otu_label, character.label AS character_label, character.character_number, state.label AS state_label FROM annotation_source ");
+        query.append("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, taxon.is_extinct AS taxon_is_extinct, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_uid, phenotype.related_entity_label, publication.uid AS publication_uid, publication.label AS publication_label, otu.uid AS otu_uid, otu.label AS otu_label, character.label AS character_label, character.character_number, state.label AS state_label, curators.val AS curator FROM annotation_source ");
         query.append(" JOIN taxon_annotation ON (taxon_annotation.annotation_id = annotation_source.annotation_id) ");
         query.append(" JOIN phenotype ON (taxon_annotation.phenotype_node_id = phenotype.node_id) ");
         query.append(" JOIN taxon ON (taxon_annotation.taxon_node_id = taxon.node_id) ");
@@ -52,6 +53,8 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         query.append(" JOIN otu ON (otu.node_id = annotation_source.otu_node_id) ");
         query.append(" JOIN character ON (character.node_id = annotation_source.character_node_id) ");
         query.append(" JOIN state ON (state.node_id = annotation_source.state_node_id) ");
+        query.append(String.format(" JOIN link dataset_to_pub ON (dataset_to_pub.object_id = publication.node_id AND dataset_to_pub.predicate_id = %s) ", this.node(PHENOSCAPE.HAS_PUBLICATION)));
+        query.append(String.format(" LEFT JOIN tagval curators ON (tagval.node_id = dataset_to_pub.node_id AND tagval.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
         final String isANode = String.format(NODE_S, OBO.IS_A);
         if (this.config.includeInferredAnnotations()) {
             query.append(String.format(" JOIN link taxon_is_a ON (taxon_is_a.object_id = taxon_annotation.taxon_node_id AND taxon_is_a.predicate_id = %s AND taxon_is_a.node_id = %s) ", isANode, NODE));    
@@ -84,7 +87,7 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
 
     private String getTempExactTaxonQuery() {
         final StringBuffer query = new StringBuffer();
-        query.append("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, taxon.is_extinct AS taxon_is_extinct, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_uid, phenotype.related_entity_label, publication.uid AS publication_uid, publication.label AS publication_label, otu.uid AS otu_uid, otu.label AS otu_label, character.label AS character_label, character.character_number, state.label AS state_label FROM annotation_source "); //TODO
+        query.append("SELECT taxon.node_id AS taxon_node_id, taxon.uid AS taxon_uid, taxon.label AS taxon_label, taxon.rank_uid AS taxon_rank_uid, taxon.rank_label AS taxon_rank_label, taxon.is_extinct AS taxon_is_extinct, phenotype.entity_uid, phenotype.entity_label, phenotype.quality_uid, phenotype.quality_label, phenotype.related_entity_uid, phenotype.related_entity_label, publication.uid AS publication_uid, publication.label AS publication_label, otu.uid AS otu_uid, otu.label AS otu_label, character.label AS character_label, character.character_number, state.label AS state_label, curators.val AS curator FROM annotation_source "); //TODO
         query.append(" JOIN taxon_annotation ON (taxon_annotation.annotation_id = annotation_source.annotation_id) ");
         query.append(" JOIN phenotype ON (taxon_annotation.phenotype_node_id = phenotype.node_id) ");
         query.append(" JOIN taxon ON (taxon_annotation.taxon_node_id = taxon.node_id) ");
@@ -92,6 +95,8 @@ public class SupportingTaxonomicAnnotationsQueryBuilder extends QueryBuilder {
         query.append(" JOIN otu ON (otu.node_id = annotation_source.otu_node_id) ");
         query.append(" JOIN character ON (character.node_id = annotation_source.character_node_id) ");
         query.append(" JOIN state ON (state.node_id = annotation_source.state_node_id) ");
+        query.append(String.format(" JOIN link dataset_to_pub ON (dataset_to_pub.object_id = publication.node_id AND dataset_to_pub.predicate_id = %s) ", this.node(PHENOSCAPE.HAS_PUBLICATION)));
+        query.append(String.format(" LEFT JOIN tagval curators ON (tagval.node_id = dataset_to_pub.node_id AND tagval.tag_id = %s )  ", this.node(PHENOSCAPE.HAS_CURATORS)));
         query.append(" WHERE ");
         final List<String> wheres = new ArrayList<String>();
         wheres.add(String.format(" taxon_annotation.taxon_node_id = %s ", NODE));

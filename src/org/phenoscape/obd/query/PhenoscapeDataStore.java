@@ -502,6 +502,7 @@ public class PhenoscapeDataStore {
 		final Character character = new Character(null, result.getString("character_label"), result.getString("character_number"));
 		annotation.setCharacter(character);
 		annotation.setState(new SimpleTerm(null, result.getString("state_label")));
+		annotation.setCurator(result.getString("curator"));
 		return annotation;
 	}
 

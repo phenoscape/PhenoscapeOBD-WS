@@ -120,6 +120,7 @@ public class TaxonAnnotationSourceResource extends AbstractPhenoscapeResource {
         final JSONObject state = new JSONObject();
         state.put("text", taxonAnnotation.getState().getLabel());
         json.put("state", state);
+        json.put("curator", taxonAnnotation.getCurator());
         json.put("otu", taxonAnnotation.getOtu().getLabel());
         return json;    
     }
