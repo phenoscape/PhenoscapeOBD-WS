@@ -8,11 +8,12 @@ import java.util.Map;
 public class Vocab {
 
 	public static final Map<String, List<String>> NAMESPACE_GROUPS = new HashMap<String, List<String>>();
-	public static final List<String> ANATOMICAL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE);
-	public static final List<String> ALL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE);
+	public static final List<String> ANATOMICAL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, VSAO.NAMESPACE, CARO.NAMESPACE);
+	public static final List<String> ALL_ENTITY_NAMESPACES = Arrays.asList(TAO.NAMESPACE, VAO.NAMESPACE, VSAO.NAMESPACE, CARO.NAMESPACE, GO.NAMESPACE, GO.BP_NAMESPACE, GO.CC_NAMESPACE, GO.MF_NAMESPACE);
 	static {        
 		NAMESPACE_GROUPS.put(TAO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
 		NAMESPACE_GROUPS.put(VAO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
+		NAMESPACE_GROUPS.put(VSAO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
 		NAMESPACE_GROUPS.put(CARO.NAMESPACE, ANATOMICAL_ENTITY_NAMESPACES);
 	}
 
@@ -36,6 +37,10 @@ public class Vocab {
 
 	public static class VAO {
 		public static final String NAMESPACE = "vertebrate_anatomy";
+	}
+
+	public static class VSAO {
+		public static final String NAMESPACE = "vertebrate_skeletal_anatomy";
 	}
 
 	public static class CARO {
