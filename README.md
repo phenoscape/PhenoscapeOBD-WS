@@ -1,5 +1,5 @@
 # PhenoscapeOBD-WS
-Phenoscape data services web application for the OBD-based knowledgebase underlying http://fish.phenoscape.org, the legacy Phenoscape KB for fishes. It runs on top of the OBD-based Phenoscape Knowledgebase (a triple store implemented as a relationsl SQL database).
+Phenoscape data services web application for the OBD-based knowledgebase underlying http://fish.phenoscape.org, the legacy Phenoscape KB for fishes. It runs on top of the OBD-based Phenoscape Knowledgebase (a triple store implemented as a relational SQL database).
 
 The following components are related:
 * Web application (providing the web UI): https://github.com/phenoscape/PhenoscapeWeb
